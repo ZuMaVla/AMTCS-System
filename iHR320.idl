@@ -1,0 +1,29 @@
+// iHR320.idl : type library source for iHR320.exe
+
+// This file will be processed by the MIDL compiler to produce the
+// type library (iHR320.tlb).
+
+[ uuid(AD7C3530-5259-4592-A3C2-A39C434A12FA), version(1.0) ]
+library iHR320
+{
+	importlib("stdole32.tlb");
+	importlib("stdole2.tlb");
+
+	//  Primary dispatch interface for CiHR320Doc
+	
+	[ uuid(52AA4D6E-4383-4CFF-90FB-8886361BD9C2) ]
+	dispinterface IiHR320
+	{
+		properties:
+			
+		methods:
+	};
+
+	//  Class information for CiHR320Doc
+	
+	[ uuid(C0219464-4B1D-4583-B89B-2E65F8439BBB) ]
+	coclass iHR320
+	{
+		[default] dispinterface IiHR320;
+	};
+};

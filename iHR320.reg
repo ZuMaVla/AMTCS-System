@@ -1,0 +1,17 @@
+REGEDIT
+; This .REG file may be used by your SETUP program.
+;   If a SETUP program is not available, the entries below will be
+;   registered in your InitInstance automatically with a call to
+;   CWinApp::RegisterShellFileTypes and COleObjectFactory::UpdateRegistryAll.
+
+
+HKEY_CLASSES_ROOT\iHR320.Application = iHR320 Application
+
+
+HKEY_CLASSES_ROOT\iHR320.Application\CLSID = {C0219464-4B1D-4583-B89B-2E65F8439BBB}
+
+HKEY_CLASSES_ROOT\CLSID\{C0219464-4B1D-4583-B89B-2E65F8439BBB} = iHR320 Application
+HKEY_CLASSES_ROOT\CLSID\{C0219464-4B1D-4583-B89B-2E65F8439BBB}\ProgId = iHR320.Application
+
+
+HKEY_CLASSES_ROOT\CLSID\{C0219464-4B1D-4583-B89B-2E65F8439BBB}\LocalServer32 = iHR320.EXE
