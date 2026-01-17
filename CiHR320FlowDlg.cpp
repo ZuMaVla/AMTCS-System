@@ -1,0 +1,34 @@
+// CiHR320FlowDlg.cpp : implementation file
+//
+
+#include "stdafx.h"
+#include "iHR320.h"
+#include "CiHR320FlowDlg.h"
+#include "afxdialogex.h"
+
+
+// CiHR320FlowDlg dialog
+
+IMPLEMENT_DYNAMIC(CiHR320FlowDlg, CDialogEx)
+
+CiHR320FlowDlg::CiHR320FlowDlg(CWnd* pParent /*=NULL*/)
+	: CDialogEx(IDD_EXPERIMENT_FLOW_DLG, pParent)
+{
+
+}
+
+CiHR320FlowDlg::~CiHR320FlowDlg()
+{
+}
+
+void CiHR320FlowDlg::DoDataExchange(CDataExchange* pDX)
+{
+	CDialogEx::DoDataExchange(pDX);
+}
+
+
+BEGIN_MESSAGE_MAP(CiHR320FlowDlg, CDialogEx)
+END_MESSAGE_MAP()
+
+
+// CiHR320FlowDlg message handlers

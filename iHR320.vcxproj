@@ -193,6 +193,9 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CiHR320ConnectivityDlg.h" />
+    <ClInclude Include="CiHR320FlowDlg.h" />
+    <ClInclude Include="CiHR320SettingsDlg.h" />
     <ClInclude Include="DlgProxy.h" />
     <ClInclude Include="iHR320.h" />
     <ClInclude Include="iHR320Dlg.h" />
@@ -201,6 +204,9 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CiHR320ConnectivityDlg.cpp" />
+    <ClCompile Include="CiHR320FlowDlg.cpp" />
+    <ClCompile Include="CiHR320SettingsDlg.cpp" />
     <ClCompile Include="DlgProxy.cpp" />
     <ClCompile Include="iHR320.cpp" />
     <ClCompile Include="iHR320Dlg.cpp" />
@@ -215,6 +221,7 @@
     <Midl Include="iHR320.idl" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ClassDiagram.cd" />
     <None Include="iHR320.reg" />
     <None Include="res\iHR320.rc2" />
   </ItemGroup>
@@ -227,4 +234,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties RESOURCE_FILE="iHR320.rc" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>
