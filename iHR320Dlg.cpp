@@ -7,6 +7,8 @@
 #include "iHR320Dlg.h"
 #include "DlgProxy.h"
 #include "afxdialogex.h"
+#include "Resource.h"
+#include "CiHR320ConnectivityDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -52,7 +54,7 @@ END_MESSAGE_MAP()
 IMPLEMENT_DYNAMIC(CiHR320Dlg, CDialogEx);
 
 CiHR320Dlg::CiHR320Dlg(CWnd* pParent /*=NULL*/)
-	: CDialogEx(IDD_IHR320_DIALOG, pParent)
+	: CDialogEx(IDD_IHR320_MAIN_DLG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_pAutoProxy = NULL;
@@ -77,6 +79,7 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_WM_CLOSE()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_STN_CLICKED(IDC_TC_connected_Text2, &CiHR320Dlg::OnStnClickedTcconnectedText2)
 END_MESSAGE_MAP()
 
 
@@ -86,6 +89,31 @@ BOOL CiHR320Dlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
+	m_tab.SubclassDlgItem(IDC_TAB_MAIN, this);
+
+	m_tab.InsertItem(0, _T("Connectivity"));
+	m_tab.InsertItem(1, _T("Experiment Settings"));
+	m_tab.InsertItem(2, _T("Experiment Flow"));
+
+	// Create child dialogs
+	m_connectivityDlg.Create(IDD_CONNECTIVITY_DLG, &m_tab);
+	m_settingsDlg.Create(IDD_EXPERIMENT_SETTINGS_DLG, &m_tab);
+	m_flowDlg.Create(IDD_EXPERIMENT_FLOW_DLG, &m_tab);
+
+	CRect rcTab;
+	m_tab.GetClientRect(&rcTab);
+	m_tab.AdjustRect(FALSE, &rcTab);   // remove tab headers
+
+
+	m_connectivityDlg.MoveWindow(&rcTab);
+	m_connectivityDlg.ShowWindow(SW_HIDE);
+
+	// create other tabs, hide them initially
+	m_settingsDlg.MoveWindow(&rcTab);
+	m_settingsDlg.ShowWindow(SW_SHOW);
+
+	m_flowDlg.MoveWindow(&rcTab);
+	m_flowDlg.ShowWindow(SW_HIDE);
 	// Add "About..." menu item to system menu.
 
 	// IDM_ABOUTBOX must be in the system command range.
@@ -203,3 +231,15 @@ BOOL CiHR320Dlg::CanExit()
 	return TRUE;
 }
 
+
+
+void CiHR320Dlg::OnStnClickedPlcconnectedText2()
+{
+	// TODO: Add your control notification handler code here
+}
+
+
+void CiHR320Dlg::OnStnClickedTcconnectedText2()
+{
+	// TODO: Add your control notification handler code here
+}

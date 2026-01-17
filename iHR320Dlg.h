@@ -5,6 +5,10 @@
 #pragma once
 
 class CiHR320DlgAutoProxy;
+#include <afxcmn.h>
+#include "CiHR320ConnectivityDlg.h"
+#include "CiHR320SettingsDlg.h"
+#include "CiHR320FlowDlg.h"
 
 
 // CiHR320Dlg dialog
@@ -19,9 +23,7 @@ public:
 	virtual ~CiHR320Dlg();
 
 // Dialog Data
-#ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_IHR320_DIALOG };
-#endif
+	enum { IDD = IDD_CONNECTIVITY_DLG };
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
@@ -31,7 +33,10 @@ public:
 protected:
 	CiHR320DlgAutoProxy* m_pAutoProxy;
 	HICON m_hIcon;
-
+	CTabCtrl m_tab;
+	CiHR320ConnectivityDlg m_connectivityDlg;
+	CiHR320SettingsDlg m_settingsDlg;
+	CiHR320FlowDlg m_flowDlg;
 	BOOL CanExit();
 
 	// Generated message map functions
@@ -43,4 +48,7 @@ protected:
 	virtual void OnOK();
 	virtual void OnCancel();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnStnClickedPlcconnectedText2();
+	afx_msg void OnStnClickedTcconnectedText2();
 };
