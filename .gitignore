@@ -1,8 +1,12 @@
 # Visual Studio
 .vs/
+ipch/
 *.VC.opendb
+*.VC.VC.opendb
 *.VC.db
 *.suo
+*.sdf
+*.opensdf
 *.user
 *.ncb
 *.aps

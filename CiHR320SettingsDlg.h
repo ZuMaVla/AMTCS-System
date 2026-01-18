@@ -1,4 +1,6 @@
 #pragma once
+#include "afxwin.h"
+#include "afxcmn.h"
 
 
 // CiHR320SettingsDlg dialog
@@ -18,6 +20,10 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-
+	virtual BOOL OnInitDialog();
 	DECLARE_MESSAGE_MAP()
+public:
+	CListBox m_ListBoxDG;
+	CSliderCtrl m_sliderStartWL, m_sliderDGrangeNo;
+
 };
