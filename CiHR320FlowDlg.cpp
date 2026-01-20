@@ -5,6 +5,7 @@
 #include "iHR320.h"
 #include "CiHR320FlowDlg.h"
 #include "afxdialogex.h"
+#include "Resource.h"
 
 
 // CiHR320FlowDlg dialog
@@ -24,11 +25,22 @@ CiHR320FlowDlg::~CiHR320FlowDlg()
 void CiHR320FlowDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_EXP_FLOW_LOGS, m_ExpFLowLogs);
 }
 
 
 BEGIN_MESSAGE_MAP(CiHR320FlowDlg, CDialogEx)
 END_MESSAGE_MAP()
 
+BOOL CiHR320FlowDlg::OnInitDialog()
+{
+	CDialogEx::OnInitDialog();
+	m_ExpFLowLogs.EnableBrowseButton(FALSE);
+	m_ExpFLowLogs.AddItem(_T("Experiment started..."));
+ 
+
+
+	return TRUE;
+}
 
 // CiHR320FlowDlg message handlers

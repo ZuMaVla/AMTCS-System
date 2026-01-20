@@ -25,5 +25,5 @@ protected:
 public:
 	CListBox m_ListBoxDG;
 	CSliderCtrl m_sliderStartWL, m_sliderDGrangeNo;
-
+	CEdit m_NA;
 };

@@ -80,6 +80,7 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_STN_CLICKED(IDC_TC_connected_Text2, &CiHR320Dlg::OnStnClickedTcconnectedText2)
+	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CiHR320Dlg::OnTabSelChange)
 END_MESSAGE_MAP()
 
 
@@ -104,17 +105,20 @@ BOOL CiHR320Dlg::OnInitDialog()
 	m_tab.GetClientRect(&rcTab);
 	m_tab.AdjustRect(FALSE, &rcTab);   // remove tab headers
 
+	m_tab.SetCurSel(2);
 
 	m_connectivityDlg.MoveWindow(&rcTab);
 	m_connectivityDlg.ShowWindow(SW_HIDE);
 
 	// create other tabs, hide them initially
 	m_settingsDlg.MoveWindow(&rcTab);
-	m_settingsDlg.ShowWindow(SW_SHOW);
+	m_settingsDlg.ShowWindow(SW_HIDE);
 
 	m_flowDlg.MoveWindow(&rcTab);
-	m_flowDlg.ShowWindow(SW_HIDE);
+	m_flowDlg.ShowWindow(SW_SHOW);
 	// Add "About..." menu item to system menu.
+
+
 
 	// IDM_ABOUTBOX must be in the system command range.
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
@@ -243,3 +247,24 @@ void CiHR320Dlg::OnStnClickedTcconnectedText2()
 {
 	// TODO: Add your control notification handler code here
 }
+
+void CiHR320Dlg::OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	int sel = m_tab.GetCurSel();
+
+	// Hide all pages
+	m_flowDlg.ShowWindow(SW_HIDE);
+	m_connectivityDlg.ShowWindow(SW_HIDE);
+	m_settingsDlg.ShowWindow(SW_HIDE);
+
+	// Show the selected page
+	switch (sel)
+	{
+	case 0: m_connectivityDlg.ShowWindow(SW_SHOW); break;
+	case 1: m_settingsDlg.ShowWindow(SW_SHOW); break;
+	case 2: m_flowDlg.ShowWindow(SW_SHOW); break;
+	}
+
+	*pResult = 0;
+}
+

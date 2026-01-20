@@ -47,6 +47,7 @@ protected:
 	afx_msg void OnClose();
 	virtual void OnOK();
 	virtual void OnCancel();
+	afx_msg void OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnStnClickedPlcconnectedText2();

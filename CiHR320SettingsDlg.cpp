@@ -29,6 +29,7 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER_START_WL, m_sliderStartWL);
 	DDX_Control(pDX, IDC_SLIDER_DG_POSITIONS, m_sliderDGrangeNo);
 
+	DDX_Control(pDX, IDC_EDIT2, m_NA);
 }
 
 
@@ -48,13 +49,16 @@ BOOL CiHR320SettingsDlg::OnInitDialog()
 
 //	Specifying starting wavelength slider
 	m_sliderStartWL.SetRange(200, 600);
-	m_sliderStartWL.SetTicFreq(5);
-	m_sliderStartWL.SetPos(200);
+	m_sliderStartWL.SetTicFreq(10);
+	m_sliderStartWL.SetPos(340);
 
 //	Specifying number of DG "windows" slider
 	m_sliderDGrangeNo.SetRange(1, 5);
 	m_sliderDGrangeNo.SetTicFreq(1);
 	m_sliderDGrangeNo.SetPos(3);
+
+	m_NA.SetWindowText(_T("4"));
+
 
 
 	return TRUE;

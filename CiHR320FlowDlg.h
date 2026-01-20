@@ -1,4 +1,5 @@
 #pragma once
+#include "afxvslistbox.h"
 
 
 // CiHR320FlowDlg dialog
@@ -18,6 +19,8 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-
+	virtual BOOL OnInitDialog();
 	DECLARE_MESSAGE_MAP()
+public:
+	CVSListBox m_ExpFLowLogs;
 };
