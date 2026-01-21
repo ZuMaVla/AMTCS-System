@@ -6,7 +6,7 @@
 
 
  /* File created by MIDL compiler version 8.00.0603 */
-/* at Tue Jan 20 22:21:50 2026
+/* at Wed Jan 21 10:49:08 2026
  */
 /* Compiler settings for iHR320.idl:
     Oicf, W1, Zp8, env=Win32 (32b run), target_arch=X86 8.00.0603 
