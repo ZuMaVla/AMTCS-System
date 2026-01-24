@@ -2,12 +2,12 @@ import socket
 
 HOST = "0.0.0.0"          # Listen on all interfaces
 PORT = 5050               # Non‑exotic, unprivileged port
-ALLOWED_CLIENT = "192.168.50.13"
+ALLOWED_CLIENT = "192.168.50.14"
 
 def run_server():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
         server.bind((HOST, PORT))
-        server.listen(1)
+        server.listen(10)
         print(f"Server listening on {HOST}:{PORT}")
 
         while True:
@@ -31,6 +31,7 @@ def run_server():
                 reply = f"{message} - received"
                 conn.sendall(reply.encode())
                 print(f"Replied: {reply}")
+                conn.close()
 
 if __name__ == "__main__":
     run_server()
