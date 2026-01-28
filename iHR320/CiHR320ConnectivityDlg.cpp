@@ -53,7 +53,7 @@ void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 {
 	std::string reply;
 
-	if (SendTCPMessage("192.168.50.1", 5050, "Hello", reply)) {
+	if (SendTCPMessage("192.168.50.1", 5050, "PING", reply)) {
 		m_ConnectionLogs.AddItem(_T("PLC ready on 192.168.50.1"));
 		m_CheckBoxPLC.SetCheck(TRUE);
 		m_CheckBoxPLC.SetWindowText(_T("Connected"));

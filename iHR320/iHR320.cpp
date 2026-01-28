@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "iHR320.h"
 #include "iHR320Dlg.h"
+#include "TCPtoRPi.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -105,9 +106,13 @@ BOOL CiHR320App::InitInstance()
 			return FALSE;
 	}
 
+	StartMainLogicThread();		// Main logic 
+
 	CiHR320Dlg dlg;
 	m_pMainWnd = &dlg;
 	dlg.DoModal();
+
+	StopMainLogicThread();
 	
 	// Delete the shell manager created above.
 	if (pShellManager != NULL)
