@@ -93,7 +93,7 @@
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <RegisterOutput>true</RegisterOutput>
     </Link>
     <Midl>
@@ -196,6 +196,7 @@
     <ClInclude Include="CiHR320ConnectivityDlg.h" />
     <ClInclude Include="CiHR320FlowDlg.h" />
     <ClInclude Include="CiHR320SettingsDlg.h" />
+    <ClInclude Include="DataAcquisition.h" />
     <ClInclude Include="DlgProxy.h" />
     <ClInclude Include="iHR320.h" />
     <ClInclude Include="iHR320Dlg.h" />
@@ -208,6 +209,7 @@
     <ClCompile Include="CiHR320ConnectivityDlg.cpp" />
     <ClCompile Include="CiHR320FlowDlg.cpp" />
     <ClCompile Include="CiHR320SettingsDlg.cpp" />
+    <ClCompile Include="DataAcquisition.cpp" />
     <ClCompile Include="DlgProxy.cpp" />
     <ClCompile Include="iHR320.cpp" />
     <ClCompile Include="iHR320Dlg.cpp" />
