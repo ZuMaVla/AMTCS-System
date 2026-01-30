@@ -2,7 +2,7 @@
 #include "DataAcquisition.h"
 
 
-static bool TakeSpectrum() {
+bool TakeSpectrum() {
 //	to do
 	return true;
 };
