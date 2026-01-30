@@ -3,8 +3,9 @@ from dataclasses import dataclass
 class TCPcfg:
     remote_host = "192.168.50.11"
     host = "192.168.50.1"
-    port = 5050
-    timeout = 0.2
+    LISTEN_PORT = 5050
+    SEND_PORT   = 5051
+    timeout = 1
 
 @dataclass
 class PLCcfg:
