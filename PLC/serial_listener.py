@@ -8,31 +8,41 @@ import time
 # ============================================================
 
 def serial_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
-    port="COM1"
-    baud_rate=14400
-    ser = serial.Serial(port, baudrate=baud_rate, timeout=0.5)
+    ser = serial.Serial(
+        port="/dev/ttyUSB0",
+        baudrate=14400,
+        bytesize=serial.EIGHTBITS,
+        parity=serial.PARITY_NONE,
+        stopbits=serial.STOPBITS_ONE,
+        timeout=0.5
+    )
+
+    waiting_for_reply = False
+
+    print(f"[SERIAL] Serial port opened on {ser.port}")
+
 
     while True:
-        # 1. Handle commands from main thread
-        try:
-            cmd = in_q.get_nowait()
-            match cmd:
-                case ("WRITE", payload):
-                    ser.write((payload + "\n").encode())
-                case ("CLOSE",):
-                    ser.close()
-                    return
-                case _:
-                    print(f"[SERIAL] Unknown command: {cmd}")
-        except queue.Empty:
-            pass
+        # 1. Check for incoming commands and write if not waiting for reply
+        if not waiting_for_reply:
+            try:
+                cmd = in_q.get_nowait()
+                match cmd:
+                    case ("WRITE", payload):
+                        ser.write((payload + "\n").encode())
+                        waiting_for_reply = True   # switch to RX/receiver mode
+                    case ("CLOSE",):
+                        ser.close()
+                        return
+            except queue.Empty:
+                pass
 
-        # 2. Handle incoming serial messages
-        try:
-            line = ser.readline().decode().strip()
+        # 2. If waiting for reply, read incoming data
+        if waiting_for_reply:
+            line = ser.readline().decode(errors="ignore").strip()
             if line:
                 out_q.put(line)
-        except Exception as e:
-            print(f"[SERIAL] Error: {e}")
-            time.sleep(1)
+                print(f"[SERIAL] message received on {ser.port}: {line}")
+                waiting_for_reply = False
 
+        time.sleep(0.5)

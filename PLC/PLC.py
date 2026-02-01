@@ -20,17 +20,14 @@ def main():
 
     # Start communication threads
     t_tcp = threading.Thread(target=tcp_comm_thread, args=(tcp_in, tcp_out), daemon=True)
- #   t_ser = threading.Thread(target=serial_comm_thread, args=(ser_in, ser_out), daemon=True)
+    t_ser = threading.Thread(target=serial_comm_thread, args=(ser_in, ser_out), daemon=True)
 
     t_tcp.start()
- #   t_ser.start()
+    t_ser.start()
 
     print("Main event loop running...")
 
-    # Example: send initial commands
- #   tcp_in.put(("SEND", "HELLO"))
- #   ser_in.put(("SEND", "STATUS"))
-
+ 
     TIMEOUT = PLCcfg.timeout
 
     # Main event loop
