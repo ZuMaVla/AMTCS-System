@@ -21,4 +21,5 @@ iHR320_i.c
 Debug/
 Release/
 __pycache__/
+__pycache__/*
 *.pyc

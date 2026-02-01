@@ -3,6 +3,7 @@ import queue
 import time
 from serial_listener import serial_comm_thread
 from tcp_listener import tcp_comm_thread
+from config import PLCcfg
 
 # ============================================================
 #  Main Thread (PLC)
@@ -26,16 +27,23 @@ def main():
 
     print("Main event loop running...")
 
-    # Example: send initial commands
-    tcp_in.put(("SEND", "HELLO"))
-    ser_in.put(("SEND", "STATUS"))
+ 
+    TIMEOUT = PLCcfg.timeout
 
     # Main event loop
     while True:
         # Handle TCP events
         try:
-            msg = tcp_out.get_nowait()
-            print(f"[MAIN] TCP event: {msg}")
+            (keyword, payload) = tcp_out.get_nowait()
+            print(f"[MAIN] TCP event: {keyword}: {payload}")
+            match (keyword, payload):
+                case (("STATUS", "iHR320_OK")):
+                    cmd = "WRITE"
+                    msg = "LOOP 1:SETPT 260"
+                    ser_in.put((cmd, msg))
+                case (("SOMETHING_ELSE", "")):
+                    print(f"[MAIN] event: something else")
+
         except queue.Empty:
             pass
 
@@ -47,7 +55,7 @@ def main():
             pass
 
         # Periodic tasks or routing logic here
-        time.sleep(0.1)
+        time.sleep(TIMEOUT)
 
 
 if __name__ == "__main__":
