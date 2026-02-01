@@ -1,11 +1,14 @@
 
-// iHR320.cpp : Defines the class behaviors for the application.
-//
+#pragma comment(lib, "ws2_32.lib")
 
 #include "stdafx.h"
 #include "iHR320.h"
 #include "iHR320Dlg.h"
 #include "TCPtoRPi.h"
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iostream>
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -106,18 +109,37 @@ BOOL CiHR320App::InitInstance()
 			return FALSE;
 	}
 
-	StartMainLogicThread();		// Main logic 
+	AllocConsole();
+	FILE* fp;
+	freopen_s(&fp, "CONOUT$", "w", stdout);
+	freopen_s(&fp, "CONOUT$", "w", stderr);
+	freopen_s(&fp, "CONIN$", "r", stdin);
+
+
+	// Winsock init
+
+	WSADATA wsa;
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		std::cerr << "WSAStartup failed\n";
+	}
 
 	CiHR320Dlg dlg;
 	m_pMainWnd = &dlg;
+
 	dlg.DoModal();
 
-	StopMainLogicThread();
+	StopMainLogicThread();					// Stopping communication with PLC 
+
+
 	
-	// Delete the shell manager created above.
+
+	WSACleanup();							// WSA cleanup
+
+	
+	
 	if (pShellManager != NULL)
 	{
-		delete pShellManager;
+		delete pShellManager;				// Delete the shell manager created above.
 	}
 
 #ifndef _AFXDLL

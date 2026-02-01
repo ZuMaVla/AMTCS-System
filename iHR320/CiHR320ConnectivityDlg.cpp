@@ -5,8 +5,12 @@
 #include "iHR320.h"
 #include "CiHR320ConnectivityDlg.h"
 #include "afxdialogex.h"
-#include <string>
 #include "TCPtoRPi.h"
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iostream>
+#include <string>
+#include <array>
 
 
 // CiHR320ConnectivityDlg dialog
@@ -28,6 +32,8 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_CONN_LOGS, m_ConnectionLogs);
 	DDX_Control(pDX, IDC_CHECK_PLC, m_CheckBoxPLC);
+	DDX_Control(pDX, IDC_LOCAL_IP, m_localIP);
+	DDX_Control(pDX, IDC_INET_IP, m_instIP);
 }
 
 
@@ -36,11 +42,20 @@ BEGIN_MESSAGE_MAP(CiHR320ConnectivityDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 
+
 // CiHR320ConnectivityDlg message handlers
 
 BOOL CiHR320ConnectivityDlg::OnInitDialog()
-{
+{	
+	std::array<int, 4> ip;
 	CDialogEx::OnInitDialog();
+
+	ip = GetIPAddress("local");
+	m_localIP.SetAddress(ip[0], ip[1], ip[2], ip[3]);
+
+	ip = GetIPAddress("Tyndall");
+	m_instIP.SetAddress(ip[0], ip[1], ip[2], ip[3]);
+
 	m_ConnectionLogs.EnableBrowseButton(FALSE);
 	m_ConnectionLogs.AddItem(_T("Ready to check connectivity..."));
 
@@ -51,17 +66,78 @@ BOOL CiHR320ConnectivityDlg::OnInitDialog()
 
 void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 {
-	std::string reply;
 
-	if (SendTCPMessage("192.168.50.1", 5050, "PING", reply)) {
-		m_ConnectionLogs.AddItem(_T("PLC ready on 192.168.50.1"));
-		m_CheckBoxPLC.SetCheck(TRUE);
-		m_CheckBoxPLC.SetWindowText(_T("Connected"));
-	}
-	else {
+	if (!(SendTCPMessage(GetIPstrFromCtrl(m_localIP), 5051, "REQUEST PLC_STATUS"))) {
 		AfxMessageBox(_T("Connection failed"));
 		m_ConnectionLogs.AddItem(_T("PLC offline"));
 		m_CheckBoxPLC.SetCheck(FALSE);
 		m_CheckBoxPLC.SetWindowText(_T("Offline"));
 	}
 }
+
+void CiHR320ConnectivityDlg::UpdateSystemStatusUI(std::string device) {
+	if (device == "PLC") {
+		m_ConnectionLogs.AddItem(_T("PLC ready on 192.168.50.1"));
+		m_CheckBoxPLC.SetCheck(TRUE);
+		m_CheckBoxPLC.SetWindowText(_T("Connected"));
+	}
+	return;
+}
+
+
+	
+
+std::array<int, 4> CiHR320ConnectivityDlg::GetIPAddress(std::string type)
+{
+	char hostname[256];
+	if (gethostname(hostname, sizeof(hostname)) == SOCKET_ERROR)
+		return{ 0, 0, 0, 0 };
+
+	addrinfo hints = {};
+	hints.ai_family = AF_INET; // IPv4 only
+	hints.ai_socktype = SOCK_STREAM;
+
+	addrinfo* info = nullptr;
+	if (getaddrinfo(hostname, nullptr, &hints, &info) != 0)
+		return { 0, 0, 0, 0 };
+
+	std::string ip_str;
+
+	for (addrinfo* p = info; p != nullptr; p = p->ai_next)
+	{
+		sockaddr_in* addr = reinterpret_cast<sockaddr_in*>(p->ai_addr);
+		char ip[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, &(addr->sin_addr), ip, sizeof(ip));
+		ip_str = ip;
+
+		if ((ip_str.find("192.168.137.") == 0) || (ip_str == "127.0.0.1"))		// not interested in "default" IPs (loopback and ICS)
+			continue;
+
+		if (type == "local") {													// looking for IP on the network with RPi
+			if (ip_str.find("192.168.") == 0) {
+				break;
+			}
+		}
+		else {																	// looking for IP on the institutional LAN
+			if (ip_str.find("192.168.") != 0) {
+				break;
+			}
+		}
+	}
+
+	freeaddrinfo(info);
+
+	std::array<int, 4> result;
+
+	for (int i = 0; i < 3; i++) {
+		auto pos = ip_str.find(".");
+		result[i] = std::stoi(ip_str.substr(0, pos));				// converting string to integer
+		ip_str = ip_str.substr(pos + 1);
+	}
+	result[3] = std::stoi(ip_str);
+
+	return result;
+
+}
+
+

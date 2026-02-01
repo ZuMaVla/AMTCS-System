@@ -9,6 +9,7 @@
 #include "afxdialogex.h"
 #include "Resource.h"
 #include "CiHR320ConnectivityDlg.h"
+#include "TCPtoRPi.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -79,6 +80,7 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_WM_CLOSE()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
 	ON_STN_CLICKED(IDC_TC_connected_Text2, &CiHR320Dlg::OnStnClickedTcconnectedText2)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CiHR320Dlg::OnTabSelChange)
 END_MESSAGE_MAP()
@@ -105,17 +107,17 @@ BOOL CiHR320Dlg::OnInitDialog()
 	m_tab.GetClientRect(&rcTab);
 	m_tab.AdjustRect(FALSE, &rcTab);   // remove tab headers
 
-	m_tab.SetCurSel(2);
+	m_tab.SetCurSel(0);
 
 	m_connectivityDlg.MoveWindow(&rcTab);
-	m_connectivityDlg.ShowWindow(SW_HIDE);
+	m_connectivityDlg.ShowWindow(SW_SHOW);
 
 	// create other tabs, hide them initially
 	m_settingsDlg.MoveWindow(&rcTab);
 	m_settingsDlg.ShowWindow(SW_HIDE);
 
 	m_flowDlg.MoveWindow(&rcTab);
-	m_flowDlg.ShowWindow(SW_SHOW);
+	m_flowDlg.ShowWindow(SW_HIDE);
 	// Add "About..." menu item to system menu.
 
 
@@ -144,6 +146,9 @@ BOOL CiHR320Dlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
+
+	StartMainLogicThread(this);		// Main communication-with-PLC logic gets access to the UI (this)
+
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -268,3 +273,17 @@ void CiHR320Dlg::OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
+std::string CiHR320Dlg::GetLocalIP() {
+	return m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP);
+};
+
+
+LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
+{
+	std::string* device = reinterpret_cast<std::string*>(lParam);
+
+	m_connectivityDlg.UpdateSystemStatusUI(*device);
+
+	delete device;   // free the memory after using
+	return 0;
+}

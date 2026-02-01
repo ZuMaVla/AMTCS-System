@@ -21,10 +21,11 @@ private: mutable std::mutex m_mutex;
 };
 
 // Main logic threads 
-void StartMainLogicThread();
+void StartMainLogicThread(LPVOID pParam);
 void StopMainLogicThread();
 
 // TCP listener threads
-void StartPLCListenerThread(MessageQueue& queue_out, MessageQueue& queue_in);
+void StartPLCListenerThread(const std::string ip, int port, MessageQueue& queue_out, MessageQueue& queue_in);
 void StopPLCListenerThread();
-bool SendTCPMessage(const std::string& ip, int port, const std::string& msg, std::string& replyOut);
+bool SendTCPMessage(std::string ip, int port, const std::string& msg);
+SOCKET StartTCPListener(std::string ip, int port);

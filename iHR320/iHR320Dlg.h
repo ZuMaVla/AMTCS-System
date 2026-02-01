@@ -4,11 +4,14 @@
 
 #pragma once
 
+#define WM_UPDATE_SYSTEM_STATUS (WM_APP + 1)
+
 class CiHR320DlgAutoProxy;
 #include <afxcmn.h>
 #include "CiHR320ConnectivityDlg.h"
 #include "CiHR320SettingsDlg.h"
 #include "CiHR320FlowDlg.h"
+#include "Resource.h"
 
 
 // CiHR320Dlg dialog
@@ -23,7 +26,7 @@ public:
 	virtual ~CiHR320Dlg();
 
 // Dialog Data
-	enum { IDD = IDD_CONNECTIVITY_DLG };
+	enum { IDD = IDD_IHR320_MAIN_DLG };
 
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
@@ -48,8 +51,11 @@ protected:
 	virtual void OnOK();
 	virtual void OnCancel();
 	afx_msg void OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg LRESULT OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam);
+
 	DECLARE_MESSAGE_MAP()
 public:
+	std::string GetLocalIP();
 	afx_msg void OnStnClickedPlcconnectedText2();
 	afx_msg void OnStnClickedTcconnectedText2();
 };

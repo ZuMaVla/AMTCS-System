@@ -1,72 +1,14 @@
-﻿#include "stdafx.h"
-#include "TCPtoRPi.h"
+﻿
+#include "stdafx.h"
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include "DataAcquisition.h"
 #include <iostream>
+#include "TCPtoRPi.h"
+#include "DataAcquisition.h"
+#include "iHR320Dlg.h"
 
 
 
-
-#pragma comment(lib, "ws2_32.lib")
-
-bool SendTCPMessage(const std::string& ip, int port, const std::string& msg, std::string& replyOut)
-{
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
-		return false;
-
-	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);		// Create socket using IPv4 and TCP
-	if (sock == INVALID_SOCKET)
-	{
-		WSACleanup();
-		return false;
-	}
-
-	sockaddr_in addr{};									// Empty address
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-	inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
-
-	if (connect(sock, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
-		closesocket(sock);
-		WSACleanup();
-		return false;
-	}
-
-	send(sock, msg.c_str(), static_cast<int>(msg.size()), 0);
-
-	closesocket(sock);
-	WSACleanup();
-	return true;
-}
-
-
-
-void MessageQueue::push(const Message& msg)
-{
-	{
-		std::lock_guard<std::mutex> lock(m_mutex);
-		m_queue.push(msg);
-	}
-	m_cv.notify_one();
-}
-
-Message MessageQueue::pop()
-{
-	std::unique_lock<std::mutex> lock(m_mutex);
-	m_cv.wait(lock, [this] { return !m_queue.empty(); });
-
-	Message msg = m_queue.front();
-	m_queue.pop();
-	return msg;
-}
-
-bool MessageQueue::empty() const
-{
-	std::lock_guard<std::mutex> lock(m_mutex);
-	return m_queue.empty();
-}
 
 
 static MessageQueue g_PLC_in; 
@@ -78,12 +20,20 @@ static std::atomic<bool> g_logicRunning{ false };
 static std::thread g_listenerThread;
 static std::atomic<bool> g_listenerRunning{ false };
 
+const std::string ip_PLC = "192.168.50.1";
+const int port_PLC = 5050;
+const int port_iHR320 = 5051;
+
+
 // ------------------------------------------------------------
 // TCP logic routine
 // ------------------------------------------------------------
 
-static void MainLogicWorker(MessageQueue& PLC_out, MessageQueue& PLC_in){
-	StartPLCListenerThread(PLC_out, PLC_in);
+static void MainLogicWorker(CiHR320Dlg* pUI, MessageQueue& PLC_out, MessageQueue& PLC_in){
+
+	std::string localIP = pUI->GetLocalIP();					// (!!!) retrieving IP address of self from UI
+
+	StartPLCListenerThread(localIP, port_iHR320, PLC_out, PLC_in);
 	g_logicRunning = true;
 	bool isMeasuring = false;
 	Message cmd;
@@ -95,7 +45,7 @@ static void MainLogicWorker(MessageQueue& PLC_out, MessageQueue& PLC_in){
 
 		// 2. Process the event (event interpretation) 
 
-		if (event.keyword == "START") {
+		if (event.keyword == "START") {												// Experiment sequence requested				
 			cmd.keyword = "SEND";
 			cmd.payload = "AFFIRMATIVE";
 			PLC_in.push(cmd); 
@@ -103,14 +53,29 @@ static void MainLogicWorker(MessageQueue& PLC_out, MessageQueue& PLC_in){
 			else { cmd.payload = "ERROR"; }
 			PLC_in.push(cmd);
 		}
-		else if (event.keyword == "PONG") {
-			std::cout << "PLC alive"; 
+		else if (event.keyword == "PONG") {											// PLC response - alive
+			std::cout << "PLC alive\n"; 
+			auto* pDevice = new std::string("PLC");										// create pointer to a string containing "PLC"
+			pUI->PostMessage(
+				WM_UPDATE_SYSTEM_STATUS,
+				0,
+				reinterpret_cast<LPARAM>(pDevice)
+			);
 		} 
-		else if (event.keyword == "STATUS" && event.payload == "AFFIRMATIVE") {
+		else if (event.keyword == "STATUS" && event.payload == "MEASUREMENT") {		// PLC informed about being in the middle of experiment sequence
 			isMeasuring = true;
+			cmd.keyword = "SEND";
+			cmd.payload = "GIVE_ME_DETAILS";										// Request for the current status of experiment 
+			PLC_in.push(cmd);
 		}
-		else if (event.keyword == "EVENT" && event.payload == "__STOP__") {
+		else if (event.keyword == "EVENT" && event.payload == "__STOP__") {			// User requested abort 
 			g_logicRunning = false;
+		}
+		else if (event.keyword == "REQUEST" && event.payload == "PLC_STATUS") {		// User requested to ping PLC 
+			cmd.keyword = "SEND";
+			cmd.payload = "PING";														 
+			PLC_in.push(cmd);
+
 		}
 
 	}
@@ -120,8 +85,9 @@ static void MainLogicWorker(MessageQueue& PLC_out, MessageQueue& PLC_in){
 // TCP Logic Starter/Stopper
 // ------------------------------------------------------------
 
-void StartMainLogicThread(){
-	g_logicThread = std::thread(MainLogicWorker, std::ref(g_PLC_out), std::ref(g_PLC_in));
+void StartMainLogicThread(LPVOID pParam){
+	CiHR320Dlg* pUI = reinterpret_cast<CiHR320Dlg*>(pParam);
+	g_logicThread = std::thread(MainLogicWorker, pUI, std::ref(g_PLC_out), std::ref(g_PLC_in));
 	
 }
 
@@ -145,60 +111,15 @@ void StopMainLogicThread()
 // TCP listener routine
 // ------------------------------------------------------------
 
-static void PLCListenerWorker(MessageQueue& PLC_out, MessageQueue& PLC_in)
+static void PLCListenerWorker(std::string ip_iHR320, int port_iHR320, MessageQueue& PLC_out, MessageQueue& PLC_in)
 {
+
 	g_listenerRunning = true;
 
-	AllocConsole();
-	FILE* fp;
-	freopen_s(&fp, "CONOUT$", "w", stdout);
-	freopen_s(&fp, "CONOUT$", "w", stderr);
-	freopen_s(&fp, "CONIN$", "r", stdin);
+	SOCKET server_fd = StartTCPListener(ip_iHR320, port_iHR320);
+	
+	// MAIN LOOP (fire-and-forget style communication)
 
-	// -----------------------------
-	// Winsock init
-	// -----------------------------
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
-		std::cerr << "WSAStartup failed\n";
-		return;
-	}
-
-	// -----------------------------
-	// Create socket
-	// -----------------------------
-	SOCKET server_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (server_fd == INVALID_SOCKET) {
-		std::cerr << "socket failed: " << WSAGetLastError() << "\n";
-		return;
-	}
-
-	int opt = 1;
-	setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR,
-		(const char*)&opt, sizeof(opt));
-
-	sockaddr_in addr{};
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = INADDR_ANY;   // listen all interfaces
-	addr.sin_port = htons(5051);
-
-	if (bind(server_fd, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
-		std::cerr << "bind failed: " << WSAGetLastError() << "\n";
-		closesocket(server_fd);
-		return;
-	}
-
-	if (listen(server_fd, SOMAXCONN) == SOCKET_ERROR) {
-		std::cerr << "listen failed: " << WSAGetLastError() << "\n";
-		closesocket(server_fd);
-		return;
-	}
-
-	std::cout << "[TCP] Listening on port 5051...\n";
-
-	// =====================================================
-	// MAIN LOOP (fire-and-forget style)
-	// =====================================================
 	while (g_listenerRunning)
 	{
 		// ----- allow graceful stop from PLC_in -----
@@ -206,6 +127,9 @@ static void PLCListenerWorker(MessageQueue& PLC_out, MessageQueue& PLC_in)
 			Message cmd = PLC_in.pop();
 			if (cmd.keyword == "STATUS" && cmd.payload == "__STOP__")
 				break;
+			else if (cmd.keyword == "SEND") {
+				SendTCPMessage(ip_PLC, port_PLC, cmd.payload);
+			}
 		}
 
 		// ----- wait for connection (1s poll) -----
@@ -269,11 +193,7 @@ static void PLCListenerWorker(MessageQueue& PLC_out, MessageQueue& PLC_in)
 		std::cout << "[TCP] received: " << fullMsg << "\n";
 	}
 
-	// -----------------------------
-	// Cleanup
-	// -----------------------------
 	closesocket(server_fd);
-	WSACleanup();
 
 	std::cout << "[TCP] Listener stopped\n";
 }
@@ -284,9 +204,9 @@ static void PLCListenerWorker(MessageQueue& PLC_out, MessageQueue& PLC_in)
 // TCP Listener Starter/Stopper
 // ------------------------------------------------------------
 
-void StartPLCListenerThread(MessageQueue& queue_out, MessageQueue& queue_in)
+void StartPLCListenerThread(std::string ip_iHR320, int port_iHR320, MessageQueue& queue_out, MessageQueue& queue_in)
 {
-	g_listenerThread = std::thread(PLCListenerWorker, std::ref(queue_out), std::ref(queue_in));
+	g_listenerThread = std::thread(PLCListenerWorker, ip_iHR320, port_iHR320, std::ref(queue_out), std::ref(queue_in));
 }
 
 void StopPLCListenerThread()
@@ -295,6 +215,101 @@ void StopPLCListenerThread()
 
 	if (g_listenerThread.joinable())
 		g_listenerThread.join();
+}
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// support implementation
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+void MessageQueue::push(const Message& msg)
+{
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		m_queue.push(msg);
+	}
+	m_cv.notify_one();
+}
+
+Message MessageQueue::pop()
+{
+	std::unique_lock<std::mutex> lock(m_mutex);
+	m_cv.wait(lock, [this] { return !m_queue.empty(); });
+
+	Message msg = m_queue.front();
+	m_queue.pop();
+	return msg;
+}
+
+bool MessageQueue::empty() const
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	return m_queue.empty();
+}
+
+
+SOCKET StartTCPListener(std::string ip, int port) {
+
+	// Create socket
+
+	SOCKET server_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (server_fd == INVALID_SOCKET) {
+		std::cerr << "socket failed: " << WSAGetLastError() << "\n";
+		return server_fd;
+	}
+
+	int opt = 1;
+	setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR,
+		(const char*)&opt, sizeof(opt));
+
+	sockaddr_in addr{};
+	addr.sin_family = AF_INET;
+	inet_pton(addr.sin_family, ip.c_str(), &addr.sin_addr);
+	addr.sin_port = htons(port);
+
+	if (bind(server_fd, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+		std::cerr << "bind failed: " << WSAGetLastError() << "\n";
+		closesocket(server_fd);
+		return server_fd;
+	}
+
+	if (listen(server_fd, SOMAXCONN) == SOCKET_ERROR) {
+		std::cerr << "listen failed: " << WSAGetLastError() << "\n";
+		closesocket(server_fd);
+		return server_fd;
+	}
+
+	std::cout << "[TCP] Listening on port 5051...\n";
+	return server_fd;
+}
+
+
+bool SendTCPMessage(std::string ip, int port, const std::string& msg)
+{
+
+	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);		// Create socket using IPv4 and TCP
+	if (sock == INVALID_SOCKET)
+	{
+		std::cout << "Socket creation error: " << WSAGetLastError() << "\n";
+		return false;
+	}
+
+	sockaddr_in addr{};									// Empty address
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+	inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
+
+	if (connect(sock, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+		closesocket(sock);
+		std::cout << "Connection error: " << WSAGetLastError() << "\n";
+
+		return false;
+	}
+
+	send(sock, msg.c_str(), static_cast<int>(msg.size()), 0);
+
+	closesocket(sock);
+	return true;
 }
 
 
