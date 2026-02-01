@@ -12,6 +12,8 @@ ipch/
 *.aps
 *.ilk
 *.pdb
+iHR320_h.h
+iHR320_i.c
 *.idb
 *.obj
 *.exe
