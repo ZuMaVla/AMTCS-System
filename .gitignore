@@ -18,3 +18,5 @@ ipch/
 *.log
 Debug/
 Release/
+__pycache__/*
+*.pyc

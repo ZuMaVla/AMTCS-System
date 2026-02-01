@@ -10,7 +10,7 @@ import time
 def serial_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
     ser = serial.Serial(
         port="/dev/ttyUSB0",
-        baudrate=14400,
+        baudrate=9600,
         bytesize=serial.EIGHTBITS,
         parity=serial.PARITY_NONE,
         stopbits=serial.STOPBITS_ONE,

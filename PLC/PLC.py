@@ -36,6 +36,14 @@ def main():
         try:
             (keyword, payload) = tcp_out.get_nowait()
             print(f"[MAIN] TCP event: {keyword}: {payload}")
+            match (keyword, payload):
+                case (("STATUS", "iHR320_OK")):
+                    cmd = "WRITE"
+                    msg = "LOOP 1:SETPT 260"
+                    ser_in.put((cmd, msg))
+                case (("SOMETHING_ELSE", "")):
+                    print(f"[MAIN] event: something else")
+
         except queue.Empty:
             pass
 
