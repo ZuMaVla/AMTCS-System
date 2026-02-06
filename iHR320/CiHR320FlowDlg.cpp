@@ -35,10 +35,10 @@ END_MESSAGE_MAP()
 BOOL CiHR320FlowDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+//	m_ExpFLowLogs.Ge
 	m_ExpFLowLogs.EnableBrowseButton(FALSE);
 	m_ExpFLowLogs.AddItem(_T("Experiment started..."));
- 
-
+	
 
 	return TRUE;
 }

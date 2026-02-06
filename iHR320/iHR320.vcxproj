@@ -197,9 +197,11 @@
     <ClInclude Include="CiHR320FlowDlg.h" />
     <ClInclude Include="CiHR320SettingsDlg.h" />
     <ClInclude Include="DataAcquisition.h" />
+    <ClInclude Include="DefaultExperimentSettings.h" />
     <ClInclude Include="DlgProxy.h" />
     <ClInclude Include="iHR320.h" />
     <ClInclude Include="iHR320Dlg.h" />
+    <ClInclude Include="MyVSListBox.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -213,6 +215,7 @@
     <ClCompile Include="DlgProxy.cpp" />
     <ClCompile Include="iHR320.cpp" />
     <ClCompile Include="iHR320Dlg.cpp" />
+    <ClCompile Include="MyVSListBox.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

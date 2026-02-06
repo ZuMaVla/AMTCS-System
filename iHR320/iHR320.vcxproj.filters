@@ -31,6 +31,12 @@
     <Filter Include="Source Files\JY-SDK">
       <UniqueIdentifier>{cdcca938-79f0-45ce-beb8-74369c240cbf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\UI\Components">
+      <UniqueIdentifier>{37a9f0bc-c085-43b4-b820-aecc1f68b484}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\UI\Components">
+      <UniqueIdentifier>{a29b75f5-52dd-407f-87e7-085f647d2a64}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -69,6 +75,12 @@
     <ClInclude Include="DataAcquisition.h">
       <Filter>Header Files\JY-SDK</Filter>
     </ClInclude>
+    <ClInclude Include="MyVSListBox.h">
+      <Filter>Header Files\UI\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="DefaultExperimentSettings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="iHR320.cpp">
@@ -97,6 +109,9 @@
     </ClCompile>
     <ClCompile Include="DataAcquisition.cpp">
       <Filter>Source Files\JY-SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="MyVSListBox.cpp">
+      <Filter>Source Files\UI\Components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -275,7 +275,7 @@ void CiHR320Dlg::OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult)
 
 std::string CiHR320Dlg::GetLocalIP() {
 	return m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP);
-};
+}
 
 
 LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
