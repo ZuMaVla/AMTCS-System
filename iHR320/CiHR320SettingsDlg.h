@@ -35,7 +35,10 @@ public:
 	CEdit m_Slits;										// Input slits width (in micrometers)
 	afx_msg void OnBnClickedButtonDefaultT();
 	afx_msg void OnBnClickedButtonValidateT();
-	afx_msg void OnEnKillfocus_newT();
 	
-	afx_msg void OnTRBNThumbPosChangingSliderStartWl(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnStartWLSliderMoving(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNewTChanged();
+	afx_msg void OnNAChanged();
+	afx_msg void OnSlitsChanged();
+	afx_msg void OnStartWLChanged();
 };

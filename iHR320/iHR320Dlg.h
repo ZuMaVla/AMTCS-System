@@ -11,6 +11,7 @@ class CiHR320DlgAutoProxy;
 #include "CiHR320ConnectivityDlg.h"
 #include "CiHR320SettingsDlg.h"
 #include "CiHR320FlowDlg.h"
+#include "AskUser.h"
 #include "Resource.h"
 
 
@@ -40,7 +41,9 @@ protected:
 	CiHR320ConnectivityDlg m_connectivityDlg;
 	CiHR320SettingsDlg m_settingsDlg;
 	CiHR320FlowDlg m_flowDlg;
-	BOOL CanExit();
+	BOOL
+		isExitEnabled = FALSE,
+		CanExit();
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
@@ -55,6 +58,7 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 public:
+	CAskUser m_askUser;
 	std::string GetLocalIP();
 	afx_msg void OnStnClickedPlcconnectedText2();
 	afx_msg void OnStnClickedTcconnectedText2();

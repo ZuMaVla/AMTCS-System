@@ -193,6 +193,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AskUser.h" />
     <ClInclude Include="CiHR320ConnectivityDlg.h" />
     <ClInclude Include="CiHR320FlowDlg.h" />
     <ClInclude Include="CiHR320SettingsDlg.h" />
@@ -209,6 +210,7 @@
     <ClInclude Include="TCPtoRPi.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AskUser.cpp" />
     <ClCompile Include="CiHR320ConnectivityDlg.cpp" />
     <ClCompile Include="CiHR320FlowDlg.cpp" />
     <ClCompile Include="CiHR320SettingsDlg.cpp" />

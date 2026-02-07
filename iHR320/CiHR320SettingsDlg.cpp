@@ -42,10 +42,13 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(CiHR320SettingsDlg, CDialogEx)
-	ON_EN_KILLFOCUS(IDC_NEW_T, &CiHR320SettingsDlg::OnEnKillfocus_newT)
+	ON_EN_KILLFOCUS(IDC_NEW_T, &CiHR320SettingsDlg::OnNewTChanged)
 	ON_BN_CLICKED(IDC_BUTTON_DEFAULT_T, &CiHR320SettingsDlg::OnBnClickedButtonDefaultT)
 	ON_BN_CLICKED(IDC_BUTTON_VALIDATE_T, &CiHR320SettingsDlg::OnBnClickedButtonValidateT)
-	ON_NOTIFY(TRBN_THUMBPOSCHANGING, IDC_SLIDER_START_WL, &CiHR320SettingsDlg::OnTRBNThumbPosChangingSliderStartWl)
+	ON_NOTIFY(TRBN_THUMBPOSCHANGING, IDC_SLIDER_START_WL, &CiHR320SettingsDlg::OnStartWLSliderMoving)
+	ON_EN_KILLFOCUS(IDC_NUMBER_ACQ, &CiHR320SettingsDlg::OnNAChanged)
+	ON_EN_KILLFOCUS(IDC_SLITS, &CiHR320SettingsDlg::OnSlitsChanged)
+	ON_EN_KILLFOCUS(IDC_MEASURE_FROM, &CiHR320SettingsDlg::OnStartWLChanged)
 END_MESSAGE_MAP()
 
 
@@ -109,7 +112,7 @@ void CiHR320SettingsDlg::OnBnClickedButtonValidateT()
 	m_VSListBox_T.SortT(FALSE);
 }
 
-void CiHR320SettingsDlg::OnEnKillfocus_newT()
+void CiHR320SettingsDlg::OnNewTChanged()
 {
 	CString text;
 	m_VSListBox_T.m_newT.GetWindowText(text);
@@ -126,7 +129,45 @@ void CiHR320SettingsDlg::OnEnKillfocus_newT()
 }
 
 
-void CiHR320SettingsDlg::OnTRBNThumbPosChangingSliderStartWl(
+
+
+void CiHR320SettingsDlg::OnNAChanged()
+{
+	CString msg;
+	BOOL success = FALSE;
+	int value = GetDlgItemInt(IDC_NUMBER_ACQ, &success, TRUE);
+
+	if (value < ExtremeNA[0] || value > ExtremeNA[1]) {
+		msg.Format(_T("Value must be between %d and %d"), ExtremeNA[0], ExtremeNA[1]);
+		AfxMessageBox(msg);
+		m_NA.SetFocus();
+		return;
+	}
+	if (value < 3) {
+		m_isCRRemoval.SetCheck(BST_UNCHECKED);
+		m_isCRRemoval.EnableWindow(FALSE);
+	}
+	else {
+		m_isCRRemoval.EnableWindow(TRUE);
+	}
+}
+
+
+void CiHR320SettingsDlg::OnSlitsChanged()
+{
+	CString msg;
+	BOOL success = FALSE;
+	int value = GetDlgItemInt(IDC_SLITS, &success, TRUE);
+
+	if (value < ExtremeSlits[0] || value > ExtremeSlits[1]) {
+		msg.Format(_T("Value must be between %d and %d"), ExtremeSlits[0], ExtremeSlits[1]);
+		AfxMessageBox(msg);
+		m_Slits.SetFocus();
+		return;
+	}
+}
+
+void CiHR320SettingsDlg::OnStartWLSliderMoving(
 	NMHDR *pNMHDR, LRESULT *pResult)
 {
 	NMTRBTHUMBPOSCHANGING* pNMTPC = reinterpret_cast<NMTRBTHUMBPOSCHANGING*>(pNMHDR);
@@ -143,4 +184,20 @@ void CiHR320SettingsDlg::OnTRBNThumbPosChangingSliderStartWl(
 	m_StartWL.SetWindowTextW(newStartWL);
 	
 	*pResult = 0;
+}
+
+void CiHR320SettingsDlg::OnStartWLChanged()
+{
+	CString msg;
+	BOOL success = FALSE;
+	int value = GetDlgItemInt(IDC_MEASURE_FROM, &success, TRUE);
+
+	if (value < ExtremeStartWL[0] || value > ExtremeStartWL[1]) {
+		msg.Format(_T("Value must be between %d and %d"), ExtremeStartWL[0], ExtremeStartWL[1]);
+		AfxMessageBox(msg);
+		m_StartWL.SetFocus();
+		return;
+	}
+	m_sliderStartWL.SetPos(value);
+
 }

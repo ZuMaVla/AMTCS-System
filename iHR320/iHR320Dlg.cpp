@@ -210,6 +210,8 @@ HCURSOR CiHR320Dlg::OnQueryDragIcon()
 
 void CiHR320Dlg::OnClose()
 {
+	m_askUser.s_question = L"Are you sure you want to exit?";
+	isExitEnabled = m_askUser.DoModal() == IDOK;
 	if (CanExit())
 		CDialogEx::OnClose();
 }
@@ -228,16 +230,7 @@ void CiHR320Dlg::OnCancel()
 
 BOOL CiHR320Dlg::CanExit()
 {
-	// If the proxy object is still around, then the automation
-	//  controller is still holding on to this application.  Leave
-	//  the dialog around, but hide its UI.
-	if (m_pAutoProxy != NULL)
-	{
-		ShowWindow(SW_HIDE);
-		return FALSE;
-	}
-
-	return TRUE;
+	return isExitEnabled;
 }
 
 

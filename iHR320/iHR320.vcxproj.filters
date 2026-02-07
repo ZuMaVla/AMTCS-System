@@ -84,6 +84,9 @@
     <ClInclude Include="ExperimentState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AskUser.h">
+      <Filter>Header Files\UI\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="iHR320.cpp">
@@ -114,6 +117,9 @@
       <Filter>Source Files\JY-SDK</Filter>
     </ClCompile>
     <ClCompile Include="MyVSListBox.cpp">
+      <Filter>Source Files\UI\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="AskUser.cpp">
       <Filter>Source Files\UI\Components</Filter>
     </ClCompile>
   </ItemGroup>
