@@ -2,10 +2,30 @@
 #include <vector>
 #include "afxcmn.h"
 
-const std::vector<CString> DefaultTs = {
-	L"10", L"20", L"30", L"40", L"50", L"60", L"80", L"100", L"120", L"150", L"180", L"220", L"260", L"300"
-};
 
 const std::vector<int> ExtremeTs = {
 	0, 450
 };
+const std::vector<int> ExtremeSlits = {
+	0, 2000
+};
+const std::vector<int> ExtremeDGRangeNo = {
+	1, 5
+};
+const std::vector<int> ExtremeNA = {
+	1, 16
+};
+const std::vector<int> ExtremeStartWL = {
+	200, 600
+};
+
+const int default_newT = 300;
+const int default_DG = 1;
+const int default_StartWL = 340;
+const int default_DGRangeNo = 3;
+const int default_NA = 4;
+const std::vector<std::string> DefaultTs = {
+	"10", "20", "30", "40", "50", "60", "80", "100", "120", "150", "180", "220", "260", "300"
+};
+const bool default_isCRRemoval = TRUE;
+const int default_Slits = 0;

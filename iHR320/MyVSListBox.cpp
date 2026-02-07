@@ -33,21 +33,19 @@ void CMyVSListBox::SortT(BOOL isAscending)
 }
 
 
-int CMyVSListBox::AddItem(const CString &strIext, DWORD_PTR  dwData, int iIndex)
+int CMyVSListBox::AddItem(const CString& strIext, DWORD_PTR dwData, int iIndex)
 {
 	CString T_str;
-	if (strIext.IsEmpty()){
+	if (strIext.IsEmpty())
 		m_newT.GetWindowTextW(T_str);
-	}
-	else {
+	else
 		T_str = strIext;
-	}
-	dwData = _ttoi(T_str);
-	T_str.Format(_T("%d"), static_cast<int>(dwData));
-	int index = CVSListBox::AddItem(T_str, dwData, iIndex);
-
+	int value = _ttoi(T_str);
+	T_str.Format(_T("%d"), value);
+	int index = CVSListBox::AddItem(T_str, value, iIndex);
 	return index;
 }
+
 
 
 void CMyVSListBox::OnSelectionChanged()

@@ -81,6 +81,9 @@
     <ClInclude Include="DefaultExperimentSettings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ExperimentState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="iHR320.cpp">

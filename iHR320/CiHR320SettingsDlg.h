@@ -28,10 +28,14 @@ public:
 	CListBox m_ListBoxDG;								// List of diffraction gratings
 	CSliderCtrl m_sliderStartWL;						// Slider for varying starting wavelength (for spectra acquisition)
 	CEdit m_StartWL;									// Starting wavelength 
-	CSliderCtrl m_sliderDGrangeNo;						// Slider for varying the number of ranges of a chosen diffraction grating
+	CSliderCtrl m_sliderDGRangeNo;						// Slider for varying the number of ranges of a chosen diffraction grating
 	CEdit m_NA;											// Number of acquisitions (averagings) per spectrum
 	CMyVSListBox m_VSListBox_T;							// List of temperatures at which spectra are to be measured 
+	CButton m_isCRRemoval;								// flag showing whether "cosmic ray" faults are to be dealt with or ignored
+	CEdit m_Slits;										// Input slits width (in micrometers)
 	afx_msg void OnBnClickedButtonDefaultT();
 	afx_msg void OnBnClickedButtonValidateT();
 	afx_msg void OnEnKillfocus_newT();
+	
+	afx_msg void OnTRBNThumbPosChangingSliderStartWl(NMHDR *pNMHDR, LRESULT *pResult);
 };

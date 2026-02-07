@@ -199,6 +199,7 @@
     <ClInclude Include="DataAcquisition.h" />
     <ClInclude Include="DefaultExperimentSettings.h" />
     <ClInclude Include="DlgProxy.h" />
+    <ClInclude Include="ExperimentState.h" />
     <ClInclude Include="iHR320.h" />
     <ClInclude Include="iHR320Dlg.h" />
     <ClInclude Include="MyVSListBox.h" />

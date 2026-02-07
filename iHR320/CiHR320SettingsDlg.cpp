@@ -1,4 +1,4 @@
-// CiHR320SettingsDlg.cpp : implementation file
+﻿// CiHR320SettingsDlg.cpp : implementation file
 //
 
 #include "stdafx.h"
@@ -29,13 +29,15 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_LIST_DG, m_ListBoxDG);
 	DDX_Control(pDX, IDC_SLIDER_START_WL, m_sliderStartWL);
-	DDX_Control(pDX, IDC_SLIDER_DG_POSITIONS, m_sliderDGrangeNo);
+	DDX_Control(pDX, IDC_SLIDER_DG_POSITIONS, m_sliderDGRangeNo);
 
 	DDX_Control(pDX, IDC_NUMBER_ACQ, m_NA);
 	DDX_Control(pDX, IDC_NEW_T, m_VSListBox_T.m_newT);
 	DDX_Control(pDX, IDC_SPIN_NEW_T, m_VSListBox_T.m_mod_new_T);
 	DDX_Control(pDX, IDC_TEMPERATURE_LIST_BOX, m_VSListBox_T);
 	DDX_Control(pDX, IDC_MEASURE_FROM, m_StartWL);
+	DDX_Control(pDX, IDC_CHECK_COSMIC_RAYS, m_isCRRemoval);
+	DDX_Control(pDX, IDC_SLITS, m_Slits);
 }
 
 
@@ -43,31 +45,47 @@ BEGIN_MESSAGE_MAP(CiHR320SettingsDlg, CDialogEx)
 	ON_EN_KILLFOCUS(IDC_NEW_T, &CiHR320SettingsDlg::OnEnKillfocus_newT)
 	ON_BN_CLICKED(IDC_BUTTON_DEFAULT_T, &CiHR320SettingsDlg::OnBnClickedButtonDefaultT)
 	ON_BN_CLICKED(IDC_BUTTON_VALIDATE_T, &CiHR320SettingsDlg::OnBnClickedButtonValidateT)
+	ON_NOTIFY(TRBN_THUMBPOSCHANGING, IDC_SLIDER_START_WL, &CiHR320SettingsDlg::OnTRBNThumbPosChangingSliderStartWl)
 END_MESSAGE_MAP()
 
 
 BOOL CiHR320SettingsDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+	CString text;
 
 //	m_VSListBox_T
 //	Populate Diffraction grating list 
 	m_ListBoxDG.AddString(_T("Grating 1"));
 	m_ListBoxDG.AddString(_T("Grating 2"));
 	m_ListBoxDG.AddString(_T("Grating 3"));
+	m_ListBoxDG.SetCurSel(0);
 
 //	Specifying starting wavelength slider
-	m_sliderStartWL.SetRange(200, 600);
+	m_sliderStartWL.SetRange(ExtremeStartWL[0], ExtremeStartWL[1]);
 	m_sliderStartWL.SetTicFreq(10);
-	m_sliderStartWL.SetPos(340);
+	m_sliderStartWL.SetPos(default_StartWL);
+	m_sliderStartWL.ModifyStyle(0, TBS_NOTIFYBEFOREMOVE);
+
+	text.Format(L"%d", default_StartWL); 
+	m_StartWL.SetWindowTextW(text);
 
 //	Specifying number of DG "windows" slider
-	m_sliderDGrangeNo.SetRange(1, 5);
-	m_sliderDGrangeNo.SetTicFreq(1);
-	m_sliderDGrangeNo.SetPos(3);
+	m_sliderDGRangeNo.SetRange(ExtremeDGRangeNo[0], ExtremeDGRangeNo[1]);
+	m_sliderDGRangeNo.SetTicFreq(1);
+	m_sliderDGRangeNo.SetPos(default_DGRangeNo);
 
-	m_NA.SetWindowText(_T("4"));
-	m_VSListBox_T.m_newT.SetWindowTextW(_T("300"));
+
+	text.Format(L"%d", default_NA);
+	m_NA.SetWindowTextW(text);
+
+	text.Format(L"%d", default_newT);
+	m_VSListBox_T.m_newT.SetWindowTextW(text);
+
+	text.Format(L"%d", default_Slits);
+	m_Slits.SetWindowTextW(text);
+
+	m_isCRRemoval.SetCheck(BST_CHECKED);
 	
 	return TRUE;
 
@@ -77,9 +95,11 @@ BOOL CiHR320SettingsDlg::OnInitDialog()
 
 void CiHR320SettingsDlg::OnBnClickedButtonDefaultT()
 {
+	CString s;
 	for (const auto& T : DefaultTs)
 	{
-		m_VSListBox_T.AddItem(T);
+		s = T.c_str();
+		m_VSListBox_T.AddItem(s);
 	}
 }
 
@@ -103,4 +123,24 @@ void CiHR320SettingsDlg::OnEnKillfocus_newT()
 		AfxMessageBox(msg);
 		m_VSListBox_T.m_newT.SetFocus();
 	}
+}
+
+
+void CiHR320SettingsDlg::OnTRBNThumbPosChangingSliderStartWl(
+	NMHDR *pNMHDR, LRESULT *pResult)
+{
+	NMTRBTHUMBPOSCHANGING* pNMTPC = reinterpret_cast<NMTRBTHUMBPOSCHANGING*>(pNMHDR);
+
+	int continuousPos = pNMTPC->dwPos;   // <-- This is the thumb position
+//	int tick = m_sliderStartWL.GetTic(2) - m_sliderStartWL.GetTic(1);
+	int tick = 10;
+	int numberTicks = int((continuousPos + tick / 2) / tick);
+	int snappedPos = numberTicks*tick;
+//	pNMTPC->dwPos = snappedPos;
+	m_sliderStartWL.SetPos(snappedPos);
+	CString newStartWL;
+	newStartWL.Format(L"%d", snappedPos); // convert int → wide string
+	m_StartWL.SetWindowTextW(newStartWL);
+	
+	*pResult = 0;
 }
