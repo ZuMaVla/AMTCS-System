@@ -28,7 +28,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseOfMfc>Static</UseOfMfc>
   </PropertyGroup>
@@ -216,6 +216,7 @@
     <ClCompile Include="CiHR320SettingsDlg.cpp" />
     <ClCompile Include="DataAcquisition.cpp" />
     <ClCompile Include="DlgProxy.cpp" />
+    <ClCompile Include="ExperimentState.cpp" />
     <ClCompile Include="iHR320.cpp" />
     <ClCompile Include="iHR320Dlg.cpp" />
     <ClCompile Include="MyVSListBox.cpp" />

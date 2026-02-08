@@ -21,20 +21,24 @@ class CiHR320Dlg : public CDialogEx
 	DECLARE_DYNAMIC(CiHR320Dlg);
 	friend class CiHR320DlgAutoProxy;
 
-// Construction
-public:
-	CiHR320Dlg(CWnd* pParent = NULL);	// standard constructor
-	virtual ~CiHR320Dlg();
-
 // Dialog Data
 	enum { IDD = IDD_IHR320_MAIN_DLG };
 
-	protected:
+public:
+// Construction
+	CiHR320Dlg(CWnd* pParent = NULL);	// standard constructor
+	virtual ~CiHR320Dlg();
+// 
+	CAskUser m_askUser;
+	std::string GetLocalIP();
+	afx_msg void OnStnClickedPlcconnectedText2();
+	afx_msg void OnStnClickedTcconnectedText2();
+
+
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
-
-// Implementation
-protected:
+// Class content
 	CiHR320DlgAutoProxy* m_pAutoProxy;
 	HICON m_hIcon;
 	CTabCtrl m_tab;
@@ -45,7 +49,7 @@ protected:
 		isExitEnabled = FALSE,
 		CanExit();
 
-	// Generated message map functions
+// Generated message map functions
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
@@ -57,9 +61,5 @@ protected:
 	afx_msg LRESULT OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam);
 
 	DECLARE_MESSAGE_MAP()
-public:
-	CAskUser m_askUser;
-	std::string GetLocalIP();
-	afx_msg void OnStnClickedPlcconnectedText2();
-	afx_msg void OnStnClickedTcconnectedText2();
+
 };

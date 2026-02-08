@@ -122,6 +122,9 @@
     <ClCompile Include="AskUser.cpp">
       <Filter>Source Files\UI\Components</Filter>
     </ClCompile>
+    <ClCompile Include="ExperimentState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="iHR320.idl">

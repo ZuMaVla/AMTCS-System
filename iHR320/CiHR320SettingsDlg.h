@@ -2,6 +2,8 @@
 #include "afxwin.h"
 #include "afxcmn.h"
 #include "MyVSListBox.h"
+#include "afxeditbrowsectrl.h"
+#include "ExperimentState.h"
 
 
 // CiHR320SettingsDlg dialog
@@ -18,13 +20,9 @@ public:
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_EXPERIMENT_SETTINGS_DLG };
 #endif
-
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	virtual BOOL OnInitDialog();
-
-	DECLARE_MESSAGE_MAP()
 public:
+	CMFCEditBrowseCtrl m_workDir;						// Directory to save spectra
+	CEdit m_sampleCode;									// User defined sample code
 	CListBox m_ListBoxDG;								// List of diffraction gratings
 	CSliderCtrl m_sliderStartWL;						// Slider for varying starting wavelength (for spectra acquisition)
 	CEdit m_StartWL;									// Starting wavelength 
@@ -33,12 +31,26 @@ public:
 	CMyVSListBox m_VSListBox_T;							// List of temperatures at which spectra are to be measured 
 	CButton m_isCRRemoval;								// flag showing whether "cosmic ray" faults are to be dealt with or ignored
 	CEdit m_Slits;										// Input slits width (in micrometers)
+	CEdit m_maxAT;										// Longest acquisition time (system will not attempt to apply longer ATs
+														// even if signal is low)
+
+protected:
+	CExperimentState experimentState;					// Experiment State (The State 8))
+
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual BOOL OnInitDialog();
 	afx_msg void OnBnClickedButtonDefaultT();
 	afx_msg void OnBnClickedButtonValidateT();
-	
 	afx_msg void OnStartWLSliderMoving(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnNewTChanged();
 	afx_msg void OnNAChanged();
 	afx_msg void OnSlitsChanged();
 	afx_msg void OnStartWLChanged();
+	afx_msg void OnMaxATChanged();
+	afx_msg void OnWorkDirChanged();
+	void ExperimentConfiguration();
+	ExperimentParameters CollectExperimentParameters();	// Returns user defined/amended experiment parameters (e.g., before experiment start)
+	void SetExperimentParameters();						// Set expirement parameters from the State (e.g., after a program crash)
+
+	DECLARE_MESSAGE_MAP()
 };
