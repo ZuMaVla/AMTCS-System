@@ -20,9 +20,6 @@ static std::atomic<bool> g_logicRunning{ false };
 static std::thread g_listenerThread;
 static std::atomic<bool> g_listenerRunning{ false };
 
-const std::string ip_PLC = "192.168.50.1";
-const int port_PLC = 5050;
-const int port_iHR320 = 5051;
 
 
 // ------------------------------------------------------------

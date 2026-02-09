@@ -11,6 +11,9 @@
 #include <shlobj.h>
 #include <json.hpp>
 #include <iostream>
+#include "TCPtoRPi.h"
+#include "CiHR320ConnectivityDlg.h"
+#include "iHR320Dlg.h"
 
 
 // CiHR320SettingsDlg dialog
@@ -124,7 +127,7 @@ void CiHR320SettingsDlg::ExperimentConfiguration()
 
 ExperimentParameters CiHR320SettingsDlg::CollectExperimentParameters()
 {
-	ExperimentParameters expParams;
+	ExperimentParameters expParams;								// Experiment parameters container to be populated from UI
 	CString text;
 
 	// 1. Retrieve Sample Code
@@ -138,7 +141,8 @@ ExperimentParameters CiHR320SettingsDlg::CollectExperimentParameters()
 	expParams.DG = m_ListBoxDG.GetCurSel();
 
 	// 4. Retrieve starting wavelength
-	expParams.StartWL = m_sliderStartWL.GetPos();
+	m_StartWL.GetWindowTextW(text);
+	expParams.StartWL = _ttoi(text);
 
 	// 5. Retrieve number of DG ranges (spectral windows) 
 	expParams.DGRangeNo = m_sliderDGRangeNo.GetPos();
@@ -364,8 +368,13 @@ void CiHR320SettingsDlg::OnWorkDirChanged()
 
 void CiHR320SettingsDlg::OnBnClickedStart()
 {
+	std::string msg;
 	experimentState.setExpParams(CollectExperimentParameters());
-	std::cout << experimentState.serialiseState();
+	msg = experimentState.serialiseState();
+	std::cout << msg;
+	if (!(SendTCPMessage(ip_PLC, port_PLC, "INIT " + msg))) {
+		AfxMessageBox(_T("Connection failed"));
+	}
 }
 
 

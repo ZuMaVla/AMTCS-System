@@ -2,7 +2,7 @@
 //
 
 #include "stdafx.h"
-#include "iHR320.h"
+#include "Resource.h"
 #include "CiHR320ConnectivityDlg.h"
 #include "afxdialogex.h"
 #include "TCPtoRPi.h"

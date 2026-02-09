@@ -9,7 +9,7 @@
 	#error "include 'stdafx.h' before including this file for PCH"
 #endif
 
-#include "resource.h"		// main symbols
+#include "Resource.h"		// main symbols
 
 // CiHR320App:
 // See iHR320.cpp for the implementation of this class

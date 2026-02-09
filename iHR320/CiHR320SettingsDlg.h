@@ -6,6 +6,8 @@
 #include "ExperimentState.h"
 
 
+class CiHR320Dlg;
+
 // CiHR320SettingsDlg dialog
 
 class CiHR320SettingsDlg : public CDialogEx
