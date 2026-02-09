@@ -1,6 +1,8 @@
 	#pragma once
+#include "stdafx.h"
 #include "DefaultExperimentSettings.h"
 #include <vector>
+#include <json.hpp>
 
 struct ExperimentParameters {
 	std::string sampleCode = default_SampleCode;
@@ -14,11 +16,16 @@ struct ExperimentParameters {
 	bool isCRRemoval = default_isCRRemoval;
 };
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ExperimentParameters,
+	sampleCode, Ts, StartWL, DG, DGRangeNo, NA, slits, maxAT, isCRRemoval)
+
 class CExperimentState
 {
 public:
 	CExperimentState();
 	~CExperimentState();
+
+	void importJSONString(const std::string & jsonString);
 
 	std::string serialiseState();							// State -> JSON (to be send to PLC)
 	void deserialiseState();								// JSON (from PLC) -> State 
@@ -27,6 +34,7 @@ public:
 protected:
 	ExperimentParameters experimentParameters;
 	int experimentProgressIndex = -1;
+	nlohmann::json jsonState;
 };
 
 

@@ -53,4 +53,6 @@ protected:
 	void SetExperimentParameters();						// Set expirement parameters from the State (e.g., after a program crash)
 
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnBnClickedStart();
 };

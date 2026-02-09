@@ -9,6 +9,9 @@
 #include "Resource.h"
 #include <string>
 #include <shlobj.h>
+#include <json.hpp>
+#include <iostream>
+
 
 // CiHR320SettingsDlg dialog
 
@@ -54,6 +57,7 @@ BEGIN_MESSAGE_MAP(CiHR320SettingsDlg, CDialogEx)
 	ON_EN_KILLFOCUS(IDC_MEASURE_FROM, &CiHR320SettingsDlg::OnStartWLChanged)
 	ON_EN_KILLFOCUS(IDC_ACQUISITION_TIME_MAX, &CiHR320SettingsDlg::OnMaxATChanged)
 	ON_EN_KILLFOCUS(IDC_SAVE_FOLDER, &CiHR320SettingsDlg::OnWorkDirChanged)
+	ON_BN_CLICKED(IDC_START, &CiHR320SettingsDlg::OnBnClickedStart)
 END_MESSAGE_MAP()
 
 
@@ -357,3 +361,11 @@ void CiHR320SettingsDlg::OnWorkDirChanged()
 		return;
 	}
 }
+
+void CiHR320SettingsDlg::OnBnClickedStart()
+{
+	experimentState.setExpParams(CollectExperimentParameters());
+	std::cout << experimentState.serialiseState();
+}
+
+
