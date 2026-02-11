@@ -9,4 +9,4 @@ class TCPcfg:
 
 @dataclass
 class PLCcfg:
-    timeout = 0.1
+    timeout = 2
