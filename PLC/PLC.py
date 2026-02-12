@@ -4,10 +4,11 @@ import queue
 import time
 from serial_listener import serial_comm_thread
 from tcp_listener import tcp_comm_thread
-from config import PLCcfg
+from config import ExperimentMode, PLCcfg, experiment_mode
 from experiment_state_class import ExperimentState, ExperimentStep, StepName, StepStatus   
 from dataclasses import asdict
 from threading import Timer
+
 
 # ============================================================
 #  Helper functions
@@ -22,6 +23,8 @@ def reset_T_request(state):
 # ============================================================
 
 def main():
+    # Experiment mode (simulation or production)
+    exp_mode = experiment_mode  # configure this in config.py
 
     # Experiment state
     experiment_state = ExperimentState()  # Create an instance of the ExperimentState class
@@ -36,21 +39,21 @@ def main():
 
     # Start communication threads
     t_tcp = threading.Thread(target=tcp_comm_thread, args=(tcp_in, tcp_out), daemon=True)
-    t_ser = threading.Thread(target=serial_comm_thread, args=(ser_in, ser_out), daemon=True)
+    t_ser = threading.Thread(target=serial_comm_thread, args=(ser_in, ser_out, exp_mode), daemon=True)
 
     t_tcp.start()
     t_ser.start()
 
     print("Main event loop running...")
     
- 
+    
     TIMEOUT = PLCcfg.timeout
-
     next_T = None
     state_T = {"T_requested": False}
     T_stabilisation_mins = -1
     PLC_mode = None
-   
+    simulated_T_TC = 320
+
     # Main event loop
     while True:
         completed_cycle = experiment_state.experimentProgressIndex
@@ -66,10 +69,10 @@ def main():
             case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                 if next_T :
                     ser_in.put(("GO_TO_TEMPERATURE", next_T))
-                    print(f"[MAIN] Requesting next temperature {next_T} K")
-                    experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.REQUESTED
                     state_T["T_requested"] = False
+                    print(f"[MAIN] Requesting next temperature {next_T} K")
                     time.sleep(5)
+                    experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.REQUESTED
             case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.REQUESTED):
                 if not state_T["T_requested"]:
                     ser_in.put(("CHECK_TEMPERATURE", ""))
@@ -77,6 +80,10 @@ def main():
                     timer_T = Timer(10, reset_T_request, args=(state_T,))
                     timer_T.start()
                     print(f"[MAIN] Requesting temperature")
+                    if exp_mode == ExperimentMode.SIMULATION:
+                        target_T = int(next_T) if next_T else int(experiment_state.experimentParameters.Ts[-1]) 
+                        simulated_T_TC += (target_T - simulated_T_TC)*0.5   # Two times closer to the target temperature every time
+                        ser_in.put(("SIMULATE", str(simulated_T_TC)))       # Trigger the temperature simulation
                 else:
                     print(f"[MAIN] Waiting for temperature ")    
 
@@ -131,6 +138,7 @@ def main():
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.REQUESTED):
                     try: 
                         received_T = float(msg)
+                        print(f"[MAIN] event: received temperature: {received_T} K")
                         if next_T:
                             next_T_value = int(next_T)
                         else:
