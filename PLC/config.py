@@ -18,4 +18,5 @@ class ExperimentMode(Enum):
     PRODUCTION = 1
 
 
-experiment_mode = ExperimentMode.SIMULATION   # Change to ExperimentMode.PRODUCTION for actual production mode 
+#experiment_mode = ExperimentMode.SIMULATION   # Change to ExperimentMode.PRODUCTION for actual production mode 
+experiment_mode = ExperimentMode.PRODUCTION   # Change to ExperimentMode.PRODUCTION for actual production mode 
