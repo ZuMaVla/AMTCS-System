@@ -42,17 +42,17 @@ static void MainLogicWorker(CiHR320Dlg* pUI, MessageQueue& PLC_out, MessageQueue
 
 		// 2. Process the event (event interpretation) 
 
-		if (event.keyword == "START") {												// Experiment sequence requested				
+		if (event.keyword == "ACQUIRE_SPECTRUM") {									// Spectrum acquisition requested				
 			cmd.keyword = "SEND";
-			cmd.payload = "AFFIRMATIVE";
-			PLC_in.push(cmd); 
+			cmd.payload = "AFFIRMATIVE";			
+			PLC_in.push(cmd); 														// Confirming request
 			if (TakeSpectrum()) { cmd.payload = "DONE";	}
 			else { cmd.payload = "ERROR"; }
-			PLC_in.push(cmd);
+			PLC_in.push(cmd);														// Confirming success/error
 		}
 		else if (event.keyword == "PONG") {											// PLC response - alive
 			std::cout << "PLC alive\n"; 
-			auto* pDevice = new std::string("PLC");										// create pointer to a string containing "PLC"
+			auto* pDevice = new std::string("PLC");									// create pointer to a string containing "PLC"
 			pUI->PostMessage(
 				WM_UPDATE_SYSTEM_STATUS,
 				0,
