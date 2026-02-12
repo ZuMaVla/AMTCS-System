@@ -52,7 +52,7 @@ def main():
     state_T = {"T_requested": False}
     T_stabilisation_mins = -1
     PLC_mode = None
-    simulated_T_TC = 320
+    simulated_T_TC = 300
 
     # Main event loop
     while True:
@@ -89,7 +89,14 @@ def main():
 
             case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.WAITING):
                 print(f"[MAIN] Requesting spectrum step")
-                ser_in.put(("ACQUIRE_SPECTRUM", ""))
+                tcp_in.put(("SEND", "ACQUIRE_SPECTRUM"))
+                experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.REQUESTED
+            case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.REQUESTED):
+                print(f"[MAIN] Waiting for spectrum being measured")
+            case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.COMPLETED):
+                print(f"[MAIN] Spectrum acquired, moving to next cycle")
+                experiment_state.experimentProgressIndex += 1   
+                continue 
             case None:
                 print(f"[MAIN] No more steps to process")
         time.sleep(TIMEOUT)
@@ -102,8 +109,11 @@ def main():
             match (keyword, payload):
                 case (("STATUS", "iHR320_OK")):
                     print(f"[MAIN] event: iHR320 is OK")
-                case (("SOMETHING_ELSE", "")):
-                    print(f"[MAIN] event: something else")
+                case (("AFFIRMATIVE", "SPECTRUM_REQUESTED")):
+                    print(f"[MAIN] event: spectrum requested")
+                case (("REPORT", "SPECTRUM_ACQUIRED")):
+                    experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.COMPLETED
+                    print(f"[MAIN] event: spectrum acquired")    
                 case (("INITIALISATION", str() as experiment_state_string)): 
                     print(f"[MAIN] event: initialisation with state {experiment_state_string}") 
                     # Update the experiment state from the received JSON string

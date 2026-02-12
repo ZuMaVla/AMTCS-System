@@ -122,6 +122,7 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
             if data:
                 msg = data.decode().strip()
                 keyword = msg.split()[0]
+                payload = " ".join(msg.split()[1:])
                 match keyword:
                     case "PING":
                         out_q.put(("STATUS", "iHR320_OK"))
@@ -131,9 +132,11 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                     case "CANCEL":
                         out_q.put(("REQUEST", "iHR320_CANCEL")) 
                     case "INIT":   
-                        out_q.put(("INITIALISATION", " ".join(msg.split()[1:])))        # pass the temperature list to the PLC
+                        out_q.put(("INITIALISATION", payload))                          # pass the temperature list to the PLC
                     case "DONE":
-                        out_q.put(("STATUS", "iHR320_DONE"))
+                        out_q.put(("REPORT", "SPECTRUM_ACQUIRED"))                      # Spectrum has been acquired
+                    case "AFFIRMATIVE":
+                        out_q.put(("AFFIRMATIVE", "SPECTRUM_REQUESTED"))                # Spectrum request has been received 
                     case "PAUSE":
                         out_q.put(("REQUEST", "USER_PAUSE"))
                     case "RESUME":
