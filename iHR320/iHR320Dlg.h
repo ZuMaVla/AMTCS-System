@@ -31,6 +31,7 @@ public:
 // 
 	CAskUser m_askUser;
 	std::string GetLocalIP();
+	CComPtr<IJYMonoReqd> GetMonoPtr();
 	afx_msg void OnStnClickedPlcconnectedText2();
 	afx_msg void OnStnClickedTcconnectedText2();
 
@@ -42,6 +43,7 @@ protected:
 	CiHR320DlgAutoProxy* m_pAutoProxy;
 	HICON m_hIcon;
 	CTabCtrl m_tab;
+	CComPtr<IJYMonoReqd> m_jyMono;
 	CiHR320ConnectivityDlg m_connectivityDlg;
 	CiHR320SettingsDlg m_settingsDlg;
 	CiHR320FlowDlg m_flowDlg;

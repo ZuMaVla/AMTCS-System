@@ -5,6 +5,8 @@
 #include <string>
 #include <array>
 
+class CiHR320Dlg;
+
 
 // CiHR320ConnectivityDlg dialog
 
@@ -42,6 +44,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
 	DECLARE_MESSAGE_MAP()
+	CComPtr<IJYMonoReqd> m_jyMono;
 	CIPAddressCtrl m_instIP;							// IP on the institutional network
 	CVSListBox m_ConnectionLogs;
 	CButton m_CheckBoxPLC;

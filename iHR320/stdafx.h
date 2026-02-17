@@ -33,9 +33,8 @@
 
 #include <afxcontrolbars.h>     // MFC support for ribbons and control bars
 
-
-
-
+#import "C:\Program Files\Jobin Yvon\Common\JY Components\JYSupport\jysystemLib.dll" raw_interfaces_only, raw_native_types, no_namespace, named_guids //  <DEVELOPMENT RELATIVE PATH
+#import "C:\Program Files\Jobin Yvon\Common\JY Components\JYSupport\JYConfigBrowserComponent.dll" raw_interfaces_only, raw_native_types, no_namespace, named_guids //  <DEVELOPMENT RELATIVE PATH should be inserted here
 
 
 

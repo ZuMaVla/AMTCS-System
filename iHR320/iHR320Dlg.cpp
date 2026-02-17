@@ -59,6 +59,7 @@ CiHR320Dlg::CiHR320Dlg(CWnd* pParent /*=NULL*/)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_pAutoProxy = NULL;
+	m_jyMono = NULL;
 }
 
 CiHR320Dlg::~CiHR320Dlg()
@@ -268,6 +269,11 @@ void CiHR320Dlg::OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult)
 
 std::string CiHR320Dlg::GetLocalIP() {
 	return m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP);
+}
+
+CComPtr<IJYMonoReqd> CiHR320Dlg::GetMonoPtr()
+{
+	return m_jyMono;
 }
 
 

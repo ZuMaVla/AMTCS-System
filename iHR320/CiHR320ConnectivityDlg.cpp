@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "Resource.h"
+#include "iHR320Dlg.h"
 #include "CiHR320ConnectivityDlg.h"
 #include "afxdialogex.h"
 #include "TCPtoRPi.h"
@@ -20,7 +21,8 @@ IMPLEMENT_DYNAMIC(CiHR320ConnectivityDlg, CDialogEx)
 CiHR320ConnectivityDlg::CiHR320ConnectivityDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_CONNECTIVITY_DLG, pParent)
 {
-
+	CiHR320Dlg* pMain = dynamic_cast<CiHR320Dlg*>(pParent->GetParent());
+	 m_jyMono = pMain->GetMonoPtr();
 }
 
 CiHR320ConnectivityDlg::~CiHR320ConnectivityDlg()
@@ -73,7 +75,24 @@ void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 		m_CheckBoxPLC.SetCheck(FALSE);
 		m_CheckBoxPLC.SetWindowText(_T("Offline"));
 	}
+
+	HRESULT hr;
+	CLSID clsid;
+
+	if (m_jyMono == NULL)
+	{
+		hr = CLSIDFromProgID(L"JYMono.Monochromator", &clsid);
+		if (FAILED(hr = CoCreateInstance(clsid, NULL, CLSCTX_ALL,
+			__uuidof(IJYMonoReqd), (void **)&m_jyMono)))
+		{
+			TRACE("Failed to create Mono Object. Err: %ld", hr);
+			return;
+		}
+	}
 }
+
+
+
 
 void CiHR320ConnectivityDlg::UpdateSystemStatusUI(std::string device) {
 	if (device == "PLC") {
