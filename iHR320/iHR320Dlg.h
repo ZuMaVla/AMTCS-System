@@ -1,6 +1,6 @@
 
 // iHR320Dlg.h : header file
-//
+// C:\Users\PL&PLE\Documents\Lab software\AMTCS-System
 
 #pragma once
 
@@ -14,6 +14,8 @@ class CiHR320DlgAutoProxy;
 #include "AskUser.h"
 #include "Resource.h"
 
+
+class CJYDeviceSink; // forward declaration
 
 // CiHR320Dlg dialog
 class CiHR320Dlg : public CDialogEx
@@ -35,6 +37,10 @@ public:
 	afx_msg void OnStnClickedPlcconnectedText2();
 	afx_msg void OnStnClickedTcconnectedText2();
 
+	void ReceivedDeviceInitialized(long status, IJYEventInfo *eventInfo);
+	void ReceivedDeviceStatus(long status, IJYEventInfo *eventInfo);
+	void ReceivedDeviceUpdate(long status, IJYEventInfo *eventInfo);
+	void ReceivedDeviceCriticalError(long status, IJYEventInfo *eventInfo);
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
@@ -44,6 +50,7 @@ protected:
 	HICON m_hIcon;
 	CTabCtrl m_tab;
 	CComPtr<IJYMonoReqd> m_jyMono;
+	CComPtr<CJYDeviceSink> m_sinkPtr;
 	CiHR320ConnectivityDlg m_connectivityDlg;
 	CiHR320SettingsDlg m_settingsDlg;
 	CiHR320FlowDlg m_flowDlg;

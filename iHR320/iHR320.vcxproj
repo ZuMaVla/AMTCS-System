@@ -91,7 +91,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\user\Documents\Final Project\AMTCS System\iHR320\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\PL&amp;PLE\Documents\Lab software\AMTCS-System\iHR320\include;C:\Users\user\Documents\Final Project\AMTCS System\iHR320\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -204,6 +204,7 @@
     <ClInclude Include="ExperimentState.h" />
     <ClInclude Include="iHR320.h" />
     <ClInclude Include="iHR320Dlg.h" />
+    <ClInclude Include="JYDeviceSink.h" />
     <ClInclude Include="MyVSListBox.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />

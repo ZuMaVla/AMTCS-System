@@ -21,8 +21,6 @@ IMPLEMENT_DYNAMIC(CiHR320ConnectivityDlg, CDialogEx)
 CiHR320ConnectivityDlg::CiHR320ConnectivityDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_CONNECTIVITY_DLG, pParent)
 {
-	CiHR320Dlg* pMain = dynamic_cast<CiHR320Dlg*>(pParent->GetParent());
-	 m_jyMono = pMain->GetMonoPtr();
 }
 
 CiHR320ConnectivityDlg::~CiHR320ConnectivityDlg()
@@ -61,7 +59,8 @@ BOOL CiHR320ConnectivityDlg::OnInitDialog()
 	m_ConnectionLogs.EnableBrowseButton(FALSE);
 	m_ConnectionLogs.AddItem(_T("Ready to check connectivity..."));
 
-
+	CiHR320Dlg* pMain = dynamic_cast<CiHR320Dlg*>(this->GetParent()->GetParent());
+	m_jyMono = pMain->GetMonoPtr();
 
 	return TRUE;
 }

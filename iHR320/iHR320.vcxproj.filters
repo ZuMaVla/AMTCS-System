@@ -87,6 +87,9 @@
     <ClInclude Include="AskUser.h">
       <Filter>Header Files\UI\Components</Filter>
     </ClInclude>
+    <ClInclude Include="JYDeviceSink.h">
+      <Filter>Header Files\JY-SDK</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="iHR320.cpp">

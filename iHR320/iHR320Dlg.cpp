@@ -10,6 +10,9 @@
 #include "Resource.h"
 #include "CiHR320ConnectivityDlg.h"
 #include "TCPtoRPi.h"
+#include "JYDeviceSink.h"
+#include "TriggerSetupDlg.h"
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -245,6 +248,22 @@ void CiHR320Dlg::OnStnClickedPlcconnectedText2()
 void CiHR320Dlg::OnStnClickedTcconnectedText2()
 {
 	// TODO: Add your control notification handler code here
+}
+
+void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo)
+{
+}
+
+void CiHR320Dlg::ReceivedDeviceStatus(long status, IJYEventInfo * eventInfo)
+{
+}
+
+void CiHR320Dlg::ReceivedDeviceUpdate(long status, IJYEventInfo * eventInfo)
+{
+}
+
+void CiHR320Dlg::ReceivedDeviceCriticalError(long status, IJYEventInfo * eventInfo)
+{
 }
 
 void CiHR320Dlg::OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult)
