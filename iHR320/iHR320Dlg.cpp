@@ -63,6 +63,8 @@ CiHR320Dlg::CiHR320Dlg(CWnd* pParent /*=NULL*/)
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_pAutoProxy = NULL;
 	m_jyMono = NULL;
+	m_jyCCD = NULL;
+//	m_pConfigBrowser = NULL;
 }
 
 CiHR320Dlg::~CiHR320Dlg()
@@ -85,7 +87,6 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
-	ON_STN_CLICKED(IDC_TC_connected_Text2, &CiHR320Dlg::OnStnClickedTcconnectedText2)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CiHR320Dlg::OnTabSelChange)
 END_MESSAGE_MAP()
 
@@ -149,7 +150,21 @@ BOOL CiHR320Dlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
-	// TODO: Add extra initialization here
+//********************************---SDK initialisation---***************************************
+
+	HRESULT hr = CoCreateInstance(
+		__uuidof(JYConfigBrowerInterface),
+		NULL, CLSCTX_INPROC_SERVER,
+		__uuidof(IJYConfigBrowerInterface),
+		(void**)&m_pConfigBrowser
+	);
+	m_pConfigBrowser->Load();
+
+	LoadMonos();
+	LoadCCDs();
+
+
+//********************************---Logic+TCP-listener---***************************************
 
 	StartMainLogicThread(this);		// Main communication-with-PLC logic gets access to the UI (this)
 
@@ -239,31 +254,45 @@ BOOL CiHR320Dlg::CanExit()
 
 
 
-void CiHR320Dlg::OnStnClickedPlcconnectedText2()
+
+void CiHR320Dlg::OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	// TODO: Add your control notification handler code here
+	int sel = m_tab.GetCurSel();
+
+	// Hide all pages
+	m_flowDlg.ShowWindow(SW_HIDE);
+	m_connectivityDlg.ShowWindow(SW_HIDE);
+	m_settingsDlg.ShowWindow(SW_HIDE);
+
+	// Show the selected page
+	switch (sel)
+	{
+	case 0: m_connectivityDlg.ShowWindow(SW_SHOW); break;
+	case 1: m_settingsDlg.ShowWindow(SW_SHOW); break;
+	case 2: m_flowDlg.ShowWindow(SW_SHOW); break;
+	}
+
+	*pResult = 0;
+}
+
+std::string CiHR320Dlg::GetLocalIP() {
+	return m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP);
+}
+
+CComPtr<IJYMonoReqd> CiHR320Dlg::GetMonoPtr()
+{
+	return m_jyMono;
 }
 
 
-void CiHR320Dlg::OnStnClickedTcconnectedText2()
+LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
 {
-	// TODO: Add your control notification handler code here
-}
+	std::string* device = reinterpret_cast<std::string*>(lParam);
 
-void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo)
-{
-}
+	m_connectivityDlg.UpdateSystemStatusUI(*device);
 
-void CiHR320Dlg::ReceivedDeviceStatus(long status, IJYEventInfo * eventInfo)
-{
-}
-
-void CiHR320Dlg::ReceivedDeviceUpdate(long status, IJYEventInfo * eventInfo)
-{
-}
-
-void CiHR320Dlg::ReceivedDeviceCriticalError(long status, IJYEventInfo * eventInfo)
-{
+	delete device;   // free the memory after using
+	return 0;
 }
 
 //=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
@@ -330,43 +359,136 @@ void CiHR320Dlg::OnConnect()
 	m_bMonoInitialized = true;
 }
 
-
-void CiHR320Dlg::OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult)
+void CiHR320Dlg::LoadMonos()
 {
-	int sel = m_tab.GetCurSel();
+	USES_CONVERSION;
 
-	// Hide all pages
-	m_flowDlg.ShowWindow(SW_HIDE);
-	m_connectivityDlg.ShowWindow(SW_HIDE);
-	m_settingsDlg.ShowWindow(SW_HIDE);
+	CComBSTR name, monoID;
+	CString strName, strID;
+	int i = 0;
+	m_pConfigBrowser->GetFirstMono(&name, &monoID);
+	strName = W2A(name);
+	strID = W2A(monoID);
+	m_monoArray[i][0] = strID;
+	m_monoArray[i][1] = strName;
 
-	// Show the selected page
-	switch (sel)
+	if (strName.IsEmpty() && strID.IsEmpty())
 	{
-	case 0: m_connectivityDlg.ShowWindow(SW_SHOW); break;
-	case 1: m_settingsDlg.ShowWindow(SW_SHOW); break;
-	case 2: m_flowDlg.ShowWindow(SW_SHOW); break;
+		MessageBox(L"No monos found");
+		return;
+
+	}
+	m_connectivityDlg.m_comboMono.InsertString(i, strName);
+	i++;
+
+	while (true)
+	{
+		m_pConfigBrowser->GetNextMono(&name, &monoID);
+		strName = W2A(name);
+		strID = W2A(monoID);
+
+		if (strName.IsEmpty() && strID.IsEmpty())
+			break;
+
+		m_monoArray[i][0] = strID;
+		m_monoArray[i][1] = strName;
+		m_connectivityDlg.m_comboMono.InsertString(i, strName);
+		i++;
 	}
 
-	*pResult = 0;
+	m_connectivityDlg.m_comboMono.SetCurSel(0);
+
+	HRESULT hr;
+	CLSID   clsid;
+
+	if (m_jyMono == NULL)
+	{
+		hr = CLSIDFromProgID(L"JYMono.Monochromator", &clsid);
+		if (FAILED(hr = CoCreateInstance(clsid, NULL, CLSCTX_ALL, __uuidof(IJYMonoReqd), (void **)&m_jyMono)))
+		{
+			TRACE("Failed to create Mono Object. Err: %ld", hr);
+			return;
+		}
+		// Create a "Sink" for this object.  This provides a facility for 
+		// handling events fired by the mono object.  This class can be extracted and 
+		// modified for use in your own code by modifying the constructor to take your Dialog
+		// as the input parameter and provide the appropriate callbacks in your class. 
+		// See the CJYDeviceSink class for more information.
+		m_sinkPtrMono = new CJYDeviceSink(this, m_jyMono);
+	}
+
+
 }
 
-std::string CiHR320Dlg::GetLocalIP() {
-	return m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP);
-}
-
-CComPtr<IJYMonoReqd> CiHR320Dlg::GetMonoPtr()
+void CiHR320Dlg::LoadCCDs()
 {
-	return m_jyMono;
+	USES_CONVERSION;
+
+	CComBSTR name, ccdID;
+	CString strName, strccdID;
+
+	m_pConfigBrowser->GetFirstCCD(&name, &ccdID);
+	strName = W2A(name);
+	strccdID = W2A(ccdID);
+
+	if (strName.IsEmpty() && strccdID.IsEmpty())
+	{
+		MessageBox(L"No CCDs found");
+		return;
+	}
+
+	m_connectivityDlg.m_deviceSelectCtrl.Clear();
+
+	std::string *devID = new std::string(W2A(ccdID));
+	int index = m_connectivityDlg.m_deviceSelectCtrl.AddString(strName);
+	m_connectivityDlg.m_deviceSelectCtrl.SetItemDataPtr(index, devID);
+
+
+	while (true)
+	{
+		m_pConfigBrowser->GetNextCCD(&name, &ccdID);
+		strName = W2A(name);
+		strccdID = W2A(ccdID);
+
+		if (strName.IsEmpty() && strccdID.IsEmpty())
+			break;
+
+		devID = new std::string(W2A(ccdID));
+		index = m_connectivityDlg.m_deviceSelectCtrl.AddString(strName);
+		m_connectivityDlg.m_deviceSelectCtrl.SetItemDataPtr(index, devID);
+	}
+
+	m_connectivityDlg.m_deviceSelectCtrl.SetCurSel(0);
+
+	HRESULT hr;
+	CLSID   clsid;
+
+	if (m_jyCCD == NULL)
+	{
+		hr = CLSIDFromProgID(OLESTR("JYCCD.JYMCD"), &clsid);
+		if (FAILED(hr = CoCreateInstance(clsid, NULL, CLSCTX_ALL, __uuidof(IJYCCDReqd), (void **)&(m_jyCCD))))
+		{
+			TRACE("Failed to create CCD Object. Err: %ld", hr);
+			return;
+		}
+		m_sinkPtrCCD = new CJYDeviceSink(this, m_jyCCD);
+	}
+
 }
 
-
-LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
+void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo)
 {
-	std::string* device = reinterpret_cast<std::string*>(lParam);
-
-	m_connectivityDlg.UpdateSystemStatusUI(*device);
-
-	delete device;   // free the memory after using
-	return 0;
 }
+
+void CiHR320Dlg::ReceivedDeviceStatus(long status, IJYEventInfo * eventInfo)
+{
+}
+
+void CiHR320Dlg::ReceivedDeviceUpdate(long status, IJYEventInfo * eventInfo)
+{
+}
+
+void CiHR320Dlg::ReceivedDeviceCriticalError(long status, IJYEventInfo * eventInfo)
+{
+}
+
