@@ -34,6 +34,8 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK_PLC, m_CheckBoxPLC);
 	DDX_Control(pDX, IDC_LOCAL_IP, m_localIP);
 	DDX_Control(pDX, IDC_INET_IP, m_instIP);
+	DDX_Control(pDX, IDC_COMBO_CCD, m_deviceSelectCtrl);
+	DDX_Control(pDX, IDC_COMBO_MONO, m_comboMono);
 }
 
 

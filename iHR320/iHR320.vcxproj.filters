@@ -128,6 +128,9 @@
     <ClCompile Include="ExperimentState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="JYDeviceSink.cpp">
+      <Filter>Source Files\JY-SDK</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="iHR320.idl">

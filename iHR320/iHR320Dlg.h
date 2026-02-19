@@ -43,6 +43,14 @@ public:
 	void ReceivedDeviceCriticalError(long status, IJYEventInfo *eventInfo);
 
 protected:
+	afx_msg void OnConnect();
+	CString m_monoArray[10][2];
+	bool m_bMonoInitialized;
+//	bool m_bMonoForceInit;
+	bool m_bDetectorInitialized;
+//	bool m_bDetectorForceInit;
+
+
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
 // Class content
@@ -50,7 +58,10 @@ protected:
 	HICON m_hIcon;
 	CTabCtrl m_tab;
 	CComPtr<IJYMonoReqd> m_jyMono;
-	CComPtr<CJYDeviceSink> m_sinkPtr;
+	CComPtr<CJYDeviceSink> m_sinkPtrMono;
+	CComPtr<IJYCCDReqd> m_jyCCD;
+	CComPtr<CJYDeviceSink> m_sinkPtrCCD;
+
 	CiHR320ConnectivityDlg m_connectivityDlg;
 	CiHR320SettingsDlg m_settingsDlg;
 	CiHR320FlowDlg m_flowDlg;

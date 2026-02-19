@@ -91,7 +91,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\PL&amp;PLE\Documents\Lab software\AMTCS-System\iHR320\include;C:\Users\user\Documents\Final Project\AMTCS System\iHR320\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\PL&amp;PLE\Documents\Lab Software\AMTCS System\iHR320\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -221,6 +221,7 @@
     <ClCompile Include="ExperimentState.cpp" />
     <ClCompile Include="iHR320.cpp" />
     <ClCompile Include="iHR320Dlg.cpp" />
+    <ClCompile Include="JYDeviceSink.cpp" />
     <ClCompile Include="MyVSListBox.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

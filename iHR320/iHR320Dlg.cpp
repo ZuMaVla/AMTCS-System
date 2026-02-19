@@ -11,7 +11,7 @@
 #include "CiHR320ConnectivityDlg.h"
 #include "TCPtoRPi.h"
 #include "JYDeviceSink.h"
-#include "TriggerSetupDlg.h"
+#include <string>
 
 
 #ifdef _DEBUG
@@ -265,6 +265,71 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long status, IJYEventInfo * eventInfo)
 void CiHR320Dlg::ReceivedDeviceCriticalError(long status, IJYEventInfo * eventInfo)
 {
 }
+
+//=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
+//	ORIG AUTHOR:	J. Martin
+//
+//	PARAMETERS:
+//
+//	DESCRIPTION:	Attempt to connect to the selected CCD Device
+//
+//	RETURNS:
+//
+//	NOTES:
+//_______________
+void CiHR320Dlg::OnConnect()
+{
+	HRESULT hr = S_OK;
+
+//*******************************---CCD---****************************************************************************
+
+
+	int nSel = m_connectivityDlg.m_deviceSelectCtrl.GetCurSel();
+	auto* selectedCCD = static_cast<std::string*>(m_connectivityDlg.m_deviceSelectCtrl.GetItemDataPtr(nSel));
+
+
+	m_jyCCD->put_Uniqueid((CComBSTR)selectedCCD->c_str());
+	m_jyCCD->Load();
+	hr = m_jyCCD->OpenCommunications();
+	if (FAILED(hr))
+	{
+		MessageBox(L"Check Hardware and Try Again...");
+		return;
+	}
+	m_jyCCD->Initialize((CComVariant)false, (CComVariant)false);				// Real inintialisation (no emulation)
+
+//*******************************---Mono---****************************************************************************
+
+	// Get the user selected id...
+	CString selectedMono;
+	int index = m_connectivityDlg.m_comboMono.GetCurSel();
+	if (index < 10)
+	{
+		selectedMono = m_monoArray[index][0];
+	}
+
+	// Set the unique id to the instance of the object we created
+
+	hr = m_jyMono->put_Uniqueid((CComBSTR)selectedMono);
+	// Tell the device to Load it's configuration
+	hr = m_jyMono->Load();
+	// Attempt to establish communications with the device.  The
+	// communication parameters specified in the device configuration 
+	// will be used.   If we fail to find the device, we give the user
+	// the ability to select hardware emulation.
+	hr = m_jyMono->OpenCommunications();
+	if (FAILED(hr))
+	{
+		MessageBox(L"Check Hardware and Try Again...");
+		return;
+	}
+
+	// Attempt to initialize the device with the appropriate parameters
+	m_jyMono->Initialize((CComVariant)m_bMonoInitialized, (CComVariant)false);
+
+	m_bMonoInitialized = true;
+}
+
 
 void CiHR320Dlg::OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult)
 {

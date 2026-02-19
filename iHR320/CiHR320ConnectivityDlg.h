@@ -48,4 +48,9 @@ protected:
 	CIPAddressCtrl m_instIP;							// IP on the institutional network
 	CVSListBox m_ConnectionLogs;
 	CButton m_CheckBoxPLC;
+public:
+	// List of CCDs
+	CComboBox m_deviceSelectCtrl;
+	// // List of monochromators
+	CComboBox m_comboMono;
 };
