@@ -39,7 +39,10 @@ const GUID CDECL BASED_CODE _tlid =
 		{ 0xAD7C3530, 0x5259, 0x4592, { 0xA3, 0xC2, 0xA3, 0x9C, 0x43, 0x4A, 0x12, 0xFA } };
 const WORD _wVerMajor = 1;
 const WORD _wVerMinor = 0;
+CComModule _Module;
 
+BEGIN_OBJECT_MAP(ObjectMap)
+END_OBJECT_MAP()
 
 // CiHR320App initialization
 
@@ -64,6 +67,10 @@ BOOL CiHR320App::InitInstance()
 		AfxMessageBox(IDP_OLE_INIT_FAILED);
 		return FALSE;
 	}
+	if (!InitATL())
+		return FALSE;
+
+	AfxEnableControlContainer();
 
 	// Create the shell manager, in case the dialog contains
 	// any shell tree view or shell list view controls.
@@ -90,6 +97,7 @@ BOOL CiHR320App::InitInstance()
 	{
 		// Register class factories via CoRegisterClassObject().
 		COleTemplateServer::RegisterAll();
+		_Module.RegisterClassObjects(CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE);
 	}
 	// App was launched with /Unregserver or /Unregister switch.  Remove
 	// entries from the registry.
@@ -155,5 +163,22 @@ int CiHR320App::ExitInstance()
 {
 	AfxOleTerm(FALSE);
 
+	if (m_bATLInited)
+	{
+		_Module.RevokeClassObjects();
+		_Module.Term();
+	}
+
 	return CWinApp::ExitInstance();
+}
+
+BOOL CiHR320App::InitATL()
+{
+	m_bATLInited = TRUE;
+
+	_Module.Init(ObjectMap, AfxGetInstanceHandle());
+//	_Module.dwThreadID = GetCurrentThreadId();
+
+	return TRUE;
+
 }

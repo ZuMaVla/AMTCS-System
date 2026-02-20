@@ -66,7 +66,7 @@ CiHR320Dlg::CiHR320Dlg(CWnd* pParent /*=NULL*/)
 	m_jyMono = NULL;
 	m_jyCCD = NULL;
 	m_pConfigBrowser = NULL;
-	m_bMonoInitialized = false;
+	m_bMonoInitialized = FALSE;
 
 }
 
@@ -421,14 +421,19 @@ void CiHR320Dlg::LoadMonos()
 
 	m_connectivityDlg.m_MonoSelectCtrl.SetCurSel(0);
 
-	HRESULT hr;
+	HRESULT hr = S_OK;
 	CLSID   clsid;
 
 	if (m_jyMono == NULL)
 	{
-		hr = CLSIDFromProgID(L"JYMono.Monochromator", &clsid);
-		if (FAILED(hr = CoCreateInstance(clsid, NULL, CLSCTX_ALL, __uuidof(IJYMonoReqd), (void **)&m_jyMono)))
-		{
+		hr = CLSIDFromProgID(OLESTR("JYMono.Monochromator"), &clsid);
+		std::cout << FAILED(hr) << "\n";
+		hr = CoCreateInstance(clsid, NULL, CLSCTX_ALL, __uuidof(IJYMonoReqd), (void **)&m_jyMono);
+//		hr = m_jyMono.CoCreateInstance(__uuidof(IJYMonoReqd));
+		std::cout << FAILED(hr) << "\n";
+
+		if (FAILED(hr))
+			{
 			TRACE("Failed to create Mono Object. Err: %ld", hr);
 			return;
 		}
@@ -486,11 +491,13 @@ void CiHR320Dlg::LoadCCDs()
 	HRESULT hr;
 	CLSID   clsid;
 
-	if (m_jyCCD == NULL)
+	if (m_jyCCD != NULL)
 	{
 		hr = CLSIDFromProgID(OLESTR("JYCCD.JYMCD"), &clsid);
-		if (FAILED(hr = CoCreateInstance(clsid, NULL, CLSCTX_ALL, __uuidof(IJYCCDReqd), (void **)&(m_jyCCD))))
-		{
+//		if (FAILED(hr = CoCreateInstance(clsid, NULL, CLSCTX_ALL, __uuidof(IJYCCDReqd), (void **)&m_jyCCD)))
+		hr = m_jyCCD.CoCreateInstance(__uuidof(IJYCCDReqd));
+		if (FAILED(hr))
+			{
 			TRACE("Failed to create CCD Object. Err: %ld", hr);
 			return;
 		}

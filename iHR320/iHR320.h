@@ -10,6 +10,9 @@
 #endif
 
 #include "Resource.h"		// main symbols
+#include <atlbase.h>
+#include <atlcom.h>
+
 
 // CiHR320App:
 // See iHR320.cpp for the implementation of this class
@@ -26,6 +29,9 @@ public:
 // Implementation
 
 	DECLARE_MESSAGE_MAP()
+private:
+	BOOL m_bATLInited;
+	BOOL InitATL();
 };
 
 extern CiHR320App theApp;
