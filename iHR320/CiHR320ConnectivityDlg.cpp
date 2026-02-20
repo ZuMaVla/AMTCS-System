@@ -21,6 +21,7 @@ IMPLEMENT_DYNAMIC(CiHR320ConnectivityDlg, CDialogEx)
 CiHR320ConnectivityDlg::CiHR320ConnectivityDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_CONNECTIVITY_DLG, pParent)
 {
+
 }
 
 CiHR320ConnectivityDlg::~CiHR320ConnectivityDlg()
@@ -34,8 +35,8 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK_PLC, m_CheckBoxPLC);
 	DDX_Control(pDX, IDC_LOCAL_IP, m_localIP);
 	DDX_Control(pDX, IDC_INET_IP, m_instIP);
-	DDX_Control(pDX, IDC_COMBO_CCD, m_deviceSelectCtrl);
-	DDX_Control(pDX, IDC_COMBO_MONO, m_comboMono);
+	DDX_Control(pDX, IDC_COMBO_CCD, m_CCDSelectCtrl);
+	DDX_Control(pDX, IDC_COMBO_MONO, m_MonoSelectCtrl);
 }
 
 
@@ -61,8 +62,6 @@ BOOL CiHR320ConnectivityDlg::OnInitDialog()
 	m_ConnectionLogs.EnableBrowseButton(FALSE);
 	m_ConnectionLogs.AddItem(_T("Ready to check connectivity..."));
 
-	CiHR320Dlg* pMain = dynamic_cast<CiHR320Dlg*>(this->GetParent()->GetParent());
-	m_jyMono = pMain->GetMonoPtr();
 
 	return TRUE;
 }
@@ -76,20 +75,9 @@ void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 		m_CheckBoxPLC.SetCheck(FALSE);
 		m_CheckBoxPLC.SetWindowText(_T("Offline"));
 	}
+	std::array<BOOL, 2> l_FlagSDK = m_mainWnd->ConnectMonoAndCCD();
+	std::cout << "Result: " << l_FlagSDK[0] << l_FlagSDK[1] << "\n";
 
-	HRESULT hr;
-	CLSID clsid;
-
-	if (m_jyMono == NULL)
-	{
-		hr = CLSIDFromProgID(L"JYMono.Monochromator", &clsid);
-		if (FAILED(hr = CoCreateInstance(clsid, NULL, CLSCTX_ALL,
-			__uuidof(IJYMonoReqd), (void **)&m_jyMono)))
-		{
-			TRACE("Failed to create Mono Object. Err: %ld", hr);
-			return;
-		}
-	}
 }
 
 
@@ -102,6 +90,11 @@ void CiHR320ConnectivityDlg::UpdateSystemStatusUI(std::string device) {
 		m_CheckBoxPLC.SetWindowText(_T("Connected"));
 	}
 	return;
+}
+
+void CiHR320ConnectivityDlg::SetMainWnd(CiHR320Dlg * main)
+{
+	m_mainWnd = main;
 }
 
 

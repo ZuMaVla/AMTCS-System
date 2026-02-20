@@ -12,6 +12,7 @@
 #include "TCPtoRPi.h"
 #include "JYDeviceSink.h"
 #include <string>
+#include <iostream>
 
 
 #ifdef _DEBUG
@@ -64,7 +65,9 @@ CiHR320Dlg::CiHR320Dlg(CWnd* pParent /*=NULL*/)
 	m_pAutoProxy = NULL;
 	m_jyMono = NULL;
 	m_jyCCD = NULL;
-//	m_pConfigBrowser = NULL;
+	m_pConfigBrowser = NULL;
+	m_bMonoInitialized = false;
+
 }
 
 CiHR320Dlg::~CiHR320Dlg()
@@ -104,6 +107,7 @@ BOOL CiHR320Dlg::OnInitDialog()
 	m_tab.InsertItem(2, _T("Experiment Flow"));
 
 	// Create child dialogs
+	m_connectivityDlg.SetMainWnd(this);
 	m_connectivityDlg.Create(IDD_CONNECTIVITY_DLG, &m_tab);
 	m_settingsDlg.Create(IDD_EXPERIMENT_SETTINGS_DLG, &m_tab);
 	m_flowDlg.Create(IDD_EXPERIMENT_FLOW_DLG, &m_tab);
@@ -167,7 +171,6 @@ BOOL CiHR320Dlg::OnInitDialog()
 //********************************---Logic+TCP-listener---***************************************
 
 	StartMainLogicThread(this);		// Main communication-with-PLC logic gets access to the UI (this)
-
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -279,10 +282,10 @@ std::string CiHR320Dlg::GetLocalIP() {
 	return m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP);
 }
 
-CComPtr<IJYMonoReqd> CiHR320Dlg::GetMonoPtr()
-{
-	return m_jyMono;
-}
+//CComPtr<IJYMonoReqd> CiHR320Dlg::GetMonoPtr()
+//{
+//	return m_jyMono;
+//}
 
 
 LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
@@ -300,63 +303,83 @@ LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
 //
 //	PARAMETERS:
 //
-//	DESCRIPTION:	Attempt to connect to the selected CCD Device
+//	DESCRIPTION:	Attempt to connect to the selected CCD Device [and Mono - MZ]
 //
 //	RETURNS:
 //
 //	NOTES:
 //_______________
-void CiHR320Dlg::OnConnect()
+std::array<BOOL, 2> CiHR320Dlg::ConnectMonoAndCCD()
 {
+	std::array<BOOL, 2> result = { FALSE, FALSE };
 	HRESULT hr = S_OK;
+	int nSel;
 
 //*******************************---CCD---****************************************************************************
 
-
-	int nSel = m_connectivityDlg.m_deviceSelectCtrl.GetCurSel();
-	auto* selectedCCD = static_cast<std::string*>(m_connectivityDlg.m_deviceSelectCtrl.GetItemDataPtr(nSel));
-
-
-	m_jyCCD->put_Uniqueid((CComBSTR)selectedCCD->c_str());
-	m_jyCCD->Load();
-	hr = m_jyCCD->OpenCommunications();
-	if (FAILED(hr))
+	if (m_connectivityDlg.m_CCDSelectCtrl.GetCount()) 
 	{
-		MessageBox(L"Check Hardware and Try Again...");
-		return;
+		nSel = m_connectivityDlg.m_CCDSelectCtrl.GetCurSel();
+		auto* selectedCCD = static_cast<std::string*>(m_connectivityDlg.m_CCDSelectCtrl.GetItemDataPtr(nSel));
+		std::cout << "Selected CCD: " << selectedCCD << "\n";
+		m_jyCCD->put_Uniqueid((CComBSTR)selectedCCD->c_str());
+		m_jyCCD->Load();
+		hr = m_jyCCD->OpenCommunications();
+
+		if (FAILED(hr))
+		{
+			MessageBox(L"Check Hardware and Try Again...");
+		}
+		else
+		{
+			if (!FAILED(m_jyCCD->Initialize((CComVariant)false, (CComVariant)false))) {
+				result[0] = TRUE;
+			}
+		}
 	}
-	m_jyCCD->Initialize((CComVariant)false, (CComVariant)false);				// Real inintialisation (no emulation)
+					// Real inintialisation (no emulation)
 
 //*******************************---Mono---****************************************************************************
 
 	// Get the user selected id...
-	CString selectedMono;
-	int index = m_connectivityDlg.m_comboMono.GetCurSel();
-	if (index < 10)
+	if (m_connectivityDlg.m_CCDSelectCtrl.GetCount())
 	{
-		selectedMono = m_monoArray[index][0];
+
+		CString selectedMono;
+		nSel = m_connectivityDlg.m_MonoSelectCtrl.GetCurSel();
+		if (nSel < 10)
+		{
+			selectedMono = m_monoArray[nSel][0];
+		}
+
+		if (selectedMono) {
+			// Set the unique id to the instance of the object we created
+			hr = m_jyMono->put_Uniqueid((CComBSTR)selectedMono);
+			// Tell the device to Load it's configuration
+			hr = m_jyMono->Load();
+			// Attempt to establish communications with the device.  The
+			// communication parameters specified in the device configuration 
+			// will be used.   If we fail to find the device, we give the user
+			// the ability to select hardware emulation.
+			hr = m_jyMono->OpenCommunications();
+		}
+
+		if (FAILED(hr))
+		{
+			MessageBox(L"Check Hardware and Try Again...");
+		}
+		else
+		{
+			// Attempt to initialize the device with the appropriate parameters
+			if (!FAILED(m_jyMono->Initialize((CComVariant)m_bMonoInitialized, (CComVariant)false)))
+			{
+				result[1] = TRUE;
+				m_bMonoInitialized = true;
+			}
+		}
 	}
 
-	// Set the unique id to the instance of the object we created
-
-	hr = m_jyMono->put_Uniqueid((CComBSTR)selectedMono);
-	// Tell the device to Load it's configuration
-	hr = m_jyMono->Load();
-	// Attempt to establish communications with the device.  The
-	// communication parameters specified in the device configuration 
-	// will be used.   If we fail to find the device, we give the user
-	// the ability to select hardware emulation.
-	hr = m_jyMono->OpenCommunications();
-	if (FAILED(hr))
-	{
-		MessageBox(L"Check Hardware and Try Again...");
-		return;
-	}
-
-	// Attempt to initialize the device with the appropriate parameters
-	m_jyMono->Initialize((CComVariant)m_bMonoInitialized, (CComVariant)false);
-
-	m_bMonoInitialized = true;
+	return result;
 }
 
 void CiHR320Dlg::LoadMonos()
@@ -378,7 +401,7 @@ void CiHR320Dlg::LoadMonos()
 		return;
 
 	}
-	m_connectivityDlg.m_comboMono.InsertString(i, strName);
+	m_connectivityDlg.m_MonoSelectCtrl.InsertString(i, strName);
 	i++;
 
 	while (true)
@@ -392,11 +415,11 @@ void CiHR320Dlg::LoadMonos()
 
 		m_monoArray[i][0] = strID;
 		m_monoArray[i][1] = strName;
-		m_connectivityDlg.m_comboMono.InsertString(i, strName);
+		m_connectivityDlg.m_MonoSelectCtrl.InsertString(i, strName);
 		i++;
 	}
 
-	m_connectivityDlg.m_comboMono.SetCurSel(0);
+	m_connectivityDlg.m_MonoSelectCtrl.SetCurSel(0);
 
 	HRESULT hr;
 	CLSID   clsid;
@@ -437,11 +460,11 @@ void CiHR320Dlg::LoadCCDs()
 		return;
 	}
 
-	m_connectivityDlg.m_deviceSelectCtrl.Clear();
+	m_connectivityDlg.m_CCDSelectCtrl.Clear();
 
 	std::string *devID = new std::string(W2A(ccdID));
-	int index = m_connectivityDlg.m_deviceSelectCtrl.AddString(strName);
-	m_connectivityDlg.m_deviceSelectCtrl.SetItemDataPtr(index, devID);
+	int index = m_connectivityDlg.m_CCDSelectCtrl.AddString(strName);
+	m_connectivityDlg.m_CCDSelectCtrl.SetItemDataPtr(index, devID);
 
 
 	while (true)
@@ -454,11 +477,11 @@ void CiHR320Dlg::LoadCCDs()
 			break;
 
 		devID = new std::string(W2A(ccdID));
-		index = m_connectivityDlg.m_deviceSelectCtrl.AddString(strName);
-		m_connectivityDlg.m_deviceSelectCtrl.SetItemDataPtr(index, devID);
+		index = m_connectivityDlg.m_CCDSelectCtrl.AddString(strName);
+		m_connectivityDlg.m_CCDSelectCtrl.SetItemDataPtr(index, devID);
 	}
 
-	m_connectivityDlg.m_deviceSelectCtrl.SetCurSel(0);
+	m_connectivityDlg.m_CCDSelectCtrl.SetCurSel(0);
 
 	HRESULT hr;
 	CLSID   clsid;

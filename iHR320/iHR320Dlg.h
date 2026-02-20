@@ -33,9 +33,7 @@ public:
 // 
 	CAskUser m_askUser;
 	std::string GetLocalIP();
-	CComPtr<IJYMonoReqd> GetMonoPtr();
-	afx_msg void OnStnClickedPlcconnectedText2();
-	afx_msg void OnStnClickedTcconnectedText2();
+//	CComPtr<IJYMonoReqd> GetMonoPtr();
 
 	void ReceivedDeviceInitialized(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceStatus(long status, IJYEventInfo *eventInfo);
@@ -87,11 +85,13 @@ protected:
 	afx_msg LRESULT OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam);
 
 //---------------------------------------------SDK--------------------------------------------------
-	afx_msg void OnConnect();
 	void LoadMonos();
 	void LoadCCDs();
 
 
 	DECLARE_MESSAGE_MAP()
+
+public:
+	std::array<BOOL, 2> ConnectMonoAndCCD();
 
 };

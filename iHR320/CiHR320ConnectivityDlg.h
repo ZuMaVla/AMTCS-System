@@ -15,10 +15,11 @@ class CiHR320ConnectivityDlg : public CDialogEx
 	DECLARE_DYNAMIC(CiHR320ConnectivityDlg)
 
 public:
-	CiHR320ConnectivityDlg(CWnd* pParent = NULL);		// standard constructor
+	CiHR320ConnectivityDlg(CWnd* pParent = NULL);		// constructor with passed main dialog pointer
 	virtual ~CiHR320ConnectivityDlg();
 	afx_msg void OnBnClickedConnectButton();
 	void UpdateSystemStatusUI(std::string device);
+	void SetMainWnd(CiHR320Dlg* main);
 	std::array<int, 4> GetIPAddress(std::string type);
 	CIPAddressCtrl m_localIP;							// variable for IP on the network with RPi/PLC
 	std::string CiHR320ConnectivityDlg::GetIPstrFromCtrl(const CIPAddressCtrl& ctrl)
@@ -44,13 +45,16 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
 	DECLARE_MESSAGE_MAP()
+
+	CiHR320Dlg* m_mainWnd;
+
 	CComPtr<IJYMonoReqd> m_jyMono;
 	CIPAddressCtrl m_instIP;							// IP on the institutional network
 	CVSListBox m_ConnectionLogs;
 	CButton m_CheckBoxPLC;
 public:
 	// List of CCDs
-	CComboBox m_deviceSelectCtrl;
+	CComboBox m_CCDSelectCtrl;
 	// // List of monochromators
-	CComboBox m_comboMono;
+	CComboBox m_MonoSelectCtrl;
 };
