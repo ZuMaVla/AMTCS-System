@@ -62,15 +62,15 @@ BOOL CiHR320App::InitInstance()
 
 
 	// Initialize OLE libraries
-	if (!AfxOleInit())
-	{
-		AfxMessageBox(IDP_OLE_INIT_FAILED);
-		return FALSE;
-	}
-//	if (!InitATL())
+//	if (!AfxOleInit())
+//	{
+//		AfxMessageBox(IDP_OLE_INIT_FAILED);
 //		return FALSE;
+//	}
+	if (!InitATL())
+		return FALSE;
 
-//	AfxEnableControlContainer();
+	AfxEnableControlContainer();
 
 	// Create the shell manager, in case the dialog contains
 	// any shell tree view or shell list view controls.
@@ -95,7 +95,7 @@ BOOL CiHR320App::InitInstance()
 	// Run app as automation server.
 	if (cmdInfo.m_bRunEmbedded || cmdInfo.m_bRunAutomated)
 	{
-		// Register class factories via CoRegisterClassObject().
+//		// Register class factories via CoRegisterClassObject().
 		COleTemplateServer::RegisterAll();
 		_Module.RegisterClassObjects(CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE);
 	}
@@ -107,8 +107,8 @@ BOOL CiHR320App::InitInstance()
 		AfxOleUnregisterTypeLib(_tlid, _wVerMajor, _wVerMinor);
 		return FALSE;
 	}
-	// App was launched standalone or with other switches (e.g. /Register
-	// or /Regserver).  Update registry entries, including typelibrary.
+	//// App was launched standalone or with other switches (e.g. /Register
+	//// or /Regserver).  Update registry entries, including typelibrary.
 	else
 	{
 		COleObjectFactory::UpdateRegistryAll();
@@ -136,7 +136,7 @@ BOOL CiHR320App::InitInstance()
 
 	dlg.DoModal();
 
-	StopMainLogicThread();					// Stopping communication with PLC 
+//	StopMainLogicThread();					// Stopping communication with PLC 
 
 
 	
@@ -165,8 +165,8 @@ int CiHR320App::ExitInstance()
 
 	if (m_bATLInited)
 	{
-		_Module.RevokeClassObjects();
-		_Module.Term();
+		CoUninitialize();
+		m_bATLInited = FALSE;
 	}
 
 	return CWinApp::ExitInstance();
@@ -174,11 +174,31 @@ int CiHR320App::ExitInstance()
 
 BOOL CiHR320App::InitATL()
 {
+	// If you call InitATL multiple times, keep it idempotent.
+	if (m_bATLInited)
+		return TRUE;
+
+	// Match the vendor example first:
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+	if (hr == RPC_E_CHANGED_MODE)
+	{
+		// COM is already initialized on this thread with a different apartment model (likely STA).
+		// You cannot "switch" the apartment for this thread.
+		//
+		// If you are an MFC GUI app, this often happens because MFC initialized COM as STA.
+		// In that case, do NOT call CoUninitialize for this path (because you didn't init it).
+		std::wcout << L"COM already initialized with different mode (RPC_E_CHANGED_MODE). "
+			L"Continuing without reinitializing.\n";
+		return TRUE;
+	}
+
+	if (FAILED(hr))
+	{
+		std::wcout << L"CoInitializeEx failed: 0x" << std::hex << hr << L"\n";
+		return FALSE;
+	}
+
 	m_bATLInited = TRUE;
-
-	_Module.Init(ObjectMap, AfxGetInstanceHandle());
-//	_Module.dwThreadID = GetCurrentThreadId();
-
 	return TRUE;
-
 }

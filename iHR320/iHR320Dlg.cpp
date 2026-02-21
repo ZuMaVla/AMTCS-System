@@ -156,12 +156,7 @@ BOOL CiHR320Dlg::OnInitDialog()
 
 //********************************---SDK initialisation---***************************************
 
-	HRESULT hr = CoCreateInstance(
-		__uuidof(JYConfigBrowerInterface),
-		NULL, CLSCTX_INPROC_SERVER,
-		__uuidof(IJYConfigBrowerInterface),
-		(void**)&m_pConfigBrowser
-	);
+	HRESULT hr = m_pConfigBrowser.CoCreateInstance(__uuidof(JYConfigBrowerInterface), NULL, CLSCTX_INPROC_SERVER);
 	m_pConfigBrowser->Load();
 
 	LoadMonos();
@@ -170,7 +165,7 @@ BOOL CiHR320Dlg::OnInitDialog()
 
 //********************************---Logic+TCP-listener---***************************************
 
-	StartMainLogicThread(this);		// Main communication-with-PLC logic gets access to the UI (this)
+//	StartMainLogicThread(this);		// Main communication-with-PLC logic gets access to the UI (this)
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -382,6 +377,25 @@ std::array<BOOL, 2> CiHR320Dlg::ConnectMonoAndCCD()
 	return result;
 }
 
+
+auto PrintClsid = [](const wchar_t* progid)
+{
+	CLSID clsid{};
+	HRESULT hr = CLSIDFromProgID(progid, &clsid);
+	std::wcout << progid << L": hr=0x" << std::hex << hr;
+
+	if (SUCCEEDED(hr))
+	{
+		LPOLESTR s = nullptr;
+		StringFromCLSID(clsid, &s);
+		std::wcout << L" clsid=" << s;
+		CoTaskMemFree(s);
+	}
+	std::wcout << L"\n";
+};
+
+
+
 void CiHR320Dlg::LoadMonos()
 {
 	USES_CONVERSION;
@@ -428,9 +442,32 @@ void CiHR320Dlg::LoadMonos()
 	if (m_jyMono == NULL)
 	{
 		hr = CLSIDFromProgID(L"JYMono.Monochromator", &clsid);
-		std::cout << FAILED(hr) << "\n";
-		hr = m_jyMono.CoCreateInstance(clsid, NULL, CLSCTX_ALL);
-		std::cout << FAILED(hr) << "\n";
+		std::wcout << L"CLSIDFromProgID hr=0x" << std::hex << hr << L"\n";
+		LPOLESTR clsidStr = nullptr;
+		hr = StringFromCLSID(clsid, &clsidStr);
+		std::wcout << L"Result1 = " << FAILED(hr) << L"\n";
+
+		APTTYPE apt; APTTYPEQUALIFIER qual;
+		HRESULT hrApt = CoGetApartmentType(&apt, &qual);
+		std::wcout << L"CoGetApartmentType hr=0x" << std::hex << hrApt
+			<< L" apt=" << apt << L" qual=" << qual << L"\n";
+
+		SetCurrentDirectoryW(L"C:\\Program Files\\Jobin Yvon\\SDK\\Examples\\C++\\MonoCCD_Cpp_2010\\Debug\\");
+		wchar_t exePath[MAX_PATH]{};
+		GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+
+		wchar_t cwd[MAX_PATH]{};
+		GetCurrentDirectoryW(MAX_PATH, cwd);
+
+		wchar_t msg[1024];
+		swprintf_s(msg, L"[iHR320] EXE=%s\n[iHR320] CWD=%s\n", exePath, cwd);
+		OutputDebugStringW(msg);
+
+		CComPtr<IUnknown> unk;
+		hr = unk.CoCreateInstance(clsid, NULL, CLSCTX_INPROC_SERVER);
+
+//		hr = m_jyMono.CoCreateInstance(clsid, NULL, CLSCTX_ALL);
+		std::wcout << L"Result2 = " << FAILED(hr) << L"\n";
 
 		if (FAILED(hr))
 			{
@@ -442,7 +479,7 @@ void CiHR320Dlg::LoadMonos()
 		// modified for use in your own code by modifying the constructor to take your Dialog
 		// as the input parameter and provide the appropriate callbacks in your class. 
 		// See the CJYDeviceSink class for more information.
-		m_sinkPtrMono = new CJYDeviceSink(this, m_jyMono);
+//		m_sinkPtrMono = new CJYDeviceSink(this, m_jyMono);
 	}
 
 
@@ -496,14 +533,14 @@ void CiHR320Dlg::LoadCCDs()
 	{
 		hr = CLSIDFromProgID(L"JYCCD.JYMCD", &clsid);
 		std::cout << FAILED(hr) << "\n";
-		hr = m_jyCCD.CoCreateInstance(clsid, NULL, CLSCTX_ALL);
+//		hr = m_jyCCD.CoCreateInstance(clsid, NULL, CLSCTX_ALL);
 		std::cout << FAILED(hr) << "\n";
 		if (FAILED(hr))
 			{
 			TRACE("Failed to create CCD Object. Err: %ld", hr);
 			return;
 		}
-		m_sinkPtrCCD = new CJYDeviceSink(this, m_jyCCD);
+//		m_sinkPtrCCD = new CJYDeviceSink(this, m_jyCCD);
 	}
 
 }
@@ -611,4 +648,5 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 void CiHR320Dlg::ReceivedDeviceCriticalError(long status, IJYEventInfo * eventInfo)
 {
 }
+
 
