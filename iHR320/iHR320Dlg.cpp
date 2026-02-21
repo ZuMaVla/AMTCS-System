@@ -398,7 +398,8 @@ void CiHR320Dlg::LoadMonos()
 	if (strName.IsEmpty() && strID.IsEmpty())
 	{
 		MessageBox(L"No monos found");
-		return;
+		strName = L"testMono";
+//		return;
 
 	}
 	m_connectivityDlg.m_MonoSelectCtrl.InsertString(i, strName);
@@ -426,10 +427,9 @@ void CiHR320Dlg::LoadMonos()
 
 	if (m_jyMono == NULL)
 	{
-		hr = CLSIDFromProgID(OLESTR("JYMono.Monochromator"), &clsid);
+		hr = CLSIDFromProgID(L"JYMono.Monochromator", &clsid);
 		std::cout << FAILED(hr) << "\n";
-		hr = CoCreateInstance(clsid, NULL, CLSCTX_ALL, __uuidof(IJYMonoReqd), (void **)&m_jyMono);
-//		hr = m_jyMono.CoCreateInstance(__uuidof(IJYMonoReqd));
+		hr = m_jyMono.CoCreateInstance(clsid, NULL, CLSCTX_ALL);
 		std::cout << FAILED(hr) << "\n";
 
 		if (FAILED(hr))
@@ -462,7 +462,8 @@ void CiHR320Dlg::LoadCCDs()
 	if (strName.IsEmpty() && strccdID.IsEmpty())
 	{
 		MessageBox(L"No CCDs found");
-		return;
+		strName = L"TestCCD";
+//		return;
 	}
 
 	m_connectivityDlg.m_CCDSelectCtrl.Clear();
@@ -491,11 +492,12 @@ void CiHR320Dlg::LoadCCDs()
 	HRESULT hr;
 	CLSID   clsid;
 
-	if (m_jyCCD != NULL)
+	if (m_jyCCD == NULL)
 	{
-		hr = CLSIDFromProgID(OLESTR("JYCCD.JYMCD"), &clsid);
-//		if (FAILED(hr = CoCreateInstance(clsid, NULL, CLSCTX_ALL, __uuidof(IJYCCDReqd), (void **)&m_jyCCD)))
-		hr = m_jyCCD.CoCreateInstance(__uuidof(IJYCCDReqd));
+		hr = CLSIDFromProgID(L"JYCCD.JYMCD", &clsid);
+		std::cout << FAILED(hr) << "\n";
+		hr = m_jyCCD.CoCreateInstance(clsid, NULL, CLSCTX_ALL);
+		std::cout << FAILED(hr) << "\n";
 		if (FAILED(hr))
 			{
 			TRACE("Failed to create CCD Object. Err: %ld", hr);
@@ -508,14 +510,102 @@ void CiHR320Dlg::LoadCCDs()
 
 void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo)
 {
+	// This eventInfo structure contains the "source" object that fired the initialized event
+	// because you may receive this event from multiple sources.  You can extract the source ptr and 
+	// use it to identify which device has been initialized, as shown below.  
+	IJYDeviceReqd * sourceDevPtr;
+
+	eventInfo->get_Source(&sourceDevPtr);
+
+	//////// Init CCD
+	if (sourceDevPtr == m_jyCCD)
+	{
+		USES_CONVERSION;
+		int x, y;
+		CComBSTR fwVer, devDesc, devName;
+		jyUnits eUnits;
+		VARIANT vUnits;
+		CString sUnits;
+
+//		m_jyCCD->GetDefaultUnits(jyutTime, &eUnits, &vUnits);		// Acquisition time
+//		sUnits = vUnits.bstrVal;
+
+//		m_jyCCD->get_Name(&devName);
+//		m_name = devName;
+
+		CComBSTR gainStr;
+		long gainToken;
+		int addedIndex;
+		// Enumerate available Gains
+		//m_jyCCD->GetFirstGain(&gainStr, &gainToken);
+		//while (gainToken > -1)
+		//{
+		//	addedIndex = m_gainsCtrl.AddString(W2A(gainStr));
+		//	m_gainsCtrl.SetItemData(addedIndex, gainToken);
+		//	m_jyCCD->GetNextGain(&gainStr, &gainToken);
+		//}
+//		m_gainsCtrl.SetCurSel(0);
+
+		CComBSTR adcStr;
+		long adcToken;
+
+		// Enumerate available Gains
+		//m_jyCCD->GetFirstADC(&adcStr, &adcToken);
+		//while (adcToken > -1)
+		//{
+		//	addedIndex = m_adcCtrl.AddString(W2A(adcStr));
+		//	m_adcCtrl.SetItemData(addedIndex, adcToken);
+		//	m_jyCCD->GetNextADC(&adcStr, &adcToken);
+		//}
+		//m_adcCtrl.SetCurSel(0);
+	}
+
+	////////// Init Mono
+	if (sourceDevPtr == m_jyMono)
+	{
+//		GetSlits();
+//		GetGratings();
+//		GetMirrors();
+		//		GetMonoCommSettings();
+	}
+
+	UpdateData(FALSE);
+
+	//	MessageBox("Initialized Received :) !");
 }
 
 void CiHR320Dlg::ReceivedDeviceStatus(long status, IJYEventInfo * eventInfo)
 {
+	CComBSTR desc;
+	eventInfo->get_Description(&desc);
+	CString strValue(desc);
+	m_flowDlg.m_ExpFLowLogs.AddItem(strValue);
+	UpdateData(FALSE);
 }
 
-void CiHR320Dlg::ReceivedDeviceUpdate(long status, IJYEventInfo * eventInfo)
+void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 {
+	switch (updateType)
+	{
+	case 100: // data
+	{
+		CComVariant data;
+		IJYResultsObject *resultObject = NULL;
+		CComBSTR dataDesc;
+		eventInfo->GetResult(&resultObject);
+		resultObject->GetFirstDataObject(&m_AcqDataObj);
+		m_AcqDataObj->get_Description(&dataDesc);
+		m_AcqDataObj->GetDataAsArray(&data);
+		m_flowDlg.m_ExpFLowLogs.AddItem(L"Data Update received...");
+		m_flowDlg.m_ExpFLowLogs.AddItem(L"Acquisition Completed.");
+		UpdateData(FALSE);
+	}
+	break;
+	default:
+		break;
+	}
+	//MessageBox("Update Received :) !");
+
 }
 
 void CiHR320Dlg::ReceivedDeviceCriticalError(long status, IJYEventInfo * eventInfo)

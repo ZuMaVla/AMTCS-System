@@ -57,6 +57,7 @@ protected:
 //	IJYCCDReqd* m_jyCCD;
 //	CJYDeviceSink* m_sinkPtrCCD;
 //	IJYConfigBrowerInterface* m_pConfigBrowser;
+	IJYDataObject *m_AcqDataObj;    // Holds data gathered by the "Start Acq" Button to be accessed by the "Save Data" Button
 
 
 // Class content

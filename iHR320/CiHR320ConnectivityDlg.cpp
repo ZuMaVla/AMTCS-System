@@ -37,6 +37,8 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_INET_IP, m_instIP);
 	DDX_Control(pDX, IDC_COMBO_CCD, m_CCDSelectCtrl);
 	DDX_Control(pDX, IDC_COMBO_MONO, m_MonoSelectCtrl);
+	DDX_Control(pDX, IDC_CHECK_CCD, m_CheckBoxCCD);
+	DDX_Control(pDX, IDC_CHECK_IHR320, m_CheckBoxMono);
 }
 
 
@@ -77,7 +79,29 @@ void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 	}
 	std::array<BOOL, 2> l_FlagSDK = m_mainWnd->ConnectMonoAndCCD();
 	std::cout << "Result: " << l_FlagSDK[0] << l_FlagSDK[1] << "\n";
+	if (l_FlagSDK[0]) {
+		m_CheckBoxCCD.SetCheck(TRUE);
+		m_CheckBoxCCD.SetWindowText(_T("Connected"));
+		m_ConnectionLogs.AddItem(_T("CCD connected"));
+	}
+	else
+	{
+		m_CheckBoxCCD.SetCheck(FALSE);
+		m_CheckBoxCCD.SetWindowText(_T("Offline"));
+		m_ConnectionLogs.AddItem(_T("CCD not found"));
+	}
 
+	if (l_FlagSDK[1]) {
+		m_CheckBoxMono.SetCheck(TRUE);
+		m_CheckBoxMono.SetWindowText(_T("Connected"));
+		m_ConnectionLogs.AddItem(_T("Monochromator connected"));
+	}
+	else
+	{
+		m_CheckBoxMono.SetCheck(FALSE);
+		m_CheckBoxMono.SetWindowText(_T("Offline"));
+		m_ConnectionLogs.AddItem(_T("Monochromator not found"));
+	}
 }
 
 

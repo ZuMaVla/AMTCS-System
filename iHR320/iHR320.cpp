@@ -67,10 +67,10 @@ BOOL CiHR320App::InitInstance()
 		AfxMessageBox(IDP_OLE_INIT_FAILED);
 		return FALSE;
 	}
-	if (!InitATL())
-		return FALSE;
+//	if (!InitATL())
+//		return FALSE;
 
-	AfxEnableControlContainer();
+//	AfxEnableControlContainer();
 
 	// Create the shell manager, in case the dialog contains
 	// any shell tree view or shell list view controls.

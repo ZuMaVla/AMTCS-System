@@ -57,4 +57,6 @@ public:
 	CComboBox m_CCDSelectCtrl;
 	// // List of monochromators
 	CComboBox m_MonoSelectCtrl;
+	CButton m_CheckBoxCCD;
+	CButton m_CheckBoxMono;
 };
