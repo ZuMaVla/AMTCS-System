@@ -44,6 +44,8 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CiHR320ConnectivityDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CONNECT_BUTTON, &CiHR320ConnectivityDlg::OnBnClickedConnectButton)
+	ON_BN_CLICKED(IDC_Acq, &CiHR320ConnectivityDlg::OnBnClickedAcq)
+	ON_BN_CLICKED(IDC_BUTTON2, &CiHR320ConnectivityDlg::OnBnClickedButton2)
 END_MESSAGE_MAP()
 
 
@@ -178,3 +180,16 @@ std::array<int, 4> CiHR320ConnectivityDlg::GetIPAddress(std::string type)
 }
 
 
+
+
+void CiHR320ConnectivityDlg::OnBnClickedAcq()
+{
+	UpdateData(FALSE);
+	m_mainWnd->DoAcquisition();
+}
+
+
+void CiHR320ConnectivityDlg::OnBnClickedButton2()
+{
+	// TODO: Add your control notification handler code here
+}

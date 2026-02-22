@@ -1,9 +1,9 @@
 #include "stdafx.h"
 #include "DataAcquisition.h"
+#include "iHR320Dlg.h"
 
 
-bool TakeSpectrum() {
-	Sleep(5000);
-//	to do
+bool TakeSpectrum(CiHR320Dlg* pUI) {
+	pUI->DoAcquisition();
 	return true;
 };

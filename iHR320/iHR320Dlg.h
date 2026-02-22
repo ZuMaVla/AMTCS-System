@@ -88,11 +88,12 @@ protected:
 //---------------------------------------------SDK--------------------------------------------------
 	void LoadMonos();
 	void LoadCCDs();
-
+	BOOL ConnectAndInitCCD();
 
 	DECLARE_MESSAGE_MAP()
 
 public:
 	std::array<BOOL, 2> ConnectMonoAndCCD();
+	HRESULT DoAcquisition();
 
 };

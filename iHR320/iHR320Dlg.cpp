@@ -168,6 +168,7 @@ BOOL CiHR320Dlg::OnInitDialog()
 	LoadCCDs();
 
 
+
 //********************************---Logic+TCP-listener---***************************************
 
 	StartMainLogicThread(this);		// Main communication-with-PLC logic gets access to the UI (this)
@@ -317,26 +318,28 @@ std::array<BOOL, 2> CiHR320Dlg::ConnectMonoAndCCD()
 
 //*******************************---CCD---****************************************************************************
 
-	if (m_connectivityDlg.m_CCDSelectCtrl.GetCount()) 
-	{
-		nSel = m_connectivityDlg.m_CCDSelectCtrl.GetCurSel();
-		auto* selectedCCD = static_cast<std::string*>(m_connectivityDlg.m_CCDSelectCtrl.GetItemDataPtr(nSel));
-		std::cout << "Selected CCD: " << selectedCCD << "\n";
-		m_jyCCD->put_Uniqueid((CComBSTR)selectedCCD->c_str());
-		m_jyCCD->Load();
-		hr = m_jyCCD->OpenCommunications();
+	//if (m_connectivityDlg.m_CCDSelectCtrl.GetCount()) 
+	//{
+	//	nSel = m_connectivityDlg.m_CCDSelectCtrl.GetCurSel();
+	//	auto* selectedCCD = static_cast<std::string*>(m_connectivityDlg.m_CCDSelectCtrl.GetItemDataPtr(nSel));
+	//	std::cout << "Selected CCD: " << selectedCCD << "\n";
+	//	m_jyCCD->put_Uniqueid((CComBSTR)selectedCCD->c_str());
+	//	m_jyCCD->Load();
+	//	hr = m_jyCCD->OpenCommunications();
 
-		if (FAILED(hr))
-		{
-			MessageBox(L"Check Hardware and Try Again...");
-		}
-		else
-		{
-			if (!FAILED(m_jyCCD->Initialize((CComVariant)false, (CComVariant)false))) {
-				result[0] = TRUE;
-			}
-		}
-	}
+	//	if (FAILED(hr))
+	//	{
+	//		MessageBox(L"Check Hardware and Try Again...");
+	//	}
+	//	else
+	//	{
+	//		if (!FAILED(m_jyCCD->Initialize((CComVariant)false, (CComVariant)false))) {
+	//			result[0] = TRUE;
+	//		}
+	//	}
+	//}
+	result[0] = ConnectAndInitCCD();
+
 					// Real inintialisation (no emulation)
 
 //*******************************---Mono---****************************************************************************
@@ -506,6 +509,54 @@ void CiHR320Dlg::LoadCCDs()
 		m_sinkPtrCCD = new CJYDeviceSink(this, m_jyCCD);
 	}
 
+}
+
+BOOL CiHR320Dlg::ConnectAndInitCCD()
+{
+	HRESULT hr = S_OK;
+
+	int nSel = m_connectivityDlg.m_CCDSelectCtrl.GetCurSel();
+	std::string *selectedCCD = NULL;
+	selectedCCD = (std::string *)m_connectivityDlg.m_CCDSelectCtrl.GetItemDataPtr(nSel);
+
+	m_jyCCD->put_Uniqueid((CComBSTR)selectedCCD->c_str());
+	m_jyCCD->Load();
+	hr = m_jyCCD->OpenCommunications();
+	if (FAILED(hr))
+	{
+		MessageBox(L"Check Hardware and Try Again...");
+		return FALSE;
+	}
+	Sleep(2000);
+	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Initialising CCD...Please wait");
+	hr = m_jyCCD->Initialize((CComVariant)false, (CComVariant)false);
+	if (FAILED(hr))
+	{
+		m_connectivityDlg.m_ConnectionLogs.AddItem(L"Check Hardware and Try Again...");
+		return FALSE;
+	}
+	m_connectivityDlg.m_ConnectionLogs.AddItem(L"CCD Initialised :)");
+	return TRUE;
+}
+
+HRESULT CiHR320Dlg::DoAcquisition()
+{
+	HRESULT hr = S_OK;
+
+	TRACE("DoAcquisition clicked\n");
+
+	VARIANT_BOOL busy = VARIANT_FALSE;
+	HRESULT hrB = m_jyCCD->AcquisitionBusy(&busy);
+	TRACE("AcqBusy hr=0x%08X busy=%d\n", hrB, busy);
+
+
+	m_jyCCD->DoAcquisition(VARIANT_TRUE);
+//	Sleep(2000);
+//	hr = m_jyCCD->DoAcquisition(VARIANT_FALSE);
+
+	TRACE("DoAcquisition hr=0x%08X\n", hr);
+
+	return hr;
 }
 
 void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo)

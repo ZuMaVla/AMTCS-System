@@ -46,7 +46,7 @@ static void MainLogicWorker(CiHR320Dlg* pUI, MessageQueue& PLC_out, MessageQueue
 			cmd.keyword = "SEND";
 			cmd.payload = "AFFIRMATIVE";			
 			PLC_in.push(cmd); 														// Confirming request
-			if (TakeSpectrum()) { cmd.payload = "DONE";	}
+			if (TakeSpectrum(pUI)) { cmd.payload = "DONE";	}
 			else { cmd.payload = "ERROR"; }
 			PLC_in.push(cmd);														// Confirming success/error
 		}

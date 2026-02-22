@@ -50,13 +50,15 @@ protected:
 
 	CComPtr<IJYMonoReqd> m_jyMono;
 	CIPAddressCtrl m_instIP;							// IP on the institutional network
-	CVSListBox m_ConnectionLogs;
 	CButton m_CheckBoxPLC;
 public:
+	CVSListBox m_ConnectionLogs;
 	// List of CCDs
 	CComboBox m_CCDSelectCtrl;
 	// // List of monochromators
 	CComboBox m_MonoSelectCtrl;
 	CButton m_CheckBoxCCD;
 	CButton m_CheckBoxMono;
+	afx_msg void OnBnClickedAcq();
+	afx_msg void OnBnClickedButton2();
 };

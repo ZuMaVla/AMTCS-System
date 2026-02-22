@@ -1,3 +1,4 @@
 #pragma once
+class CiHR320Dlg;
 
-bool TakeSpectrum();
+bool TakeSpectrum(CiHR320Dlg* pUI);
