@@ -299,6 +299,34 @@ LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
+BOOL CiHR320Dlg::ConnectAndInitCCD()
+{
+	HRESULT hr = S_OK;
+
+	int nSel = m_connectivityDlg.m_CCDSelectCtrl.GetCurSel();
+	std::string *selectedCCD = NULL;
+	selectedCCD = (std::string *)m_connectivityDlg.m_CCDSelectCtrl.GetItemDataPtr(nSel);
+
+	m_jyCCD->put_Uniqueid((CComBSTR)selectedCCD->c_str());
+	m_jyCCD->Load();
+	hr = m_jyCCD->OpenCommunications();
+	if (FAILED(hr))
+	{
+		MessageBox(L"Check Hardware and Try Again...");
+		return FALSE;
+	}
+	Sleep(2000);
+	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Initialising CCD...Please wait");
+	hr = m_jyCCD->Initialize((CComVariant)false, (CComVariant)false);
+	if (FAILED(hr))
+	{
+		m_connectivityDlg.m_ConnectionLogs.AddItem(L"Check Hardware and Try Again...");
+		return FALSE;
+	}
+	m_connectivityDlg.m_ConnectionLogs.AddItem(L"CCD Initialised :)");
+	return TRUE;
+}
+
 //=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
 //	ORIG AUTHOR:	J. Martin
 //
@@ -511,50 +539,48 @@ void CiHR320Dlg::LoadCCDs()
 
 }
 
-BOOL CiHR320Dlg::ConnectAndInitCCD()
-{
-	HRESULT hr = S_OK;
-
-	int nSel = m_connectivityDlg.m_CCDSelectCtrl.GetCurSel();
-	std::string *selectedCCD = NULL;
-	selectedCCD = (std::string *)m_connectivityDlg.m_CCDSelectCtrl.GetItemDataPtr(nSel);
-
-	m_jyCCD->put_Uniqueid((CComBSTR)selectedCCD->c_str());
-	m_jyCCD->Load();
-	hr = m_jyCCD->OpenCommunications();
-	if (FAILED(hr))
-	{
-		MessageBox(L"Check Hardware and Try Again...");
-		return FALSE;
-	}
-	Sleep(2000);
-	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Initialising CCD...Please wait");
-	hr = m_jyCCD->Initialize((CComVariant)false, (CComVariant)false);
-	if (FAILED(hr))
-	{
-		m_connectivityDlg.m_ConnectionLogs.AddItem(L"Check Hardware and Try Again...");
-		return FALSE;
-	}
-	m_connectivityDlg.m_ConnectionLogs.AddItem(L"CCD Initialised :)");
-	return TRUE;
-}
 
 HRESULT CiHR320Dlg::DoAcquisition()
 {
-	HRESULT hr = S_OK;
+	UpdateData(FALSE);
+	//// 
+	//// Non Threaded...
+	////
 
-	TRACE("DoAcquisition clicked\n");
+	IJYResultsObject *resultObj;
+	//IJYDataObject *dataObj;
+	//VARIANT_BOOL isBusy = true;
+	//CComVariant data;
+	//m_jyCCD->StartAcquisition(VARIANT_TRUE);
+	//while (isBusy)
+	//{
+	//	m_jyCCD->AcquisitionBusy(&isBusy);
+	//	// PUMP MESSAGES: This allows the COM component to update its state
+	//	MSG msg;
+	//	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	//	{
+	//		TranslateMessage(&msg);
+	//		DispatchMessage(&msg);
+	//	}
 
-	VARIANT_BOOL busy = VARIANT_FALSE;
-	HRESULT hrB = m_jyCCD->AcquisitionBusy(&busy);
-	TRACE("AcqBusy hr=0x%08X busy=%d\n", hrB, busy);
+	//	Sleep(10); // Don't peg the CPU at 100%
+	//}
+	//m_jyCCD->GetResult(&resultObj);
 
+	//HRESULT hr = resultObj->GetFirstDataObject(&dataObj);
+	//dataObj->GetDataAsArray(&data);
 
-	m_jyCCD->DoAcquisition(VARIANT_TRUE);
-//	Sleep(2000);
-//	hr = m_jyCCD->DoAcquisition(VARIANT_FALSE);
-
-	TRACE("DoAcquisition hr=0x%08X\n", hr);
+	HRESULT hr = m_jyCCD->DoAcquisition(VARIANT_TRUE);
+	DWORD start = GetTickCount();
+	while (GetTickCount() - start < 3000) {
+		MSG msg;
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		Sleep(10);
+	}
 
 	return hr;
 }
@@ -609,6 +635,8 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 		//	m_jyCCD->GetNextADC(&adcStr, &adcToken);
 		//}
 		//m_adcCtrl.SetCurSel(0);
+		m_flowDlg.m_ExpFLowLogs.AddItem(L"Initialized Received from CCD!");
+
 	}
 
 	////////// Init Mono
@@ -618,11 +646,12 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 //		GetGratings();
 //		GetMirrors();
 		//		GetMonoCommSettings();
+		m_flowDlg.m_ExpFLowLogs.AddItem(L"Initialized Received from Mono!");
 	}
 
 	UpdateData(FALSE);
 
-	//	MessageBox("Initialized Received :) !");
+	//MessageBox(L"Initialized Received :) !");
 }
 
 void CiHR320Dlg::ReceivedDeviceStatus(long status, IJYEventInfo * eventInfo)
@@ -655,7 +684,7 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 	default:
 		break;
 	}
-	//MessageBox("Update Received :) !");
+	MessageBox(L"Update Received :) !");
 
 }
 
