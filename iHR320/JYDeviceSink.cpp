@@ -61,8 +61,17 @@ CJYDeviceSink::CJYDeviceSink(CiHR320Dlg *parentPtr, IJYSystemReqd *eventSource)
 	m_eventSourcePtr = eventSource;
 	m_eventSourcePtr->AddRef();
 	// Establish the connection to the source...
+//	HRESULT hr = DispEventAdvise(m_eventSourcePtr);
+//	_ASSERT(SUCCEEDED(hr));
 	HRESULT hr = DispEventAdvise(m_eventSourcePtr);
-	_ASSERT(SUCCEEDED(hr));
+	if (FAILED(hr)) {
+		CString err;
+		err.Format(L"ActiveX Sink Link Failed! HR = 0x%08X", hr);
+		AfxMessageBox(err);
+	}
+	else {
+		ATLTRACE("SINK CONNECTED SUCCESSFULLY\n");
+	}
 }
 
 CJYDeviceSink::~CJYDeviceSink()

@@ -39,8 +39,11 @@ public:
 		SINK_ENTRY_EX(ARBITRARY_SINK, DIID__IJYDeviceReqdEvents, 1, OnInitialized)
 		SINK_ENTRY_EX(ARBITRARY_SINK, DIID__IJYDeviceReqdEvents, 2, OnOperationStatus)
 		SINK_ENTRY_EX(ARBITRARY_SINK, DIID__IJYDeviceReqdEvents, 3, OnUpdate)
+		SINK_ENTRY_EX(ARBITRARY_SINK, DIID__IJYDeviceReqdEvents, 100, OnUpdate)
+		SINK_ENTRY_EX(ARBITRARY_SINK, DIID__IJYDeviceReqdEvents, 41, OnUpdate)
 		SINK_ENTRY_EX(ARBITRARY_SINK, DIID__IJYDeviceReqdEvents, 4, OnCriticalError)
 	END_SINK_MAP()
+
 
 private:
 	IJYEventInfoPtr m_eventPtr;

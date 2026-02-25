@@ -62,11 +62,11 @@ BOOL CiHR320App::InitInstance()
 
 
 	// Initialize OLE libraries
-	//	if (!AfxOleInit())
-	//	{
-	//		AfxMessageBox(IDP_OLE_INIT_FAILED);
-	//		return FALSE;
-	//	}
+	if (!AfxOleInit())
+	{
+		AfxMessageBox(IDP_OLE_INIT_FAILED);
+		return FALSE;
+	}
 	if (!InitATL())
 		return FALSE;
 
@@ -179,7 +179,7 @@ BOOL CiHR320App::InitATL()
 		return TRUE;
 
 	// Match the vendor example first:
-	HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
 	if (hr == RPC_E_CHANGED_MODE)
 	{

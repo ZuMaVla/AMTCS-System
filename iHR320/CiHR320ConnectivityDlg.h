@@ -61,4 +61,5 @@ public:
 	CButton m_CheckBoxMono;
 	afx_msg void OnBnClickedAcq();
 	afx_msg void OnBnClickedButton2();
+	CButton m_acquisBtnTemp;
 };

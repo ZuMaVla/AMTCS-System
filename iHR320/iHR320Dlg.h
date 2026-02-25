@@ -42,6 +42,8 @@ public:
 
 protected:
 	CString m_monoArray[10][2];
+	long m_gainCCD[3], m_ADCCCD[3];
+	
 	bool m_bMonoInitialized;
 //	bool m_bMonoForceInit;
 	bool m_bDetectorInitialized;
@@ -90,10 +92,12 @@ protected:
 	void LoadCCDs();
 	BOOL ConnectAndInitCCD();
 
+
 	DECLARE_MESSAGE_MAP()
 
 public:
 	std::array<BOOL, 2> ConnectMonoAndCCD();
 	HRESULT DoAcquisition();
+	void SetCCDParams();
 
 };

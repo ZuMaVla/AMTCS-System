@@ -318,6 +318,7 @@ BOOL CiHR320Dlg::ConnectAndInitCCD()
 	Sleep(2000);
 	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Initialising CCD...Please wait");
 	hr = m_jyCCD->Initialize((CComVariant)false, (CComVariant)false);
+	SetCCDParams();
 	if (FAILED(hr))
 	{
 		m_connectivityDlg.m_ConnectionLogs.AddItem(L"Check Hardware and Try Again...");
@@ -325,6 +326,43 @@ BOOL CiHR320Dlg::ConnectAndInitCCD()
 	}
 	m_connectivityDlg.m_ConnectionLogs.AddItem(L"CCD Initialised :)");
 	return TRUE;
+}
+
+void CiHR320Dlg::SetCCDParams()
+{
+	UpdateData();
+	CString text;
+	m_settingsDlg.m_maxAT.GetWindowTextW(text);
+	// Define the integration Time (= max acquisition time) 
+	double AT = _ttoi(text)/1000.0;
+	text.Format(_T("%.5f"), AT);
+	m_connectivityDlg.m_ConnectionLogs.AddItem(text);
+	m_jyCCD->put_IntegrationTime(AT);
+	// Select the gain
+	m_jyCCD->put_Gain(m_gainCCD[0]);
+	// select the adc
+	m_jyCCD->SelectADC((jyADCType)m_ADCCCD[0]);
+	// Define the Acq Format and number of areas
+	jyCCDDataType acqFormat = JYMCD_ACQ_FORMAT_SCAN;
+
+	m_jyCCD->DefineAcquisitionFormat(acqFormat, 1); // only defining 1 area
+													// Define each area
+													// Define each area (note that you need to provide the size of the area, not the end point)
+	long xSize = 1024;
+	long ySize = 256;
+	m_jyCCD->DefineArea(1, 1, 1, xSize, ySize, 1, ySize);
+	long dataSize;
+	m_jyCCD->get_DataSize(&dataSize);
+	// Confirm that the system is ready for acquisition
+	VARIANT_BOOL ready = VARIANT_FALSE;
+	m_jyCCD->get_ReadyForAcquisition(&ready);
+	if (!ready)
+		MessageBox(L"Controller NOT ready for Acquisition.\nCheck Parameters and try again", MB_OK);
+	else
+	{
+		m_connectivityDlg.m_acquisBtnTemp.EnableWindow();
+	}
+
 }
 
 //=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
@@ -542,7 +580,7 @@ void CiHR320Dlg::LoadCCDs()
 
 HRESULT CiHR320Dlg::DoAcquisition()
 {
-	UpdateData(FALSE);
+	//UpdateData(FALSE);
 	//// 
 	//// Non Threaded...
 	////
@@ -612,29 +650,28 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 
 		CComBSTR gainStr;
 		long gainToken;
-		int addedIndex;
+		int i = 0;
 		// Enumerate available Gains
-		//m_jyCCD->GetFirstGain(&gainStr, &gainToken);
-		//while (gainToken > -1)
-		//{
-		//	addedIndex = m_gainsCtrl.AddString(W2A(gainStr));
-		//	m_gainsCtrl.SetItemData(addedIndex, gainToken);
-		//	m_jyCCD->GetNextGain(&gainStr, &gainToken);
-		//}
-//		m_gainsCtrl.SetCurSel(0);
+		m_jyCCD->GetFirstGain(&gainStr, &gainToken);
+		while (gainToken > -1)
+		{
+			m_gainCCD[i] = gainToken;
+			m_jyCCD->GetNextGain(&gainStr, &gainToken);
+			i++ ;
+		}
 
 		CComBSTR adcStr;
 		long adcToken;
 
-		// Enumerate available Gains
-		//m_jyCCD->GetFirstADC(&adcStr, &adcToken);
-		//while (adcToken > -1)
-		//{
-		//	addedIndex = m_adcCtrl.AddString(W2A(adcStr));
-		//	m_adcCtrl.SetItemData(addedIndex, adcToken);
-		//	m_jyCCD->GetNextADC(&adcStr, &adcToken);
-		//}
-		//m_adcCtrl.SetCurSel(0);
+//		 Enumerate available Gains
+		m_jyCCD->GetFirstADC(&adcStr, &adcToken);
+		i = 0;
+		while (adcToken > -1)
+		{
+			m_ADCCCD[i] = adcToken;
+			m_jyCCD->GetNextADC(&adcStr, &adcToken);
+			i++;
+		}
 		m_flowDlg.m_ExpFLowLogs.AddItem(L"Initialized Received from CCD!");
 
 	}
@@ -684,7 +721,7 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 	default:
 		break;
 	}
-	MessageBox(L"Update Received :) !");
+	//MessageBox(L"Update Received :) !");
 
 }
 

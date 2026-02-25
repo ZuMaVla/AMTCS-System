@@ -39,6 +39,7 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO_MONO, m_MonoSelectCtrl);
 	DDX_Control(pDX, IDC_CHECK_CCD, m_CheckBoxCCD);
 	DDX_Control(pDX, IDC_CHECK_IHR320, m_CheckBoxMono);
+	DDX_Control(pDX, IDC_Acq, m_acquisBtnTemp);
 }
 
 
