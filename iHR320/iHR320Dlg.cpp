@@ -680,7 +680,7 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 	if (sourceDevPtr == m_jyMono)
 	{
 //		GetSlits();
-//		GetGratings();
+		GetGratings();
 //		GetMirrors();
 		//		GetMonoCommSettings();
 		m_flowDlg.m_ExpFLowLogs.AddItem(L"Initialized Received from Mono!");
@@ -689,6 +689,73 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 	UpdateData(FALSE);
 
 	//MessageBox(L"Initialized Received :) !");
+}
+
+void CiHR320Dlg::GetGratings()
+{
+	double currentGrating;
+	CComVariant allGratings;
+
+	m_jyMono->GetCurrentGrating(&currentGrating, &allGratings);
+
+	SAFEARRAY* psa;
+	psa = allGratings.parray;
+	int numGratings = psa->rgsabound->cElements;
+
+	CComVariant vtVal;
+	double *grating;
+
+	HRESULT hr = SafeArrayAccessData(psa, reinterpret_cast<void**> (&grating));
+	_ASSERT(S_OK == hr);
+
+	for (int i = 0; i < numGratings; i++)
+	{
+		m_settingsDlg.m_ListBoxDG.SetItemData(i, (DWORD)grating[i]);
+	}
+
+	int index = m_settingsDlg.m_ListBoxDG.GetCurSel();
+	m_jyMono->MovetoTurret(index);
+
+	SafeArrayUnaccessData(psa);
+
+	double dTemp;
+	m_jyMono->GetCurrentWavelength(&dTemp);
+	CString text;
+	text.Format(_T("%.2f"), dTemp);
+	m_connectivityDlg.m_gratingTestTemp.SetWindowTextW(text);
+}
+
+void CiHR320Dlg::SetMonoDG(long grating) 
+{
+	m_jyMono->MovetoTurret(grating);
+}
+
+void CiHR320Dlg::MonoMoveTo(double newPos)
+{
+	CString strTarget;
+	strTarget.Format(_T("%.2f"), newPos);
+
+	HRESULT hr = m_jyMono->MovetoWavelength(newPos);
+
+	if (SUCCEEDED(hr))
+	{
+		m_connectivityDlg.m_ConnectionLogs.AddItem(L"Mono moving to the new position..." + strTarget);
+	}
+	else
+	{
+		MessageBox(L"Failed to move Monochromator position...");
+	}
+
+	VARIANT_BOOL isMonoBusy = true;
+	while (isMonoBusy)
+	{
+		m_jyMono->IsBusy(&isMonoBusy);
+		Sleep(10);
+	}
+
+	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Mono is at the new position: " + strTarget + L" nm");
+	
+
 }
 
 void CiHR320Dlg::ReceivedDeviceStatus(long status, IJYEventInfo * eventInfo)

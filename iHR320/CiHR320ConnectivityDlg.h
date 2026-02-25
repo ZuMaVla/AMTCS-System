@@ -60,6 +60,8 @@ public:
 	CButton m_CheckBoxCCD;
 	CButton m_CheckBoxMono;
 	afx_msg void OnBnClickedAcq();
-	afx_msg void OnBnClickedButton2();
 	CButton m_acquisBtnTemp;
+	// for test, delete after!!!
+	CEdit m_gratingTestTemp;
+	afx_msg void OnBnClickedMoveToBtnTest();
 };

@@ -40,13 +40,14 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK_CCD, m_CheckBoxCCD);
 	DDX_Control(pDX, IDC_CHECK_IHR320, m_CheckBoxMono);
 	DDX_Control(pDX, IDC_Acq, m_acquisBtnTemp);
+	DDX_Control(pDX, IDC_EDIT1, m_gratingTestTemp);
 }
 
 
 BEGIN_MESSAGE_MAP(CiHR320ConnectivityDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CONNECT_BUTTON, &CiHR320ConnectivityDlg::OnBnClickedConnectButton)
 	ON_BN_CLICKED(IDC_Acq, &CiHR320ConnectivityDlg::OnBnClickedAcq)
-	ON_BN_CLICKED(IDC_BUTTON2, &CiHR320ConnectivityDlg::OnBnClickedButton2)
+	ON_BN_CLICKED(IDC_MOVE_TO_BTN_TEST, &CiHR320ConnectivityDlg::OnBnClickedMoveToBtnTest)
 END_MESSAGE_MAP()
 
 
@@ -190,7 +191,14 @@ void CiHR320ConnectivityDlg::OnBnClickedAcq()
 }
 
 
-void CiHR320ConnectivityDlg::OnBnClickedButton2()
+
+void CiHR320ConnectivityDlg::OnBnClickedMoveToBtnTest()
 {
-	// TODO: Add your control notification handler code here
+	CString strTarget;
+	
+	m_gratingTestTemp.GetWindowText(strTarget);
+
+	double posTarget = _ttof(strTarget);
+
+	m_mainWnd->MonoMoveTo(posTarget);
 }

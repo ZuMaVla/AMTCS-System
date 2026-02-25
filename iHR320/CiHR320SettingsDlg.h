@@ -38,7 +38,7 @@ public:
 
 protected:
 	CExperimentState experimentState;					// Experiment State (The State 8))
-
+	CiHR320Dlg* m_mainWnd;
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
 	afx_msg void OnBnClickedButtonDefaultT();
@@ -57,4 +57,5 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnBnClickedStart();
+	afx_msg void OnMonoDGChanged();
 };

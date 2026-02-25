@@ -23,7 +23,7 @@ IMPLEMENT_DYNAMIC(CiHR320SettingsDlg, CDialogEx)
 CiHR320SettingsDlg::CiHR320SettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_EXPERIMENT_SETTINGS_DLG, pParent)
 {
-
+	m_mainWnd = (CiHR320Dlg*)pParent;
 }
 
 CiHR320SettingsDlg::~CiHR320SettingsDlg()
@@ -61,6 +61,7 @@ BEGIN_MESSAGE_MAP(CiHR320SettingsDlg, CDialogEx)
 	ON_EN_KILLFOCUS(IDC_ACQUISITION_TIME_MAX, &CiHR320SettingsDlg::OnMaxATChanged)
 	ON_EN_KILLFOCUS(IDC_SAVE_FOLDER, &CiHR320SettingsDlg::OnWorkDirChanged)
 	ON_BN_CLICKED(IDC_START, &CiHR320SettingsDlg::OnBnClickedStart)
+	ON_LBN_SELCHANGE(IDC_LIST_DG, &CiHR320SettingsDlg::OnMonoDGChanged)
 END_MESSAGE_MAP()
 
 
@@ -378,3 +379,11 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 }
 
 
+
+
+void CiHR320SettingsDlg::OnMonoDGChanged()
+{
+	int index = m_ListBoxDG.GetCurSel();
+	m_mainWnd->SetMonoDG(index);
+
+}
