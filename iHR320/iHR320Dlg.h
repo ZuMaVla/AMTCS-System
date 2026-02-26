@@ -36,9 +36,6 @@ public:
 //	CComPtr<IJYMonoReqd> GetMonoPtr();
 
 	void ReceivedDeviceInitialized(long status, IJYEventInfo *eventInfo);
-	void GetGratings();
-	void SetMonoDG(long grating);
-	void MonoMoveTo(double newPos);
 	void ReceivedDeviceStatus(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceUpdate(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceCriticalError(long status, IJYEventInfo *eventInfo);
@@ -99,6 +96,12 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
+	void GetGratings();
+	void SetMonoDG(int grating);
+	void MonoMoveTo(double newPos);
+	void GetSlits();
+	void SetSlits(double newSlits);
+	void SetMirror();
 	std::array<BOOL, 2> ConnectMonoAndCCD();
 	HRESULT DoAcquisition();
 	void SetCCDParams();

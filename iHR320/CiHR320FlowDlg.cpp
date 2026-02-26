@@ -2,7 +2,7 @@
 //
 
 #include "stdafx.h"
-#include "iHR320.h"
+//#include "iHR320.h"
 #include "CiHR320FlowDlg.h"
 #include "afxdialogex.h"
 #include "Resource.h"
@@ -20,6 +20,11 @@ CiHR320FlowDlg::CiHR320FlowDlg(CWnd* pParent /*=NULL*/)
 
 CiHR320FlowDlg::~CiHR320FlowDlg()
 {
+}
+
+void CiHR320FlowDlg::SetMainWnd(CiHR320Dlg * main)
+{
+	m_mainWnd = main;
 }
 
 void CiHR320FlowDlg::DoDataExchange(CDataExchange* pDX)

@@ -64,4 +64,6 @@ public:
 	// for test, delete after!!!
 	CEdit m_gratingTestTemp;
 	afx_msg void OnBnClickedMoveToBtnTest();
+	// SDK emulation if true
+	BOOL m_emulation;
 };

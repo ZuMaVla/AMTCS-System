@@ -17,7 +17,7 @@ class CiHR320SettingsDlg : public CDialogEx
 public:
 	CiHR320SettingsDlg(CWnd* pParent = NULL);   // standard constructor
 	virtual ~CiHR320SettingsDlg();
-
+	void SetMainWnd(CiHR320Dlg* main);
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_EXPERIMENT_SETTINGS_DLG };

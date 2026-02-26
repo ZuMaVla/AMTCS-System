@@ -67,7 +67,6 @@ CiHR320Dlg::CiHR320Dlg(CWnd* pParent /*=NULL*/)
 	m_jyCCD = NULL;
 	m_pConfigBrowser = NULL;
 	m_bMonoInitialized = FALSE;
-
 }
 
 CiHR320Dlg::~CiHR320Dlg()
@@ -109,7 +108,9 @@ BOOL CiHR320Dlg::OnInitDialog()
 	// Create child dialogs
 	m_connectivityDlg.SetMainWnd(this);
 	m_connectivityDlg.Create(IDD_CONNECTIVITY_DLG, &m_tab);
+	m_settingsDlg.SetMainWnd(this);
 	m_settingsDlg.Create(IDD_EXPERIMENT_SETTINGS_DLG, &m_tab);
+	m_flowDlg.SetMainWnd(this);
 	m_flowDlg.Create(IDD_EXPERIMENT_FLOW_DLG, &m_tab);
 
 	CRect rcTab;
@@ -128,7 +129,7 @@ BOOL CiHR320Dlg::OnInitDialog()
 	m_flowDlg.MoveWindow(&rcTab);
 	m_flowDlg.ShowWindow(SW_HIDE);
 	// Add "About..." menu item to system menu.
-
+	
 
 
 	// IDM_ABOUTBOX must be in the system command range.
@@ -166,7 +167,7 @@ BOOL CiHR320Dlg::OnInitDialog()
 
 	LoadMonos();
 	LoadCCDs();
-
+	UpdateData(true);
 
 
 //********************************---Logic+TCP-listener---***************************************
@@ -315,9 +316,10 @@ BOOL CiHR320Dlg::ConnectAndInitCCD()
 		MessageBox(L"Check Hardware and Try Again...");
 		return FALSE;
 	}
+	
 	Sleep(2000);
 	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Initialising CCD...Please wait");
-	hr = m_jyCCD->Initialize((CComVariant)false, (CComVariant)false);
+	hr = m_jyCCD->Initialize((CComVariant)false, (CComVariant)m_connectivityDlg.m_emulation);
 	SetCCDParams();
 	if (FAILED(hr))
 	{
@@ -381,32 +383,12 @@ std::array<BOOL, 2> CiHR320Dlg::ConnectMonoAndCCD()
 	std::array<BOOL, 2> result = { FALSE, FALSE };
 	HRESULT hr = S_OK;
 	int nSel;
+	UpdateData(true);
 
 //*******************************---CCD---****************************************************************************
 
-	//if (m_connectivityDlg.m_CCDSelectCtrl.GetCount()) 
-	//{
-	//	nSel = m_connectivityDlg.m_CCDSelectCtrl.GetCurSel();
-	//	auto* selectedCCD = static_cast<std::string*>(m_connectivityDlg.m_CCDSelectCtrl.GetItemDataPtr(nSel));
-	//	std::cout << "Selected CCD: " << selectedCCD << "\n";
-	//	m_jyCCD->put_Uniqueid((CComBSTR)selectedCCD->c_str());
-	//	m_jyCCD->Load();
-	//	hr = m_jyCCD->OpenCommunications();
-
-	//	if (FAILED(hr))
-	//	{
-	//		MessageBox(L"Check Hardware and Try Again...");
-	//	}
-	//	else
-	//	{
-	//		if (!FAILED(m_jyCCD->Initialize((CComVariant)false, (CComVariant)false))) {
-	//			result[0] = TRUE;
-	//		}
-	//	}
-	//}
 	result[0] = ConnectAndInitCCD();
 
-					// Real inintialisation (no emulation)
 
 //*******************************---Mono---****************************************************************************
 
@@ -440,7 +422,7 @@ std::array<BOOL, 2> CiHR320Dlg::ConnectMonoAndCCD()
 		else
 		{
 			// Attempt to initialize the device with the appropriate parameters
-			if (!FAILED(m_jyMono->Initialize((CComVariant)m_bMonoInitialized, (CComVariant)false)))
+			if (!FAILED(m_jyMono->Initialize((CComVariant)m_bMonoInitialized, (CComVariant)m_connectivityDlg.m_emulation)))
 			{
 				result[1] = TRUE;
 				m_bMonoInitialized = true;
@@ -467,7 +449,11 @@ void CiHR320Dlg::LoadMonos()
 	if (strName.IsEmpty() && strID.IsEmpty())
 	{
 		MessageBox(L"No monos found");
-		strName = L"testMono";
+		strName = L"TestMono";
+		strID = L"1";
+		m_monoArray[i][0] = strID;
+		m_monoArray[i][1] = strName;
+
 //		return;
 
 	}
@@ -679,10 +665,9 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 	////////// Init Mono
 	if (sourceDevPtr == m_jyMono)
 	{
-//		GetSlits();
+		GetSlits();
 		GetGratings();
-//		GetMirrors();
-		//		GetMonoCommSettings();
+		SetMirror();
 		m_flowDlg.m_ExpFLowLogs.AddItem(L"Initialized Received from Mono!");
 	}
 
@@ -708,7 +693,7 @@ void CiHR320Dlg::GetGratings()
 	HRESULT hr = SafeArrayAccessData(psa, reinterpret_cast<void**> (&grating));
 	_ASSERT(S_OK == hr);
 
-	for (int i = 0; i < numGratings; i++)
+	for (long i = 0; i < numGratings; i++)
 	{
 		m_settingsDlg.m_ListBoxDG.SetItemData(i, (DWORD)grating[i]);
 	}
@@ -725,7 +710,7 @@ void CiHR320Dlg::GetGratings()
 	m_connectivityDlg.m_gratingTestTemp.SetWindowTextW(text);
 }
 
-void CiHR320Dlg::SetMonoDG(long grating) 
+void CiHR320Dlg::SetMonoDG(int grating) 
 {
 	m_jyMono->MovetoTurret(grating);
 }
@@ -755,6 +740,65 @@ void CiHR320Dlg::MonoMoveTo(double newPos)
 
 	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Mono is at the new position: " + strTarget + L" nm");
 	
+
+}
+
+void CiHR320Dlg::GetSlits()
+{
+	//get slit width from the component
+	// Check to see if slit of each type is installed
+	VARIANT_BOOL IsInstalled = true;
+	double slitWidthFE = 0;
+	CString text;
+	//Front_Entrance slit
+	m_jyMono->IsSubItemInstalled(Slit_Front_Entrance, &IsInstalled);
+	if (IsInstalled)
+	{
+		m_jyMono->GetCurrentSlitWidth(Front_Entrance, &slitWidthFE);
+		text.Format(_T("%.0f"), slitWidthFE*1000.0);
+		m_settingsDlg.m_Slits.SetWindowTextW(text);
+	}
+	else
+	{ 
+		m_settingsDlg.m_Slits.SetWindowTextW(L"0");
+		m_settingsDlg.m_Slits.EnableWindow(false);
+	}
+}
+
+void CiHR320Dlg::SetSlits(double newSlits)
+{
+	if (m_settingsDlg.m_Slits.IsWindowEnabled())
+	{
+		m_jyMono->MovetoSlitWidth(Front_Entrance, newSlits);
+	}
+
+}
+
+void CiHR320Dlg::SetMirror()
+{
+	MirrorLocation locationEX;
+	VARIANT_BOOL bIsInstalled = true;
+
+	//Exit mirror
+	m_jyMono->IsSubItemInstalled(Mirror_Exit, &bIsInstalled);
+	if (bIsInstalled)
+	{
+		m_jyMono->GetCurrentMirrorPosition(ExitMirror, &locationEX);
+		switch (locationEX)
+		{
+		case Front:
+			break;
+		case Side:
+			m_jyMono->MovetoMirrorPosition(ExitMirror, Front);
+			break;
+		default:
+			break;
+		}
+	}
+	else // if its not installed, let user know (expected installed)
+	{
+		MessageBox(L"Equipment configuration problem:", L"Exit mirror expected, but not detected...");
+	}
 
 }
 

@@ -20,6 +20,7 @@ IMPLEMENT_DYNAMIC(CiHR320ConnectivityDlg, CDialogEx)
 
 CiHR320ConnectivityDlg::CiHR320ConnectivityDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_CONNECTIVITY_DLG, pParent)
+	, m_emulation(FALSE)
 {
 
 }
@@ -41,6 +42,7 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK_IHR320, m_CheckBoxMono);
 	DDX_Control(pDX, IDC_Acq, m_acquisBtnTemp);
 	DDX_Control(pDX, IDC_EDIT1, m_gratingTestTemp);
+	DDX_Check(pDX, IDC_SDK_EMULATION, m_emulation);
 }
 
 

@@ -23,11 +23,15 @@ IMPLEMENT_DYNAMIC(CiHR320SettingsDlg, CDialogEx)
 CiHR320SettingsDlg::CiHR320SettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_EXPERIMENT_SETTINGS_DLG, pParent)
 {
-	m_mainWnd = (CiHR320Dlg*)pParent;
 }
 
 CiHR320SettingsDlg::~CiHR320SettingsDlg()
 {
+}
+
+void CiHR320SettingsDlg::SetMainWnd(CiHR320Dlg * main)
+{
+	m_mainWnd = main;
 }
 
 void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
@@ -385,5 +389,4 @@ void CiHR320SettingsDlg::OnMonoDGChanged()
 {
 	int index = m_ListBoxDG.GetCurSel();
 	m_mainWnd->SetMonoDG(index);
-
 }
