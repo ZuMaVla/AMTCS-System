@@ -33,7 +33,7 @@ public:
 // 
 	CAskUser m_askUser;
 	std::string GetLocalIP();
-//	CComPtr<IJYMonoReqd> GetMonoPtr();
+	std::array<double, 5> GetCentresWL(int startWL, int DGRangeNo);
 
 	void ReceivedDeviceInitialized(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceStatus(long status, IJYEventInfo *eventInfo);
@@ -98,6 +98,7 @@ protected:
 public:
 	void GetGratings();
 	void SetMonoDG(int grating);
+	void SetAT(double newAT);
 	void MonoMoveTo(double newPos);
 	void GetSlits();
 	void SetSlits(double newSlits);

@@ -24,7 +24,7 @@ const std::vector<int> extreme_AT = {
 };
 
 const int default_newT = 300;
-const int default_DG = 0;
+const int default_DG = 2;			// 600 grooves/inch by default (Grating 3)
 const int default_StartWL = 340;
 const int default_DGRangeNo = 3;
 const int default_NA = 4;

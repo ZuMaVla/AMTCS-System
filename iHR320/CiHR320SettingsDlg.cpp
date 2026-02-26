@@ -267,6 +267,7 @@ void CiHR320SettingsDlg::OnSlitsChanged()
 		m_Slits.SetFocus();
 		return;
 	}
+	m_mainWnd->SetSlits(value/1000.0);
 }
 
 void CiHR320SettingsDlg::OnStartWLSliderMoving(
@@ -317,6 +318,7 @@ void CiHR320SettingsDlg::OnMaxATChanged()
 		m_StartWL.SetFocus();
 		return;
 	}
+	m_mainWnd->SetAT(value/1000.0);
 }
 
 

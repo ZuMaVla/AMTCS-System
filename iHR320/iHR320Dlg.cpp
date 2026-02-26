@@ -284,6 +284,16 @@ std::string CiHR320Dlg::GetLocalIP() {
 	return m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP);
 }
 
+std::array<double, 5> CiHR320Dlg::GetCentresWL(int startWL, int DGRangeNo)
+{
+	double centreWL = startWL + 66;
+	for (int i = 0; i < DGRangeNo; i++) {
+		
+
+	}
+	return std::array<double, 5>();
+}
+
 //CComPtr<IJYMonoReqd> CiHR320Dlg::GetMonoPtr()
 //{
 //	return m_jyMono;
@@ -710,9 +720,14 @@ void CiHR320Dlg::GetGratings()
 	m_connectivityDlg.m_gratingTestTemp.SetWindowTextW(text);
 }
 
-void CiHR320Dlg::SetMonoDG(int grating) 
+void CiHR320Dlg::SetMonoDG(int grating)
 {
 	m_jyMono->MovetoTurret(grating);
+}
+
+void CiHR320Dlg::SetAT(double newAT)
+{
+	m_jyCCD->put_IntegrationTime(newAT);
 }
 
 void CiHR320Dlg::MonoMoveTo(double newPos)
