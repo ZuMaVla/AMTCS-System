@@ -33,19 +33,20 @@ public:
 // 
 	CAskUser m_askUser;
 	std::string GetLocalIP();
+
 	std::array<double, 5> GetCentresWL(int startWL, int DGRangeNo);
 
 	void ReceivedDeviceInitialized(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceStatus(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceUpdate(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceCriticalError(long status, IJYEventInfo *eventInfo);
-
+	ExperimentParameters GetExperimentParameters();
+	bool m_bMeasurementStarted;
 protected:
 	CString m_monoArray[10][2];
 	long m_gainCCD[3], m_ADCCCD[3];
 	
 	bool m_bMonoInitialized;
-//	bool m_bMonoForceInit;
 	bool m_bDetectorInitialized;
 //	bool m_bDetectorForceInit;
 	CComPtr<IJYMonoReqd> m_jyMono;
@@ -104,7 +105,7 @@ public:
 	void SetSlits(double newSlits);
 	void SetMirror();
 	std::array<BOOL, 2> ConnectMonoAndCCD();
-	HRESULT DoAcquisition();
+	HRESULT DoAcquisition(BOOL shutterOpen = TRUE);
 	void SetCCDParams();
 
 };

@@ -67,6 +67,7 @@ CiHR320Dlg::CiHR320Dlg(CWnd* pParent /*=NULL*/)
 	m_jyCCD = NULL;
 	m_pConfigBrowser = NULL;
 	m_bMonoInitialized = FALSE;
+	m_bMeasurementStarted = FALSE;
 }
 
 CiHR320Dlg::~CiHR320Dlg()
@@ -286,12 +287,31 @@ std::string CiHR320Dlg::GetLocalIP() {
 
 std::array<double, 5> CiHR320Dlg::GetCentresWL(int startWL, int DGRangeNo)
 {
-	double centreWL = startWL + 66;
-	for (int i = 0; i < DGRangeNo; i++) {
-		
+	std::array<double, 5> centres = { -1, -1, -1, -1, -1 };
+	double *p_startWL = nullptr, *p_endWL = nullptr;
+	jyUnits eUnits;
+	VARIANT vUnits;
+	CString sUnits;
+	m_jyCCD->SetMono(m_jyMono, VARIANT_TRUE);
+	m_jyCCD->GetDefaultUnits(jyutWavelength, &eUnits, &vUnits);
+	double errorWL, currentStartWL, approxSpectrWin, centreWL, step;
+	approxSpectrWin = 80000/m_settingsDlg.m_ListBoxDG.GetItemData(m_settingsDlg.m_ListBoxDG.GetCurSel());
+	currentStartWL = startWL;
 
+	for (int i = 0; i < DGRangeNo; i++) {
+		centreWL = currentStartWL + approxSpectrWin/2;
+		m_jyCCD->GetWavelengthCoverage(centreWL, eUnits, p_startWL, p_endWL);
+		errorWL = currentStartWL - *p_startWL;
+		while (abs(errorWL) > 0.01) {
+			centreWL += errorWL;
+			m_jyCCD->GetWavelengthCoverage(centreWL, eUnits, p_startWL, p_endWL);
+			errorWL = currentStartWL - *p_startWL;
+		}
+		step = (*p_endWL - *p_startWL)/1023;
+		centres[i] = centreWL;
+		currentStartWL = *p_endWL + step;
 	}
-	return std::array<double, 5>();
+	return centres;
 }
 
 //CComPtr<IJYMonoReqd> CiHR320Dlg::GetMonoPtr()
@@ -574,39 +594,15 @@ void CiHR320Dlg::LoadCCDs()
 }
 
 
-HRESULT CiHR320Dlg::DoAcquisition()
+HRESULT CiHR320Dlg::DoAcquisition(BOOL shutterOpen)
 {
-	//UpdateData(FALSE);
-	//// 
-	//// Non Threaded...
-	////
-
-	IJYResultsObject *resultObj;
-	//IJYDataObject *dataObj;
-	//VARIANT_BOOL isBusy = true;
-	//CComVariant data;
-	//m_jyCCD->StartAcquisition(VARIANT_TRUE);
-	//while (isBusy)
-	//{
-	//	m_jyCCD->AcquisitionBusy(&isBusy);
-	//	// PUMP MESSAGES: This allows the COM component to update its state
-	//	MSG msg;
-	//	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-	//	{
-	//		TranslateMessage(&msg);
-	//		DispatchMessage(&msg);
-	//	}
-
-	//	Sleep(10); // Don't peg the CPU at 100%
-	//}
-	//m_jyCCD->GetResult(&resultObj);
-
-	//HRESULT hr = resultObj->GetFirstDataObject(&dataObj);
-	//dataObj->GetDataAsArray(&data);
-
-	HRESULT hr = m_jyCCD->DoAcquisition(VARIANT_TRUE);
+	HRESULT hr;
+	m_bMeasurementStarted = TRUE;
+	if (shutterOpen) hr = m_jyCCD->DoAcquisition(VARIANT_TRUE);
+	else hr = m_jyCCD->DoAcquisition(VARIANT_FALSE);
+	
 	DWORD start = GetTickCount();
-	while (GetTickCount() - start < 3000) {
+	while (m_bMeasurementStarted) {
 		MSG msg;
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
@@ -615,6 +611,15 @@ HRESULT CiHR320Dlg::DoAcquisition()
 		}
 		Sleep(10);
 	}
+	//while (GetTickCount() - start < 3000) {
+	//	MSG msg;
+	//	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	//	{
+	//		TranslateMessage(&msg);
+	//		DispatchMessage(&msg);
+	//	}
+	//	Sleep(10);
+	//}
 
 	return hr;
 }
@@ -755,6 +760,7 @@ void CiHR320Dlg::MonoMoveTo(double newPos)
 
 	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Mono is at the new position: " + strTarget + L" nm");
 	
+	Sleep(1000);
 
 }
 
@@ -841,7 +847,8 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 		m_AcqDataObj->GetDataAsArray(&data);
 		m_flowDlg.m_ExpFLowLogs.AddItem(L"Data Update received...");
 		m_flowDlg.m_ExpFLowLogs.AddItem(L"Acquisition Completed.");
-		UpdateData(FALSE);
+		m_bMeasurementStarted = FALSE;
+
 	}
 	break;
 	default:
@@ -853,5 +860,10 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 
 void CiHR320Dlg::ReceivedDeviceCriticalError(long status, IJYEventInfo * eventInfo)
 {
+}
+
+ExperimentParameters CiHR320Dlg::GetExperimentParameters()
+{
+	return m_settingsDlg.GetExperimentParameters();
 }
 

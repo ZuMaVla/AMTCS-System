@@ -8,6 +8,7 @@
 
 class CiHR320Dlg;
 
+
 // CiHR320SettingsDlg dialog
 
 class CiHR320SettingsDlg : public CDialogEx
@@ -35,7 +36,7 @@ public:
 	CEdit m_Slits;										// Input slits width (in micrometers)
 	CEdit m_maxAT;										// Longest acquisition time (system will not attempt to apply longer ATs
 														// even if signal is low)
-
+	ExperimentParameters GetExperimentParameters();
 protected:
 	CExperimentState experimentState;					// Experiment State (The State 8))
 	CiHR320Dlg* m_mainWnd;
