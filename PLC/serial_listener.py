@@ -37,13 +37,19 @@ def serial_comm_thread(in_q: queue.Queue, out_q: queue.Queue, exp_mode: Experime
             try:
                 cmd = in_q.get_nowait()
                 match cmd:
-                    case ("WRITE", payload):
-                        ser.write((payload + "\n").encode())
-                        waiting_for_reply = True   # switch to RX/receiver mode
+                    case ("GO_TO_TEMPERATURE", payload):
+                        ser.write(("LOOP 1:SETPT " + payload + "\n").encode())
+                        waiting_for_reply = False   # remain in emitter mode
+                    case ("CHECK_TARGET", payload):
+                        ser.write(("LOOP 1:SETPT?" + "\n").encode())
+                        waiting_for_reply = True   # switch to receiver mode
+                    case ("CHECK_TEMPERATURE", payload):
+                        ser.write(("INPUT? B" + "\n").encode())
+                        waiting_for_reply = True   # switch to receiver mode
                     case ("SIMULATE", payload):
                         timer_T = Timer(0.5, simulate_serial, args=(state, payload))
                         timer_T.start()
-                        waiting_for_reply = True   # switch to RX/receiver mode
+                        waiting_for_reply = True   # switch to receiver mode
                     case ("CLOSE",):
                         ser.close()
                         return

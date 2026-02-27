@@ -67,12 +67,13 @@ def main():
 
         match PLC_mode:
             case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
-                if next_T :
+                if next_T:
                     ser_in.put(("GO_TO_TEMPERATURE", next_T))
                     state_T["T_requested"] = False
                     print(f"[MAIN] Requesting next temperature {next_T} K")
                     time.sleep(5)
-                    experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.REQUESTED
+                    ser_in.put(("CHECK_TARGET", ""))
+                    #experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.REQUESTED
             case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.REQUESTED):
                 if not state_T["T_requested"]:
                     ser_in.put(("CHECK_TEMPERATURE", ""))
@@ -139,15 +140,15 @@ def main():
             match PLC_mode:
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                     try:
-                        received_T = float(msg)
-                        if next_T == received_T // 1 and received_T % 1 == 0:  # Check if the received temperature is an integer and matches the next_T
+                        received_T = int(float(msg[0:4]))
+                        if next_T == str(received_T):  # Check if the received temperature matches the next_T
                             print(f"[MAIN] event: target accepted: {received_T} K")
                             experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.REQUESTED
                     except ValueError:
                         print(f"[MAIN] event: received non-numeric temperature value: {msg}")
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.REQUESTED):
                     try: 
-                        received_T = float(msg)
+                        received_T = float(msg[0:5])
                         print(f"[MAIN] event: received temperature: {received_T} K")
                         if next_T:
                             next_T_value = int(next_T)
