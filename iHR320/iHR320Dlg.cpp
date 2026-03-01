@@ -92,6 +92,7 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CiHR320Dlg::OnTabSelChange)
 	ON_MESSAGE(WM_USER_MONO_LOG_MESSAGE, &CiHR320Dlg::OnMonoLogMessage)
+	ON_MESSAGE(WM_USER_LOG_MESSAGE, &CiHR320Dlg::OnPutLog)
 END_MESSAGE_MAP()
 
 
@@ -329,6 +330,23 @@ LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
 	m_connectivityDlg.UpdateSystemStatusUI(*device);
 
 	delete device;   // free the memory after using
+	return 0;
+}
+
+LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
+{
+	CString* pStr = reinterpret_cast<CString*>(lParam);
+	if (pStr)
+	{
+		CString msg = *pStr;
+		if (msg.Left(2) == _T("T=")) {
+			msg = _T("[TC] Current temperature received: ") + msg.Mid(2) + _T(" K");
+
+			m_connectivityDlg.m_ConnectionLogs.AddItem(msg);
+		}
+		
+		delete pStr;
+	}
 	return 0;
 }
 

@@ -127,6 +127,8 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                     case "PING":
                         out_q.put(("STATUS", "iHR320_OK"))
                         in_q.put(("SEND", "PONG"))
+                    case "TC?":
+                        out_q.put(("REQUEST", "TC_STATUS"))                             # TC status has been requested
                     case "UPDATE":
                         out_q.put(("REQUEST", "iHR320_UPDATE"))
                     case "CANCEL":

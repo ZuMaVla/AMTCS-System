@@ -5,7 +5,7 @@ import time
 from serial_listener import serial_comm_thread
 from tcp_listener import tcp_comm_thread
 from config import ExperimentMode, PLCcfg, experiment_mode
-from experiment_state_class import ExperimentState, ExperimentStep, StepName, StepStatus   
+from experiment_state_class import ExperimentState, ExperimentStep, StepName, StepStatus, InitStep   
 from dataclasses import asdict
 from threading import Timer
 
@@ -16,6 +16,12 @@ from threading import Timer
 
 def reset_T_request(state):
     state["T_requested"] = False
+
+def report_TC_off(tcp_in):
+    print("[MAIN] event: TC disconnected")
+    cmd = "SEND"
+    arg = "TC_OFF"
+    tcp_in.put((cmd, arg))      # Letting user know that TC is off
 
 
 # ============================================================
@@ -48,11 +54,13 @@ def main():
     
     
     TIMEOUT = PLCcfg.timeout
+ #   isTC = False
     next_T = None
     state_T = {"T_requested": False}
     T_stabilisation_mins = -1
     PLC_mode = None
     simulated_T_TC = 300
+    preExpStatus = InitStep.ID
 
     # Main event loop
     while True:
@@ -110,6 +118,14 @@ def main():
             match (keyword, payload):
                 case (("STATUS", "iHR320_OK")):
                     print(f"[MAIN] event: iHR320 is OK")
+                case (("REQUEST", "TC_STATUS")):
+                    print("[MAIN] event: TC status requested...")
+                    cmd = "TC_STATUS"
+                    msg = ""
+                    ser_in.put((cmd, msg))
+                    timer_TC = Timer(5, report_TC_off, args=(tcp_in,))
+                    timer_TC.start()            # After 5 sec, report TC status "not responsive"
+
                 case (("AFFIRMATIVE", "SPECTRUM_REQUESTED")):
                     print(f"[MAIN] event: spectrum requested")
                 case (("REPORT", "SPECTRUM_ACQUIRED")):
@@ -136,8 +152,81 @@ def main():
             print(f"[MAIN] SERIAL event: {msg}") 
         except queue.Empty:
             pass
+
+        
+
         if msg:
             match PLC_mode:
+#-----------------------TC initialisation-----------------------------------------------------------------------------------
+                case None:                                  # Serial communication logic before experiment started
+                    match preExpStatus:
+                        case InitStep.ID:                   # Checking TC model after "IDN?" ASCII command
+                            if msg == "Cryocon Model 32, Rev 6.08H":
+                                timer_TC.cancel()
+                                print("TC alive")
+                                cmd = "SEND"
+                                arg = "TC_OK"
+                                tcp_in.put((cmd, arg))      # If model confirmed, letting iHR320(C++) know that TC is alive
+                                preExpStatus = InitStep.CURRENT_T
+                                cmd = "CHECK_TEMPERATURE"
+                                arg = ""
+                                ser_in.put((cmd, arg))      # Requesting current temperature
+                            else:
+                                report_TC_off(tcp_in,)       # Letting user know that TC is off
+                        case InitStep.CURRENT_T:            # Checking current T 
+                            try: 
+                                received_T = float(msg[0:5])
+                                print(f"[MAIN] event: received temperature: {received_T} K")
+                                cmd = "SEND"
+                                arg = f"T= {received_T}"
+                                tcp_in.put((cmd, arg))      # Sending current T to iHR320
+                                preExpStatus = InitStep.SETPT_T
+                                cmd = "GO_TO_TEMPERATURE"   
+                                arg = f"{int(received_T)}"
+                                ser_in.put((cmd, arg))      # Set target T to value of current T  
+
+                                timer_T = Timer(2, ser_in.put, args=(("CHECK_TARGET", ""),))
+                                timer_T.start()             # After 2 sec, request current target T
+                            except ValueError:
+                                cmd = "CHECK_TEMPERATURE"
+                                arg = ""
+                                ser_in.put((cmd, arg))      # Re-requesting current T    
+                                print(f"[MAIN] event: No expected response received: {msg}. Retrying...")
+                        case InitStep.SETPT_T:
+                            try: 
+                                target_T = int(float(msg[0:4]))
+                                print(f"[MAIN] event: received target temperature: {received_T} K")
+                                if (abs(target_T - received_T) < 1):
+                                    cmd = "CONTROL_ON"
+                                    arg = ""
+                                    ser_in.put((cmd, arg))  # Requesting control "ON" as it is save to do so
+                                    preExpStatus = InitStep.CONTROL
+                                    timer_T = Timer(2, ser_in.put, args=(("CONTROL?", ""),))
+                                    timer_T.start()         # After 2 sec, request status of control
+                                else:                       # If target T != current T, repeating previous step
+                                    cmd = "CHECK_TEMPERATURE"
+                                    arg = ""
+                                    ser_in.put((cmd, arg))  # Requesting current temperature
+                                    preExpStatus = InitStep.CURRENT_T
+                            except ValueError:
+                                cmd = "CHECK_TARGET"
+                                arg = ""
+                                ser_in.put((cmd, arg))      # Re-requesting current target T    
+                                print(f"[MAIN] event: No expected response received: {msg}. Retrying...")  
+                        case InitStep.CONTROL:
+                            if (msg == "ON"):
+                                cmd = "SEND"
+                                arg = "TC_READY"
+                                tcp_in.put((cmd, arg))      # Updating TC status to "ready" for iHR320
+                                preExpStatus = InitStep.ID
+                            else:
+                                cmd = "CONTROL_ON"
+                                arg = ""
+                                ser_in.put((cmd, arg))
+                                timer_T = Timer(2, ser_in.put, args=(("CONTROL?", ""),))
+                                timer_T.start()             # After 2 sec, request status of control
+
+#-----------------------Experiment flow-----------------------------------------------------------------------------------
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                     try:
                         received_T = int(float(msg[0:4]))
@@ -163,6 +252,11 @@ def main():
                     if T_stabilisation_mins >= 2:  # If the temperature has been stable for 3 consecutive checks (approximately 2 minutes), consider it stabilized
                             experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED
                             print(f"[MAIN] event: temperature reached")
+
+
+
+
+
                         
         # Periodic tasks or routing logic here
         time.sleep(TIMEOUT)

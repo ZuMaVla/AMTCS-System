@@ -58,7 +58,43 @@ static void MainLogicWorker(CiHR320Dlg* pUI, MessageQueue& PLC_out, MessageQueue
 				0,
 				reinterpret_cast<LPARAM>(pDevice)
 			);
+			cmd.keyword = "SEND";
+			cmd.payload = "TC?";
+			PLC_in.push(cmd); 														// Confirming request
 		} 
+		else if (event.keyword == "TC_OK") {										// PLC response - TC alive
+			std::cout << "TC alive\n";
+			auto* pDevice = new std::string(event.keyword);							// create pointer to a string containing device/status
+			pUI->PostMessage(
+				WM_UPDATE_SYSTEM_STATUS,
+				0,
+				reinterpret_cast<LPARAM>(pDevice)
+			);
+		}
+		else if (event.keyword == "TC_OFF") {										// PLC response - TC not connected
+			std::cout << "TC not responding\n";
+			auto* pDevice = new std::string(event.keyword);							// create pointer to a string containing device/status
+			pUI->PostMessage(
+				WM_UPDATE_SYSTEM_STATUS,
+				0,
+				reinterpret_cast<LPARAM>(pDevice)
+			);
+		}
+		else if (event.keyword == "TC_READY") {										// PLC response - TC ready
+			std::cout << "TC ready\n";
+			auto* pDevice = new std::string(event.keyword);							// create pointer to a string containing device/status
+			pUI->PostMessage(
+				WM_UPDATE_SYSTEM_STATUS,
+				0,
+				reinterpret_cast<LPARAM>(pDevice)
+			);
+		}
+		else if (event.keyword == "T=") {											// Incoming current T from PLC/TC
+			std::cout << "Current T: " + event.payload + " K\n";
+			CString msg = CString(event.keyword.c_str());
+			msg	+= event.payload.c_str();											// Converting event to CString
+			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, msg);
+		}
 		else if (event.keyword == "STATUS" && event.payload == "MEASUREMENT") {		// PLC informed about being in the middle of experiment sequence
 			isMeasuring = true;
 			cmd.keyword = "SEND";
@@ -73,6 +109,11 @@ static void MainLogicWorker(CiHR320Dlg* pUI, MessageQueue& PLC_out, MessageQueue
 			cmd.payload = "PING";														 
 			PLC_in.push(cmd);
 
+		}
+		else if (event.keyword == "REQUEST" && event.payload == "TC_STATUS") {
+			cmd.keyword = "SEND";
+			cmd.payload = "TC?";
+			PLC_in.push(cmd);
 		}
 
 	}

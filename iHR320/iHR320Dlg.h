@@ -6,6 +6,7 @@
 
 #define WM_UPDATE_SYSTEM_STATUS (WM_APP + 1)
 #define WM_USER_MONO_LOG_MESSAGE (WM_USER + 110)
+#define WM_USER_LOG_MESSAGE (WM_USER + 111)
 
 class CiHR320DlgAutoProxy;
 #include <afxcmn.h>
@@ -89,6 +90,7 @@ protected:
 	virtual void OnCancel();
 	afx_msg void OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg LRESULT OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnPutLog(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnMonoLogMessage(WPARAM wParam, LPARAM lParam);
 //---------------------------------------------SDK--------------------------------------------------
 	void LoadMonos();
