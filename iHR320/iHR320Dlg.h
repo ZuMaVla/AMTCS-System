@@ -5,6 +5,8 @@
 #pragma once
 
 #define WM_UPDATE_SYSTEM_STATUS (WM_APP + 1)
+#define WM_USER_MONO_LOG_MESSAGE (WM_USER + 110)
+#define WM_USER_LOG_MESSAGE (WM_USER + 111)
 
 class CiHR320DlgAutoProxy;
 #include <afxcmn.h>
@@ -33,19 +35,21 @@ public:
 // 
 	CAskUser m_askUser;
 	std::string GetLocalIP();
+
 	std::array<double, 5> GetCentresWL(int startWL, int DGRangeNo);
 
 	void ReceivedDeviceInitialized(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceStatus(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceUpdate(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceCriticalError(long status, IJYEventInfo *eventInfo);
-
+	ExperimentParameters GetExperimentParameters();
+	void PostMessageToUI(UINT message, CString logMessage);
+	bool m_bMeasurementStarted;
 protected:
 	CString m_monoArray[10][2];
 	long m_gainCCD[3], m_ADCCCD[3];
 	
 	bool m_bMonoInitialized;
-//	bool m_bMonoForceInit;
 	bool m_bDetectorInitialized;
 //	bool m_bDetectorForceInit;
 	CComPtr<IJYMonoReqd> m_jyMono;
@@ -86,7 +90,8 @@ protected:
 	virtual void OnCancel();
 	afx_msg void OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg LRESULT OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam);
-
+	afx_msg LRESULT OnPutLog(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnMonoLogMessage(WPARAM wParam, LPARAM lParam);
 //---------------------------------------------SDK--------------------------------------------------
 	void LoadMonos();
 	void LoadCCDs();
@@ -104,7 +109,7 @@ public:
 	void SetSlits(double newSlits);
 	void SetMirror();
 	std::array<BOOL, 2> ConnectMonoAndCCD();
-	HRESULT DoAcquisition();
+	HRESULT DoAcquisition(bool shutterOpen = true);
 	void SetCCDParams();
 
 };

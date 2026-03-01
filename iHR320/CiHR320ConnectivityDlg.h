@@ -5,6 +5,8 @@
 #include <string>
 #include <array>
 
+#define TIMER_PLC_CHECK 101
+
 class CiHR320Dlg;
 
 
@@ -20,6 +22,9 @@ public:
 	afx_msg void OnBnClickedConnectButton();
 	void UpdateSystemStatusUI(std::string device);
 	void SetMainWnd(CiHR320Dlg* main);
+	void StartTimer(UINT_PTR nIDEvent, int _sec);
+	void StopTimer(UINT_PTR nIDEvent);
+	afx_msg void OnTimer(UINT_PTR nIDEvent); // Ensure this is in the Message Map
 	std::array<int, 4> GetIPAddress(std::string type);
 	CIPAddressCtrl m_localIP;							// variable for IP on the network with RPi/PLC
 	std::string CiHR320ConnectivityDlg::GetIPstrFromCtrl(const CIPAddressCtrl& ctrl)
@@ -66,4 +71,6 @@ public:
 	afx_msg void OnBnClickedMoveToBtnTest();
 	// SDK emulation if true
 	BOOL m_emulation;
+	// control for TC status
+	CButton m_CheckBoxTC;
 };

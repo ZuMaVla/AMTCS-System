@@ -34,6 +34,11 @@ void CiHR320SettingsDlg::SetMainWnd(CiHR320Dlg * main)
 	m_mainWnd = main;
 }
 
+ExperimentParameters CiHR320SettingsDlg::GetExperimentParameters()
+{
+	return experimentState.getExpParams();
+}
+
 void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);

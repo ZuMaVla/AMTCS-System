@@ -43,10 +43,12 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_Acq, m_acquisBtnTemp);
 	DDX_Control(pDX, IDC_EDIT1, m_gratingTestTemp);
 	DDX_Check(pDX, IDC_SDK_EMULATION, m_emulation);
+	DDX_Control(pDX, IDC_CHECK_TC, m_CheckBoxTC);
 }
 
 
 BEGIN_MESSAGE_MAP(CiHR320ConnectivityDlg, CDialogEx)
+	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_CONNECT_BUTTON, &CiHR320ConnectivityDlg::OnBnClickedConnectButton)
 	ON_BN_CLICKED(IDC_Acq, &CiHR320ConnectivityDlg::OnBnClickedAcq)
 	ON_BN_CLICKED(IDC_MOVE_TO_BTN_TEST, &CiHR320ConnectivityDlg::OnBnClickedMoveToBtnTest)
@@ -83,6 +85,7 @@ void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 		m_CheckBoxPLC.SetCheck(FALSE);
 		m_CheckBoxPLC.SetWindowText(_T("Offline"));
 	}
+	StartTimer(TIMER_PLC_CHECK, 5);
 	std::array<BOOL, 2> l_FlagSDK = m_mainWnd->ConnectMonoAndCCD();
 	std::cout << "Result: " << l_FlagSDK[0] << l_FlagSDK[1] << "\n";
 	if (l_FlagSDK[0]) {
@@ -110,7 +113,23 @@ void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 	}
 }
 
+void CiHR320ConnectivityDlg::StartTimer(UINT_PTR nIDEvent, int _sec) {
+    SetTimer(nIDEvent, 100 + 1000*_sec, NULL);
+}
 
+void CiHR320ConnectivityDlg::StopTimer(UINT_PTR nIDEvent) {
+    KillTimer(nIDEvent);
+}
+
+void CiHR320ConnectivityDlg::OnTimer(UINT_PTR nIDEvent) {
+    if (nIDEvent == TIMER_PLC_CHECK) {
+        m_CheckBoxPLC.SetCheck(FALSE);
+        m_CheckBoxPLC.SetWindowText(_T("Not Responsive"));
+        m_ConnectionLogs.AddItem(_T("PLC Timeout Error"));
+        KillTimer(TIMER_PLC_CHECK);
+    }
+    CDialogEx::OnTimer(nIDEvent);
+}
 
 
 void CiHR320ConnectivityDlg::UpdateSystemStatusUI(std::string device) {
@@ -118,6 +137,22 @@ void CiHR320ConnectivityDlg::UpdateSystemStatusUI(std::string device) {
 		m_ConnectionLogs.AddItem(_T("PLC ready on 192.168.50.1"));
 		m_CheckBoxPLC.SetCheck(TRUE);
 		m_CheckBoxPLC.SetWindowText(_T("Connected"));
+		StopTimer(TIMER_PLC_CHECK);
+	}
+	else if (device == "TC_OK") {
+		m_ConnectionLogs.AddItem(_T("TC is alive"));
+		m_CheckBoxTC.SetCheck(TRUE);
+		m_CheckBoxTC.SetWindowText(_T("Alive"));
+	}
+	else if (device == "TC_OFF") {
+		m_ConnectionLogs.AddItem(_T("TC is not responsive"));
+		m_CheckBoxTC.SetCheck(FALSE);
+		m_CheckBoxTC.SetWindowText(_T("Off"));
+	}
+	else if (device == "TC_READY") {
+		m_ConnectionLogs.AddItem(_T("TC is ready"));
+		m_CheckBoxTC.SetCheck(TRUE);
+		m_CheckBoxTC.SetWindowText(_T("Ready"));
 	}
 	return;
 }
@@ -188,7 +223,6 @@ std::array<int, 4> CiHR320ConnectivityDlg::GetIPAddress(std::string type)
 
 void CiHR320ConnectivityDlg::OnBnClickedAcq()
 {
-	UpdateData(FALSE);
 	m_mainWnd->DoAcquisition();
 }
 
