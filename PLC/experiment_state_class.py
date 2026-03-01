@@ -25,10 +25,18 @@ class StepStatus(Enum):
     REQUESTED = 1
     COMPLETED = 2
 
+class InitStep(Enum):
+    ID = 0
+    CURRENT_T = 1
+    SETPT_T = 2
+    CONTROL = 3
+
 @dataclass
 class ExperimentStep: 
     action: StepName 
     status: StepStatus
+
+ 
 
 
 @dataclass
