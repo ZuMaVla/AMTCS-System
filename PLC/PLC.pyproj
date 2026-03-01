@@ -25,6 +25,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="config.py" />
+    <Compile Include="experiment_state_class.py" />
     <Compile Include="PLC.py" />
     <Compile Include="serial_listener.py" />
     <Compile Include="tcp_listener.py" />
