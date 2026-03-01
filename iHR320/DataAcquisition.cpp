@@ -32,7 +32,7 @@ bool TakeSpectrum(CiHR320Dlg* pUI) {
 	for (int i = 0; i < params.DGRangeNo; i++) {
 		pUI->MonoMoveTo(centresWL[i]);
 
-		pUI->DoAcquisition(FALSE);
+		pUI->DoAcquisition(false);
 		TakeBackground();
 		for (int j = 0; j < params.NA; j++) {
 			pUI->DoAcquisition();

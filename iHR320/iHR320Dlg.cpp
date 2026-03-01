@@ -91,6 +91,7 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CiHR320Dlg::OnTabSelChange)
+	ON_MESSAGE(WM_USER_MONO_LOG_MESSAGE, &CiHR320Dlg::OnMonoLogMessage)
 END_MESSAGE_MAP()
 
 
@@ -288,7 +289,8 @@ std::string CiHR320Dlg::GetLocalIP() {
 std::array<double, 5> CiHR320Dlg::GetCentresWL(int startWL, int DGRangeNo)
 {
 	std::array<double, 5> centres = { -1, -1, -1, -1, -1 };
-	double *p_startWL = nullptr, *p_endWL = nullptr;
+	double _startWL = 0.0;
+	double _endWL = 0.0;
 	jyUnits eUnits;
 	VARIANT vUnits;
 	CString sUnits;
@@ -300,16 +302,16 @@ std::array<double, 5> CiHR320Dlg::GetCentresWL(int startWL, int DGRangeNo)
 
 	for (int i = 0; i < DGRangeNo; i++) {
 		centreWL = currentStartWL + approxSpectrWin/2;
-		m_jyCCD->GetWavelengthCoverage(centreWL, eUnits, p_startWL, p_endWL);
-		errorWL = currentStartWL - *p_startWL;
+		m_jyCCD->GetWavelengthCoverage(centreWL, eUnits, &_startWL, &_endWL);
+		errorWL = currentStartWL - _startWL;
 		while (abs(errorWL) > 0.01) {
 			centreWL += errorWL;
-			m_jyCCD->GetWavelengthCoverage(centreWL, eUnits, p_startWL, p_endWL);
-			errorWL = currentStartWL - *p_startWL;
+			m_jyCCD->GetWavelengthCoverage(centreWL, eUnits, &_startWL, &_endWL);
+			errorWL = currentStartWL - _startWL;
 		}
-		step = (*p_endWL - *p_startWL)/1023;
+		step = (_endWL - _startWL)/1023;
 		centres[i] = centreWL;
-		currentStartWL = *p_endWL + step;
+		currentStartWL = _endWL + step;
 	}
 	return centres;
 }
@@ -594,7 +596,7 @@ void CiHR320Dlg::LoadCCDs()
 }
 
 
-HRESULT CiHR320Dlg::DoAcquisition(BOOL shutterOpen)
+HRESULT CiHR320Dlg::DoAcquisition(bool shutterOpen)
 {
 	HRESULT hr;
 	m_bMeasurementStarted = TRUE;
@@ -744,11 +746,11 @@ void CiHR320Dlg::MonoMoveTo(double newPos)
 
 	if (SUCCEEDED(hr))
 	{
-		m_connectivityDlg.m_ConnectionLogs.AddItem(L"Mono moving to the new position..." + strTarget);
+		PostMessageToUI(WM_USER_MONO_LOG_MESSAGE, L"Mono moving to the new position..." + strTarget);
 	}
 	else
 	{
-		MessageBox(L"Failed to move Monochromator position...");
+		PostMessageToUI(WM_USER_MONO_LOG_MESSAGE, L"Failed to move Monochromator position...");
 	}
 
 	VARIANT_BOOL isMonoBusy = true;
@@ -758,7 +760,7 @@ void CiHR320Dlg::MonoMoveTo(double newPos)
 		Sleep(10);
 	}
 
-	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Mono is at the new position: " + strTarget + L" nm");
+	PostMessageToUI(WM_USER_MONO_LOG_MESSAGE, L"Mono is at the new position: " + strTarget + L" nm");
 	
 	Sleep(1000);
 
@@ -867,3 +869,22 @@ ExperimentParameters CiHR320Dlg::GetExperimentParameters()
 	return m_settingsDlg.GetExperimentParameters();
 }
 
+void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {
+	// Basic guard: ensure we are only posting user-defined messages
+	if (message < WM_USER) return;
+
+	CString* pMsg = new CString(logMessage);
+	if (!::PostMessage(this->m_hWnd, message, 0, (LPARAM)pMsg))
+		delete pMsg;
+}
+
+LRESULT CiHR320Dlg::OnMonoLogMessage(WPARAM wParam, LPARAM lParam)
+{
+	CString* pStr = reinterpret_cast<CString*>(lParam);
+	if (pStr)
+	{
+		m_connectivityDlg.m_ConnectionLogs.AddItem(*pStr);
+		delete pStr;
+	}
+	return 0;
+}

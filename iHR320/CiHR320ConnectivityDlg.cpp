@@ -188,7 +188,6 @@ std::array<int, 4> CiHR320ConnectivityDlg::GetIPAddress(std::string type)
 
 void CiHR320ConnectivityDlg::OnBnClickedAcq()
 {
-	UpdateData(FALSE);
 	m_mainWnd->DoAcquisition();
 }
 
