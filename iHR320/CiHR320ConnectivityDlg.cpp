@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include <array>
+#include "DataAcquisition.h"
 
 
 // CiHR320ConnectivityDlg dialog
@@ -223,7 +224,7 @@ std::array<int, 4> CiHR320ConnectivityDlg::GetIPAddress(std::string type)
 
 void CiHR320ConnectivityDlg::OnBnClickedAcq()
 {
-	m_mainWnd->DoAcquisition();
+	TakeSpectrum(m_mainWnd);
 }
 
 

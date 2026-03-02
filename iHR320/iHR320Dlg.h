@@ -16,8 +16,15 @@ class CiHR320DlgAutoProxy;
 #include "AskUser.h"
 #include "Resource.h"
 
+// forward declarations
+class CJYDeviceSink; 
 
-class CJYDeviceSink; // forward declaration
+
+
+struct CCDThreadData {							// CCD data container for export
+	std::vector<long> intensities;
+	long pixelCount;
+};
 
 // CiHR320Dlg dialog
 class CiHR320Dlg : public CDialogEx
@@ -34,7 +41,9 @@ public:
 	virtual ~CiHR320Dlg();
 // 
 	CAskUser m_askUser;
+	CCDThreadData currentData;
 	std::string GetLocalIP();
+	CString GetCurrentDir();
 
 	std::array<double, 5> GetCentresWL(int startWL, int DGRangeNo);
 
@@ -44,7 +53,8 @@ public:
 	void ReceivedDeviceCriticalError(long status, IJYEventInfo *eventInfo);
 	ExperimentParameters GetExperimentParameters();
 	void PostMessageToUI(UINT message, CString logMessage);
-	bool m_bMeasurementStarted;
+	bool m_bMeasurementStarted = false;
+	bool m_isCCDDataReady = false;
 protected:
 	CString m_monoArray[10][2];
 	long m_gainCCD[3], m_ADCCCD[3];

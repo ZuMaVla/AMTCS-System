@@ -287,6 +287,13 @@ std::string CiHR320Dlg::GetLocalIP() {
 	return m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP);
 }
 
+CString CiHR320Dlg::GetCurrentDir()
+{
+	CString path;
+	m_settingsDlg.m_workDir.GetWindowTextW(path);
+	return path;
+}
+
 std::array<double, 5> CiHR320Dlg::GetCentresWL(int startWL, int DGRangeNo)
 {
 	std::array<double, 5> centres = { -1, -1, -1, -1, -1 };
@@ -617,7 +624,8 @@ void CiHR320Dlg::LoadCCDs()
 HRESULT CiHR320Dlg::DoAcquisition(bool shutterOpen)
 {
 	HRESULT hr;
-	m_bMeasurementStarted = TRUE;
+	m_bMeasurementStarted = true;
+	m_isCCDDataReady = false;
 	if (shutterOpen) hr = m_jyCCD->DoAcquisition(VARIANT_TRUE);
 	else hr = m_jyCCD->DoAcquisition(VARIANT_FALSE);
 	
@@ -662,7 +670,7 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 		jyUnits eUnits;
 		VARIANT vUnits;
 		CString sUnits;
-
+		m_jyCCD->SetDefaultUnits(jyutDataUnits, jyuCounts);
 //		m_jyCCD->GetDefaultUnits(jyutTime, &eUnits, &vUnits);		// Acquisition time
 //		sUnits = vUnits.bstrVal;
 
@@ -868,6 +876,22 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 		m_flowDlg.m_ExpFLowLogs.AddItem(L"Data Update received...");
 		m_flowDlg.m_ExpFLowLogs.AddItem(L"Acquisition Completed.");
 		m_bMeasurementStarted = FALSE;
+		if ((data.vt & VT_ARRAY) && data.parray != NULL)
+		{
+			long* pRawData;
+			SafeArrayAccessData(data.parray, (void**)&pRawData);
+
+			long lBound, uBound;					// bounds of data array
+			SafeArrayGetLBound(data.parray, 1, &lBound);
+			SafeArrayGetUBound(data.parray, 1, &uBound);
+			currentData.pixelCount = uBound - lBound + 1;
+			// Copy the data - this 'steals' it into the package
+			currentData.intensities.assign(pRawData, pRawData + currentData.pixelCount);
+
+			SafeArrayUnaccessData(data.parray);
+			Sleep(500);
+			m_isCCDDataReady = true;
+		}
 
 	}
 	break;
