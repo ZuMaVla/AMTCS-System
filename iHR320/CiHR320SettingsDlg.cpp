@@ -14,7 +14,7 @@
 #include "TCPtoRPi.h"
 #include "CiHR320ConnectivityDlg.h"
 #include "iHR320Dlg.h"
-
+#include "DataAcquisition.h"
 
 // CiHR320SettingsDlg dialog
 
@@ -45,6 +45,7 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LIST_DG, m_ListBoxDG);
 	DDX_Control(pDX, IDC_SLIDER_START_WL, m_sliderStartWL);
 	DDX_Control(pDX, IDC_SLIDER_DG_POSITIONS, m_sliderDGRangeNo);
+	DDX_Control(pDX, IDC_Acq, m_acquisBtnTemp);
 
 	DDX_Control(pDX, IDC_NUMBER_ACQ, m_NA);
 	DDX_Control(pDX, IDC_NEW_T, m_VSListBox_T.m_newT);
@@ -71,6 +72,8 @@ BEGIN_MESSAGE_MAP(CiHR320SettingsDlg, CDialogEx)
 	ON_EN_KILLFOCUS(IDC_SAVE_FOLDER, &CiHR320SettingsDlg::OnWorkDirChanged)
 	ON_BN_CLICKED(IDC_START, &CiHR320SettingsDlg::OnBnClickedStart)
 	ON_LBN_SELCHANGE(IDC_LIST_DG, &CiHR320SettingsDlg::OnMonoDGChanged)
+	ON_BN_CLICKED(IDC_Acq, &CiHR320SettingsDlg::OnBnClickedAcq)
+
 END_MESSAGE_MAP()
 
 
@@ -97,6 +100,10 @@ BOOL CiHR320SettingsDlg::OnInitDialog()
 
 }
 
+void CiHR320SettingsDlg::OnBnClickedAcq()
+{
+	TakeSpectrum(m_mainWnd, L"300");
+}
 
 
 void CiHR320SettingsDlg::OnBnClickedButtonDefaultT()

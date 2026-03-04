@@ -41,8 +41,6 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO_MONO, m_MonoSelectCtrl);
 	DDX_Control(pDX, IDC_CHECK_CCD, m_CheckBoxCCD);
 	DDX_Control(pDX, IDC_CHECK_IHR320, m_CheckBoxMono);
-	DDX_Control(pDX, IDC_Acq, m_acquisBtnTemp);
-	DDX_Control(pDX, IDC_EDIT1, m_gratingTestTemp);
 	DDX_Check(pDX, IDC_SDK_EMULATION, m_emulation);
 	DDX_Control(pDX, IDC_CHECK_TC, m_CheckBoxTC);
 }
@@ -51,8 +49,6 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CiHR320ConnectivityDlg, CDialogEx)
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_CONNECT_BUTTON, &CiHR320ConnectivityDlg::OnBnClickedConnectButton)
-	ON_BN_CLICKED(IDC_Acq, &CiHR320ConnectivityDlg::OnBnClickedAcq)
-	ON_BN_CLICKED(IDC_MOVE_TO_BTN_TEST, &CiHR320ConnectivityDlg::OnBnClickedMoveToBtnTest)
 END_MESSAGE_MAP()
 
 
@@ -135,23 +131,23 @@ void CiHR320ConnectivityDlg::OnTimer(UINT_PTR nIDEvent) {
 
 void CiHR320ConnectivityDlg::UpdateSystemStatusUI(std::string device) {
 	if (device == "PLC") {
-		m_ConnectionLogs.AddItem(_T("PLC ready on 192.168.50.1"));
+		m_ConnectionLogs.AddItem(_T("[PLC] Ready on 192.168.50.1"));
 		m_CheckBoxPLC.SetCheck(TRUE);
 		m_CheckBoxPLC.SetWindowText(_T("Connected"));
 		StopTimer(TIMER_PLC_CHECK);
 	}
 	else if (device == "TC_OK") {
-		m_ConnectionLogs.AddItem(_T("TC is alive"));
+		m_ConnectionLogs.AddItem(_T("[PLC] TC is alive"));
 		m_CheckBoxTC.SetCheck(TRUE);
 		m_CheckBoxTC.SetWindowText(_T("Alive"));
 	}
 	else if (device == "TC_OFF") {
-		m_ConnectionLogs.AddItem(_T("TC is not responsive"));
+		m_ConnectionLogs.AddItem(_T("[PLC] TC is not responsive"));
 		m_CheckBoxTC.SetCheck(FALSE);
 		m_CheckBoxTC.SetWindowText(_T("Off"));
 	}
 	else if (device == "TC_READY") {
-		m_ConnectionLogs.AddItem(_T("TC is ready"));
+		m_ConnectionLogs.AddItem(_T("[PLC] TC is ready"));
 		m_CheckBoxTC.SetCheck(TRUE);
 		m_CheckBoxTC.SetWindowText(_T("Ready"));
 	}
@@ -220,22 +216,3 @@ std::array<int, 4> CiHR320ConnectivityDlg::GetIPAddress(std::string type)
 }
 
 
-
-
-void CiHR320ConnectivityDlg::OnBnClickedAcq()
-{
-	TakeSpectrum(m_mainWnd);
-}
-
-
-
-void CiHR320ConnectivityDlg::OnBnClickedMoveToBtnTest()
-{
-	CString strTarget;
-	
-	m_gratingTestTemp.GetWindowText(strTarget);
-
-	double posTarget = _ttof(strTarget);
-
-	m_mainWnd->MonoMoveTo(posTarget);
-}

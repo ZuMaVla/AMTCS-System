@@ -87,7 +87,7 @@ bool SaveData(const std::vector<double> &fullData, CString path, CString sampleC
 	return false;
 }
 
-bool TakeSpectrum(CiHR320Dlg* pUI) {
+bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 	ExperimentParameters params = pUI->GetExperimentParameters();
 	int NA = params.NA;
 	int DGRangeNo = params.DGRangeNo;
@@ -120,6 +120,7 @@ bool TakeSpectrum(CiHR320Dlg* pUI) {
 	}
 
 	CString path = pUI->GetCurrentDir();
+	CString sampleCode = CString(params.sampleCode.c_str());
 
-	return SaveData(fullData, path, L"NT3809", L"200_K");
+	return SaveData(fullData, path,  sampleCode, T);
 }

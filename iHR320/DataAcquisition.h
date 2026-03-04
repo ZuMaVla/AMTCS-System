@@ -2,4 +2,4 @@
 class CiHR320Dlg;
 struct ExperimentParameters;
 
-bool TakeSpectrum(CiHR320Dlg* pUI);
+bool TakeSpectrum(CiHR320Dlg* pUI, CString T);

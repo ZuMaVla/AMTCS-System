@@ -58,19 +58,13 @@ protected:
 	CButton m_CheckBoxPLC;
 public:
 	CVSListBox m_ConnectionLogs;
-	// List of CCDs
-	CComboBox m_CCDSelectCtrl;
-	// // List of monochromators
-	CComboBox m_MonoSelectCtrl;
+	
+	CComboBox m_CCDSelectCtrl;							// List of CCDs installed in the system	 
+	CComboBox m_MonoSelectCtrl;							// List of monochromators installed in the system
 	CButton m_CheckBoxCCD;
 	CButton m_CheckBoxMono;
-	afx_msg void OnBnClickedAcq();
-	CButton m_acquisBtnTemp;
-	// for test, delete after!!!
-	CEdit m_gratingTestTemp;
-	afx_msg void OnBnClickedMoveToBtnTest();
-	// SDK emulation if true
-	BOOL m_emulation;
-	// control for TC status
-	CButton m_CheckBoxTC;
+	
+	BOOL m_emulation;									// SDK emulation if true
+	
+	CButton m_CheckBoxTC;								// control for TC status
 };

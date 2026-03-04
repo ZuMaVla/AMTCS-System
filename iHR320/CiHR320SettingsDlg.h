@@ -59,4 +59,7 @@ protected:
 public:
 	afx_msg void OnBnClickedStart();
 	afx_msg void OnMonoDGChanged();
+	afx_msg void OnBnClickedAcq();
+	CButton m_acquisBtnTemp;
+
 };

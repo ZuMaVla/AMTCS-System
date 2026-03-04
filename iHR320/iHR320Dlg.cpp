@@ -324,12 +324,6 @@ std::array<double, 5> CiHR320Dlg::GetCentresWL(int startWL, int DGRangeNo)
 	return centres;
 }
 
-//CComPtr<IJYMonoReqd> CiHR320Dlg::GetMonoPtr()
-//{
-//	return m_jyMono;
-//}
-
-
 LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
 {
 	std::string* device = reinterpret_cast<std::string*>(lParam);
@@ -351,7 +345,17 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 
 			m_connectivityDlg.m_ConnectionLogs.AddItem(msg);
 		}
-		
+		else if (msg.Left(3) == _T("CT=")) {
+			msg = _T("[TC] Target temperature reached. Current T: ") + msg.Mid(4) + _T(" K");
+
+			m_flowDlg.m_ExpFLowLogs.AddItem(msg);
+		}
+		else if (msg.Left(3) == _T("SAd")) {
+			msg = _T("[TC] Current temperature received: ") + msg.Mid(2) + _T(" K");
+
+			m_flowDlg.m_ExpFLowLogs.AddItem(L"[iHR320] Spectrum acquisition completed; data saved.");
+		}
+
 		delete pStr;
 	}
 	return 0;
@@ -419,7 +423,7 @@ void CiHR320Dlg::SetCCDParams()
 		MessageBox(L"Controller NOT ready for Acquisition.\nCheck Parameters and try again", MB_OK);
 	else
 	{
-		m_connectivityDlg.m_acquisBtnTemp.EnableWindow();
+		m_settingsDlg.m_acquisBtnTemp.EnableWindow();
 	}
 
 }
@@ -750,7 +754,7 @@ void CiHR320Dlg::GetGratings()
 	m_jyMono->GetCurrentWavelength(&dTemp);
 	CString text;
 	text.Format(_T("%.2f"), dTemp);
-	m_connectivityDlg.m_gratingTestTemp.SetWindowTextW(text);
+	m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[iHR320] Current position: ") + text + _T(" nm"));
 }
 
 void CiHR320Dlg::SetMonoDG(int grating)
@@ -873,8 +877,6 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 		resultObject->GetFirstDataObject(&m_AcqDataObj);
 		m_AcqDataObj->get_Description(&dataDesc);
 		m_AcqDataObj->GetDataAsArray(&data);
-		m_flowDlg.m_ExpFLowLogs.AddItem(L"Data Update received...");
-		m_flowDlg.m_ExpFLowLogs.AddItem(L"Acquisition Completed.");
 		m_bMeasurementStarted = FALSE;
 		if ((data.vt & VT_ARRAY) && data.parray != NULL)
 		{

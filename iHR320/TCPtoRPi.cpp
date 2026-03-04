@@ -46,7 +46,12 @@ static void MainLogicWorker(CiHR320Dlg* pUI, MessageQueue& PLC_out, MessageQueue
 			cmd.keyword = "SEND";
 			cmd.payload = "AFFIRMATIVE";			
 			PLC_in.push(cmd); 														// Confirming request
-			if (TakeSpectrum(pUI)) { cmd.payload = "DONE";	}
+			CString msg = CString(event.payload.c_str());
+			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"CT= " + msg);				// Current temperature + T itself (msg)
+			if (TakeSpectrum(pUI, msg)) { 
+				cmd.payload = "DONE";
+				pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"SAd");					// Spectrum acquired (SAd)
+			}
 			else { cmd.payload = "ERROR"; }
 			PLC_in.push(cmd);														// Confirming success/error
 		}
@@ -92,7 +97,13 @@ static void MainLogicWorker(CiHR320Dlg* pUI, MessageQueue& PLC_out, MessageQueue
 		else if (event.keyword == "T=") {											// Incoming current T from PLC/TC
 			std::cout << "Current T: " + event.payload + " K\n";
 			CString msg = CString(event.keyword.c_str());
-			msg	+= event.payload.c_str();											// Converting event to CString
+			msg += event.payload.c_str();											// Converting event to CString
+			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, msg);
+		}
+		else if (event.keyword == "STAB_T=") {											// Incoming current T from PLC/TC
+			std::cout << "Current T: " + event.payload + " K\n";
+			CString msg = CString(event.keyword.c_str());
+			msg += event.payload.c_str();											// Converting event to CString
 			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, msg);
 		}
 		else if (event.keyword == "STATUS" && event.payload == "MEASUREMENT") {		// PLC informed about being in the middle of experiment sequence
