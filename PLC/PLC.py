@@ -98,7 +98,7 @@ def main():
 
             case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.WAITING):
                 print(f"[MAIN] Requesting spectrum step")
-                tcp_in.put(("SEND", "ACQUIRE_SPECTRUM"))
+                tcp_in.put(("SEND", "ACQUIRE_SPECTRUM " + next_T))
                 experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.REQUESTED
             case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.REQUESTED):
                 print(f"[MAIN] Waiting for spectrum being measured")
