@@ -62,4 +62,6 @@ public:
 	afx_msg void OnBnClickedAcq();
 	CButton m_acquisBtnTemp;
 
+	afx_msg void OnDGRangeNoChanged(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnSampleCodeChanged();
 };

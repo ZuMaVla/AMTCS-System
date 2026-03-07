@@ -74,6 +74,8 @@ BEGIN_MESSAGE_MAP(CiHR320SettingsDlg, CDialogEx)
 	ON_LBN_SELCHANGE(IDC_LIST_DG, &CiHR320SettingsDlg::OnMonoDGChanged)
 	ON_BN_CLICKED(IDC_Acq, &CiHR320SettingsDlg::OnBnClickedAcq)
 
+	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_DG_POSITIONS, &CiHR320SettingsDlg::OnDGRangeNoChanged)
+	ON_EN_CHANGE(IDC_SAMPLE_CODE, &CiHR320SettingsDlg::OnSampleCodeChanged)
 END_MESSAGE_MAP()
 
 
@@ -420,5 +422,43 @@ void CiHR320SettingsDlg::OnMonoDGChanged()
 
 	m_mainWnd->SetMonoDG(index);
 	temp.DG = index;
+	experimentState.setExpParams(temp);
+}
+
+
+void CiHR320SettingsDlg::OnDGRangeNoChanged(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	int value = m_sliderDGRangeNo.GetPos();
+	ExperimentParameters temp = experimentState.getExpParams();
+	temp.DGRangeNo = value;
+	experimentState.setExpParams(temp);
+
+	*pResult = 0;
+}
+
+
+
+void CiHR320SettingsDlg::OnSampleCodeChanged()
+{
+	CString strText;
+	m_sampleCode.GetWindowText(strText);
+	ExperimentParameters temp = experimentState.getExpParams();
+
+	CString forbiddenChars = _T("\\/:*?\"<>|");			// Characters to exclude from sample name
+
+	int foundIndex = strText.FindOneOf(forbiddenChars);
+
+	if (foundIndex != -1)
+	{
+		
+		TCHAR badChar = strText.GetAt(foundIndex);		// To show a specific bad character to the user
+		CString errorMsg;
+		errorMsg.Format(_T("The character '%c' is not allowed in sample codes."), badChar);
+
+		AfxMessageBox(errorMsg, MB_ICONSTOP);
+		m_sampleCode.SetFocus();
+	}
+	CT2A asciiText(strText);
+	temp.sampleCode = std::string(asciiText);
 	experimentState.setExpParams(temp);
 }
