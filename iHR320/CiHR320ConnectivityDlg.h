@@ -6,6 +6,7 @@
 #include <array>
 
 #define TIMER_PLC_CHECK 101
+#define TIMER_ALL_CHECK 102
 
 class CiHR320Dlg;
 

@@ -250,7 +250,8 @@ void CiHR320SettingsDlg::OnNAChanged()
 	CString msg;
 	BOOL success = FALSE;
 	int value = GetDlgItemInt(IDC_NUMBER_ACQ, &success, TRUE);
-
+	ExperimentParameters temp = experimentState.getExpParams();
+	
 	if (value < extreme_NA[0] || value > extreme_NA[1]) {
 		msg.Format(_T("Value must be between %d and %d"), extreme_NA[0], extreme_NA[1]);
 		AfxMessageBox(msg);
@@ -264,6 +265,8 @@ void CiHR320SettingsDlg::OnNAChanged()
 	else {
 		m_isCRRemoval.EnableWindow(TRUE);
 	}
+	temp.NA = value;
+	experimentState.setExpParams(temp);
 }
 
 
@@ -272,6 +275,7 @@ void CiHR320SettingsDlg::OnSlitsChanged()
 	CString msg;
 	BOOL success = FALSE;
 	int value = GetDlgItemInt(IDC_SLITS, &success, TRUE);
+	ExperimentParameters temp = experimentState.getExpParams();
 
 	if (value < extreme_Slits[0] || value > extreme_Slits[1]) {
 		msg.Format(_T("Value must be between %d and %d [µm]"), extreme_Slits[0], extreme_Slits[1]);
@@ -280,12 +284,15 @@ void CiHR320SettingsDlg::OnSlitsChanged()
 		return;
 	}
 	m_mainWnd->SetSlits(value/1000.0);
+	temp.slits = value;
+	experimentState.setExpParams(temp);
 }
 
 void CiHR320SettingsDlg::OnStartWLSliderMoving(
 	NMHDR *pNMHDR, LRESULT *pResult)
 {
 	NMTRBTHUMBPOSCHANGING* pNMTPC = reinterpret_cast<NMTRBTHUMBPOSCHANGING*>(pNMHDR);
+	ExperimentParameters temp = experimentState.getExpParams();
 
 	int continuousPos = pNMTPC->dwPos;   // <-- This is the thumb position
 //	int tick = m_sliderStartWL.GetTic(2) - m_sliderStartWL.GetTic(1);
@@ -299,6 +306,8 @@ void CiHR320SettingsDlg::OnStartWLSliderMoving(
 	m_StartWL.SetWindowTextW(newStartWL);
 	
 	*pResult = 0;
+	temp.StartWL = snappedPos;
+	experimentState.setExpParams(temp);
 }
 
 void CiHR320SettingsDlg::OnStartWLChanged()
@@ -306,6 +315,7 @@ void CiHR320SettingsDlg::OnStartWLChanged()
 	CString msg;
 	BOOL success = FALSE;
 	int value = GetDlgItemInt(IDC_MEASURE_FROM, &success, TRUE);
+	ExperimentParameters temp = experimentState.getExpParams();
 
 	if (value < extreme_StartWL[0] || value > extreme_StartWL[1]) {
 		msg.Format(_T("Value must be between %d and %d [nm]"), extreme_StartWL[0], extreme_StartWL[1]);
@@ -314,7 +324,8 @@ void CiHR320SettingsDlg::OnStartWLChanged()
 		return;
 	}
 	m_sliderStartWL.SetPos(value);
-
+	temp.StartWL = value;
+	experimentState.setExpParams(temp);
 }
 
 
@@ -323,6 +334,7 @@ void CiHR320SettingsDlg::OnMaxATChanged()
 	CString msg;
 	BOOL success = FALSE;
 	int value = GetDlgItemInt(IDC_ACQUISITION_TIME_MAX, &success, TRUE);
+	ExperimentParameters temp = experimentState.getExpParams();
 
 	if (value < extreme_AT[0] || value > extreme_AT[1]) {
 		msg.Format(_T("Value must be between %d and %d [ms]"), extreme_AT[0], extreme_AT[1]);
@@ -331,6 +343,8 @@ void CiHR320SettingsDlg::OnMaxATChanged()
 		return;
 	}
 	m_mainWnd->SetAT(value/1000.0);
+	temp.maxAT = value;
+	experimentState.setExpParams(temp);
 }
 
 
@@ -402,5 +416,9 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 void CiHR320SettingsDlg::OnMonoDGChanged()
 {
 	int index = m_ListBoxDG.GetCurSel();
+	ExperimentParameters temp = experimentState.getExpParams();
+
 	m_mainWnd->SetMonoDG(index);
+	temp.DG = index;
+	experimentState.setExpParams(temp);
 }

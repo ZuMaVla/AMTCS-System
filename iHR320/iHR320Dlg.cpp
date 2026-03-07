@@ -128,9 +128,11 @@ BOOL CiHR320Dlg::OnInitDialog()
 	// create other tabs, hide them initially
 	m_settingsDlg.MoveWindow(&rcTab);
 	m_settingsDlg.ShowWindow(SW_HIDE);
+	EnableDlg(&m_settingsDlg, FALSE);
 
 	m_flowDlg.MoveWindow(&rcTab);
 	m_flowDlg.ShowWindow(SW_HIDE);
+	EnableDlg(&m_flowDlg, FALSE);
 	// Add "About..." menu item to system menu.
 	
 
@@ -299,11 +301,6 @@ std::array<double, 5> CiHR320Dlg::GetCentresWL(int startWL, int DGRangeNo)
 	std::array<double, 5> centres = { -1, -1, -1, -1, -1 };
 	double _startWL = 0.0;
 	double _endWL = 0.0;
-	jyUnits eUnits;
-	VARIANT vUnits;
-	CString sUnits;
-	m_jyCCD->SetMono(m_jyMono, VARIANT_TRUE);
-	m_jyCCD->GetDefaultUnits(jyutWavelength, &eUnits, &vUnits);
 	double errorWL, currentStartWL, approxSpectrWin, centreWL, step;
 	approxSpectrWin = 80000/m_settingsDlg.m_ListBoxDG.GetItemData(m_settingsDlg.m_ListBoxDG.GetCurSel());
 	currentStartWL = startWL;
@@ -671,15 +668,6 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 		USES_CONVERSION;
 		int x, y;
 		CComBSTR fwVer, devDesc, devName;
-		jyUnits eUnits;
-		VARIANT vUnits;
-		CString sUnits;
-		m_jyCCD->SetDefaultUnits(jyutDataUnits, jyuCounts);
-//		m_jyCCD->GetDefaultUnits(jyutTime, &eUnits, &vUnits);		// Acquisition time
-//		sUnits = vUnits.bstrVal;
-
-//		m_jyCCD->get_Name(&devName);
-//		m_name = devName;
 
 		CComBSTR gainStr;
 		long gainToken;
@@ -868,34 +856,86 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 {
 	switch (updateType)
 	{
-	case 100: // data
-	{
-		CComVariant data;
-		IJYResultsObject *resultObject = NULL;
-		CComBSTR dataDesc;
-		eventInfo->GetResult(&resultObject);
-		resultObject->GetFirstDataObject(&m_AcqDataObj);
-		m_AcqDataObj->get_Description(&dataDesc);
-		m_AcqDataObj->GetDataAsArray(&data);
-		m_bMeasurementStarted = FALSE;
-		if ((data.vt & VT_ARRAY) && data.parray != NULL)
+		case 100: // data
 		{
-			long* pRawData;
-			SafeArrayAccessData(data.parray, (void**)&pRawData);
+			CComVariant data, xData;
+			CComPtr<IJYResultsObject> resultObject = NULL;
+			eventInfo->GetResult(&resultObject);
+			if (resultObject == NULL) {
+//				m_flowDlg.m_ExpFLowLogs.AddItem(CString(_T("[CCD] Warning: no data received.")));
+				m_bMeasurementStarted = FALSE;
+				m_isCCDDataReady = true;
+				return; 
+			}
+			m_AcqDataObj = NULL;
+			resultObject->GetFirstDataObject(&m_AcqDataObj);
+			if (m_AcqDataObj == NULL) {
+//				m_flowDlg.m_ExpFLowLogs.AddItem(CString(_T("[CCD] Warning: no data received.")));
+				m_bMeasurementStarted = FALSE;
+				m_isCCDDataReady = true;
+				return;
+			}
+			CComPtr<IJYDeviceReqd> pSourceDev;
+			eventInfo->get_Source(&pSourceDev);
 
-			long lBound, uBound;					// bounds of data array
-			SafeArrayGetLBound(data.parray, 1, &lBound);
-			SafeArrayGetUBound(data.parray, 1, &uBound);
-			currentData.pixelCount = uBound - lBound + 1;
-			// Copy the data - this 'steals' it into the package
-			currentData.intensities.assign(pRawData, pRawData + currentData.pixelCount);
+			if (pSourceDev != NULL)
+			{
+			
+				CComPtr<IJYCCDReqd> pCCD;			// To cast the source as a Multi-Channel Detector
+				pSourceDev->QueryInterface(__uuidof(IJYCCDReqd), (void**)&pCCD);
 
-			SafeArrayUnaccessData(data.parray);
+				if (pCCD != NULL)
+				{
+					// Now you can call GetAxisAs directly on the MCD interface
+					CComPtr<IJYAxis> pXAxis;
+					pCCD->GetAxisAs(m_AcqDataObj, 1, jyDATWavelength, &pXAxis);
+					if (pXAxis != NULL)
+					{
+			
+						pXAxis->GetValuesByArray(&xData);			// Retrieving X-values into CComVariant
+
+						if ((xData.vt & VT_ARRAY) && xData.parray != NULL)
+						{
+							double* pRawXData;
+							SafeArrayAccessData(xData.parray, (void**)&pRawXData);
+
+							long lBoundX, uBoundX;
+							SafeArrayGetLBound(xData.parray, 1, &lBoundX);
+							SafeArrayGetUBound(xData.parray, 1, &uBoundX);
+
+							currentData.wavelengths.assign(pRawXData, pRawXData + (uBoundX - lBoundX + 1));
+
+							SafeArrayUnaccessData(xData.parray);
+						}
+					}
+				}
+			}
+			IJYAxis *pYAxis = NULL;
+
+			CComBSTR dataDesc;
+
+			m_AcqDataObj->get_Description(&dataDesc);
+			m_AcqDataObj->GetDataAsArray(&data);
+			if ((data.vt & VT_ARRAY) && data.parray != NULL)
+			{
+				long* pRawData;
+				SafeArrayAccessData(data.parray, (void**)&pRawData);
+
+				long lBound, uBound;					// bounds of data array
+				SafeArrayGetLBound(data.parray, 1, &lBound);
+				SafeArrayGetUBound(data.parray, 1, &uBound);
+				currentData.pixelCount = uBound - lBound + 1;
+			
+				currentData.intensities.assign(pRawData, pRawData + currentData.pixelCount);
+
+				SafeArrayUnaccessData(data.parray);
+			}
+
 			Sleep(500);
+			m_bMeasurementStarted = FALSE;
 			m_isCCDDataReady = true;
-		}
 
-	}
+		}
 	break;
 	default:
 		break;
@@ -922,6 +962,21 @@ void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {
 		delete pMsg;
 }
 
+void CiHR320Dlg::EnableExpSettDlg()
+{
+	EnableDlg(&m_settingsDlg, TRUE);
+}
+
+void CiHR320Dlg::DisableConnDlg()
+{
+	EnableDlg(&m_connectivityDlg, FALSE);
+	m_jyCCD->SetMono(m_jyMono, VARIANT_TRUE);
+	m_jyCCD->SetDefaultUnits(jyutWavelength, jyuNanometers);
+	m_jyCCD->SetDefaultUnits(jyutDataUnits, jyuCounts);
+	m_jyCCD->GetDefaultUnits(jyutWavelength, &eUnits, &vUnits);
+
+}
+
 LRESULT CiHR320Dlg::OnMonoLogMessage(WPARAM wParam, LPARAM lParam)
 {
 	CString* pStr = reinterpret_cast<CString*>(lParam);
@@ -931,4 +986,18 @@ LRESULT CiHR320Dlg::OnMonoLogMessage(WPARAM wParam, LPARAM lParam)
 		delete pStr;
 	}
 	return 0;
+}
+
+void CiHR320Dlg::EnableDlg(CWnd* pTargetDlg, BOOL bEnable)
+{
+	
+	pTargetDlg->EnableWindow(bEnable);					// En/disable the window itself
+
+	CWnd* pChild = pTargetDlg->GetWindow(GW_CHILD);		// Get first child
+	while (pChild)										// Iterate though all children
+	{
+		pChild->EnableWindow(bEnable);
+		pChild->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+		pChild = pChild->GetWindow(GW_HWNDNEXT);
+	}
 }

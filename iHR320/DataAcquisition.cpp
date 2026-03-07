@@ -14,7 +14,7 @@ std::vector<long> CollectData(CiHR320Dlg* pUI) {
 	return l_pixelData;
 }
 
-std::vector<double> CalculateData(const std::vector<std::vector<long>> &data, const std::vector<long> &bckg) {
+std::vector<double> CalculateData(const std::vector<std::vector<long>> &data, const std::vector<double> &bckg) {
 	if (data.empty()) return{};
 	
 
@@ -62,7 +62,15 @@ std::vector<long> TakeBackground(CiHR320Dlg* pUI) {
 	return l_backgroundData;
 }
 
-bool SaveData(const std::vector<double> &fullData, CString path, CString sampleCode, CString T) {
+std::vector<double> CollectX(CiHR320Dlg* pUI) {
+	std::vector<double> l_xData;
+	if (!pUI->currentData.wavelengths.empty()) {
+		l_xData = pUI->currentData.wavelengths;
+	}
+	return l_xData;
+}
+
+bool SaveData(const std::vector<double> &fullX, const std::vector<double> &fullData, CString path, CString sampleCode, CString T) {
 	CString filename = path + L"\\" + sampleCode + L"_" + T + L".xy";
 
 	CFile outputFile;
@@ -71,12 +79,12 @@ bool SaveData(const std::vector<double> &fullData, CString path, CString sampleC
 		CString line;
 
 		// Header
-		line = L"Pixel\tCounts\n";
+		line = L"nm\tCPS\n";
 		outputFile.Write(CT2A(line), line.GetLength());
 
 		// Data rows
 		for (size_t i = 0; i < fullData.size(); i++) {
-			line.Format(L"%zu\t%.4f\n", i, fullData[i]);
+			line.Format(L"%.4f\t%.4f\n", fullX[i], fullData[i]);
 			outputFile.Write(CT2A(line), line.GetLength());
 		}
 
@@ -92,19 +100,24 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 	int NA = params.NA;
 	int DGRangeNo = params.DGRangeNo;
 	std::array<double, 5> centresWL = pUI->GetCentresWL(params.StartWL, params.DGRangeNo);
-	std::vector<double> finalData, fullData;
-	std::vector<long> bckg;
-	std::vector<std::vector<long>> totalData;
+	std::vector<double> zero, bckg, finalData, fullData, finalX, fullX;
+	std::vector<std::vector<long>> bckgData, totalData;
 
-	for (int i = 0; i < params.DGRangeNo; i++) {
-		totalData.clear();
-		pUI->MonoMoveTo(centresWL[i]);
 
+	for (int j = 0; j < params.NA; j++) {
 		pUI->DoAcquisition(false);
 		while (!pUI->m_isCCDDataReady) {
 			Sleep(100);
 		}
-		bckg = TakeBackground(pUI);
+		bckgData.push_back(CollectData(pUI));
+	}
+	if (params.isCRRemoval) bckgData = RepareData(bckgData);			// Cosmic ray removal - TODO
+	bckg = CalculateData(bckgData, zero);
+
+
+	for (int i = 0; i < params.DGRangeNo; i++) {
+		totalData.clear();
+		pUI->MonoMoveTo(centresWL[i]);
 
 		for (int j = 0; j < params.NA; j++) {
 			pUI->DoAcquisition();
@@ -116,11 +129,13 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 
 		if (params.isCRRemoval) totalData = RepareData(totalData);			// Cosmic ray removal - TODO
 		finalData = CalculateData(totalData, bckg);
+		finalX = CollectX(pUI);
 		fullData.insert(fullData.end(), finalData.begin(), finalData.end());
+		fullX.insert(fullX.end(), finalX.begin(), finalX.end());
 	}
 
 	CString path = pUI->GetCurrentDir();
 	CString sampleCode = CString(params.sampleCode.c_str());
 
-	return SaveData(fullData, path,  sampleCode, T);
+	return SaveData(fullX, fullData, path,  sampleCode, T);
 }

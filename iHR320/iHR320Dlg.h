@@ -23,6 +23,7 @@ class CJYDeviceSink;
 
 struct CCDThreadData {							// CCD data container for export
 	std::vector<long> intensities;
+	std::vector<double> wavelengths;
 	long pixelCount;
 };
 
@@ -46,13 +47,15 @@ public:
 	CString GetCurrentDir();
 
 	std::array<double, 5> GetCentresWL(int startWL, int DGRangeNo);
-
+	int m_availableDeviceCount;
 	void ReceivedDeviceInitialized(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceStatus(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceUpdate(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceCriticalError(long status, IJYEventInfo *eventInfo);
 	ExperimentParameters GetExperimentParameters();
 	void PostMessageToUI(UINT message, CString logMessage);
+	void EnableExpSettDlg();
+	void DisableConnDlg();
 	bool m_bMeasurementStarted = false;
 	bool m_isCCDDataReady = false;
 protected:
@@ -68,15 +71,9 @@ protected:
 	CComPtr<CJYDeviceSink> m_sinkPtrCCD;
 	CComPtr<IJYConfigBrowerInterface> m_pConfigBrowser;
 
-//	IJYMonoReqd* m_jyMono;
-//	CJYDeviceSink* m_sinkPtrMono;
-//	IJYCCDReqd* m_jyCCD;
-//	CJYDeviceSink* m_sinkPtrCCD;
-//	IJYConfigBrowerInterface* m_pConfigBrowser;
-	IJYDataObject *m_AcqDataObj;    // Holds data gathered by the "Start Acq" Button to be accessed by the "Save Data" Button
+	CComPtr<IJYDataObject> m_AcqDataObj;    // Holds data gathered by acquisition to be accessed by the "Save Data" Button
 
 
-// Class content
 	HICON m_hIcon;
 	CiHR320DlgAutoProxy* m_pAutoProxy;
 
@@ -102,6 +99,7 @@ protected:
 	afx_msg LRESULT OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnPutLog(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnMonoLogMessage(WPARAM wParam, LPARAM lParam);
+	void EnableDlg(CWnd * pTargetDlg, BOOL bEnable);
 //---------------------------------------------SDK--------------------------------------------------
 	void LoadMonos();
 	void LoadCCDs();
@@ -111,6 +109,9 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
+	jyUnits eUnits;
+	VARIANT vUnits;
+	CString sUnits;
 	void GetGratings();
 	void SetMonoDG(int grating);
 	void SetAT(double newAT);
