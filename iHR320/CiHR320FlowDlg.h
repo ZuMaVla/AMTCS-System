@@ -1,5 +1,6 @@
 #pragma once
 #include "afxvslistbox.h"
+#include "MyVSListBox.h"
 
 class CiHR320Dlg;
 // CiHR320FlowDlg dialog
@@ -23,5 +24,5 @@ protected:
 	virtual BOOL OnInitDialog();
 	DECLARE_MESSAGE_MAP()
 public:
-	CVSListBox m_ExpFLowLogs;
+	CMyVSListBoxTS m_ExpFLowLogs;
 };

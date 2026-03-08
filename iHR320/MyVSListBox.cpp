@@ -33,13 +33,13 @@ void CMyVSListBox::SortT(BOOL isAscending)
 }
 
 
-int CMyVSListBox::AddItem(const CString& strIext, DWORD_PTR dwData, int iIndex)
+int CMyVSListBox::AddItem(const CString& strText, DWORD_PTR dwData, int iIndex)
 {
 	CString T_str;
-	if (strIext.IsEmpty())
+	if (strText.IsEmpty())
 		m_newT.GetWindowTextW(T_str);
 	else
-		T_str = strIext;
+		T_str = strText;
 	int value = _ttoi(T_str);
 	T_str.Format(_T("%d"), value);
 	int index = CVSListBox::AddItem(T_str, value, iIndex);
@@ -90,3 +90,11 @@ BOOL CMyVSListBox::EditItem(int iItem)
 	return FALSE;
 }
 
+int CMyVSListBoxTS::AddItem(const CString & strText)
+{
+	CTime currentTime = CTime::GetCurrentTime();
+	CString l_timeStamp = currentTime.Format(_T("[%Y/%m/%d %H:%M:%S] "));
+	int index = CVSListBox::AddItem(l_timeStamp + strText);
+	SelectItem(index);
+	return index;
+}

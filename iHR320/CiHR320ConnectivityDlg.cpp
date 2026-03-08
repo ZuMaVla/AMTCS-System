@@ -146,7 +146,6 @@ void CiHR320ConnectivityDlg::OnTimer(UINT_PTR nIDEvent) {
 			m_mainWnd->DisableConnDlg();						// ... and disable Connectivity Dialog (not necessary anymore)
 			m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
 			m_ConnectionLogs.AddItem(_T("Hardware is ready. Please switch to Experiment Settings Tab."));
-			m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
 		}
 		else {
 			m_connectBtn.EnableWindow(TRUE);

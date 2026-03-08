@@ -5,6 +5,7 @@
 #include <string>
 #include <array>
 #include "afxbutton.h"
+#include "MyVSListBox.h"
 
 #define TIMER_PLC_CHECK 101
 #define TIMER_ALL_CHECK 102
@@ -59,7 +60,7 @@ protected:
 	CIPAddressCtrl m_instIP;							// IP on the institutional network
 	CButton m_CheckBoxPLC;
 public:
-	CVSListBox m_ConnectionLogs;
+	CMyVSListBoxTS m_ConnectionLogs;
 	
 	CComboBox m_CCDSelectCtrl;							// List of CCDs installed in the system	 
 	CComboBox m_MonoSelectCtrl;							// List of monochromators installed in the system
