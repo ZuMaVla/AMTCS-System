@@ -66,7 +66,7 @@ CiHR320Dlg::CiHR320Dlg(CWnd* pParent /*=NULL*/)
 	m_jyMono = NULL;
 	m_jyCCD = NULL;
 	m_pConfigBrowser = NULL;
-	m_bMonoInitialized = FALSE;
+	m_isMonoInitialised = FALSE;
 	m_bMeasurementStarted = FALSE;
 }
 
@@ -376,16 +376,61 @@ BOOL CiHR320Dlg::ConnectAndInitCCD()
 	}
 	
 	Sleep(2000);
-	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Initialising CCD...Please wait");
+	m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Initialising CCD...Please wait"));
+	UpdateData();
 	hr = m_jyCCD->Initialize((CComVariant)false, (CComVariant)m_connectivityDlg.m_emulation);
 	SetCCDParams();
 	if (FAILED(hr))
 	{
-		m_connectivityDlg.m_ConnectionLogs.AddItem(L"Check Hardware and Try Again...");
+		m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Check CCD Camera and Try Again..."));
 		return FALSE;
 	}
-	m_connectivityDlg.m_ConnectionLogs.AddItem(L"CCD Initialised :)");
 	return TRUE;
+}
+
+BOOL CiHR320Dlg::ConnectAndInitMono()
+{
+	HRESULT hr = S_OK;
+	if (!m_isMonoInitialised) {
+		// Get the user selected id...
+		if (m_connectivityDlg.m_CCDSelectCtrl.GetCount())
+		{
+
+			CString selectedMono;
+			int nSel = m_connectivityDlg.m_MonoSelectCtrl.GetCurSel();
+			if (nSel < 10)
+			{
+				selectedMono = m_monoArray[nSel][0];
+			}
+
+			if (selectedMono) {
+				// Set the unique id to the instance of the object we created
+				hr = m_jyMono->put_Uniqueid((CComBSTR)selectedMono);
+				// Tell the device to Load it's configuration
+				hr = m_jyMono->Load();
+				// Attempt to establish communications with the device.  The
+				// communication parameters specified in the device configuration 
+				// will be used.   If we fail to find the device, we give the user
+				// the ability to select hardware emulation.
+				hr = m_jyMono->OpenCommunications();
+			}
+
+			if (FAILED(hr))
+			{
+				MessageBox(L"Check Hardware and Try Again...");
+			}
+			else
+			{
+				// Attempt to initialize the device with the appropriate parameters
+				UpdateData();
+				if (!FAILED(m_jyMono->Initialize((CComVariant)m_isMonoInitialised, (CComVariant)m_connectivityDlg.m_emulation)))
+				{
+					m_isMonoInitialised = true;
+				}
+			}
+		}
+	}
+	return m_isMonoInitialised;
 }
 
 void CiHR320Dlg::SetCCDParams()
@@ -393,10 +438,8 @@ void CiHR320Dlg::SetCCDParams()
 	UpdateData();
 	CString text;
 	m_settingsDlg.m_maxAT.GetWindowTextW(text);
-	// Define the integration Time (= max acquisition time) 
-	double AT = _ttoi(text)/1000.0;
+	double AT = _ttoi(text)/1000.0;					// Define the integration Time (= max acquisition time) in seconds
 	text.Format(_T("%.5f"), AT);
-	m_connectivityDlg.m_ConnectionLogs.AddItem(text);
 	m_jyCCD->put_IntegrationTime(AT);
 	// Select the gain
 	m_jyCCD->put_Gain(m_gainCCD[0]);
@@ -413,80 +456,24 @@ void CiHR320Dlg::SetCCDParams()
 	m_jyCCD->DefineArea(1, 1, 1, xSize, ySize, 1, ySize);
 	long dataSize;
 	m_jyCCD->get_DataSize(&dataSize);
-	// Confirm that the system is ready for acquisition
+	
 	VARIANT_BOOL ready = VARIANT_FALSE;
-	m_jyCCD->get_ReadyForAcquisition(&ready);
+	m_jyCCD->get_ReadyForAcquisition(&ready);		// Confirm that the system is ready for acquisition
 	if (!ready)
 		MessageBox(L"Controller NOT ready for Acquisition.\nCheck Parameters and try again", MB_OK);
 	else
 	{
 		m_settingsDlg.m_acquisBtnTemp.EnableWindow();
 	}
-
 }
 
-//=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
-//	ORIG AUTHOR:	J. Martin
-//
-//	PARAMETERS:
-//
-//	DESCRIPTION:	Attempt to connect to the selected CCD Device [and Mono - MZ]
-//
-//	RETURNS:
-//
-//	NOTES:
-//_______________
+
 std::array<BOOL, 2> CiHR320Dlg::ConnectMonoAndCCD()
 {
 	std::array<BOOL, 2> result = { FALSE, FALSE };
-	HRESULT hr = S_OK;
-	int nSel;
-	UpdateData(true);
-
-//*******************************---CCD---****************************************************************************
 
 	result[0] = ConnectAndInitCCD();
-
-
-//*******************************---Mono---****************************************************************************
-
-	// Get the user selected id...
-	if (m_connectivityDlg.m_CCDSelectCtrl.GetCount())
-	{
-
-		CString selectedMono;
-		nSel = m_connectivityDlg.m_MonoSelectCtrl.GetCurSel();
-		if (nSel < 10)
-		{
-			selectedMono = m_monoArray[nSel][0];
-		}
-
-		if (selectedMono) {
-			// Set the unique id to the instance of the object we created
-			hr = m_jyMono->put_Uniqueid((CComBSTR)selectedMono);
-			// Tell the device to Load it's configuration
-			hr = m_jyMono->Load();
-			// Attempt to establish communications with the device.  The
-			// communication parameters specified in the device configuration 
-			// will be used.   If we fail to find the device, we give the user
-			// the ability to select hardware emulation.
-			hr = m_jyMono->OpenCommunications();
-		}
-
-		if (FAILED(hr))
-		{
-			MessageBox(L"Check Hardware and Try Again...");
-		}
-		else
-		{
-			// Attempt to initialize the device with the appropriate parameters
-			if (!FAILED(m_jyMono->Initialize((CComVariant)m_bMonoInitialized, (CComVariant)m_connectivityDlg.m_emulation)))
-			{
-				result[1] = TRUE;
-				m_bMonoInitialized = true;
-			}
-		}
-	}
+	result[1] = ConnectAndInitMono();
 
 	return result;
 }
@@ -653,7 +640,7 @@ HRESULT CiHR320Dlg::DoAcquisition(bool shutterOpen)
 	return hr;
 }
 
-void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo)
+void CiHR320Dlg::ReceivedDeviceInitialised(long status, IJYEventInfo * eventInfo)
 {
 	// This eventInfo structure contains the "source" object that fired the initialized event
 	// because you may receive this event from multiple sources.  You can extract the source ptr and 
@@ -693,7 +680,7 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 			m_jyCCD->GetNextADC(&adcStr, &adcToken);
 			i++;
 		}
-		m_flowDlg.m_ExpFLowLogs.AddItem(L"Initialized Received from CCD!");
+		m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[Synapse CCD] Initialised"));
 
 	}
 
@@ -703,12 +690,28 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 		GetSlits();
 		GetGratings();
 		SetMirror();
-		m_flowDlg.m_ExpFLowLogs.AddItem(L"Initialized Received from Mono!");
+		m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[iHR320] Initialised"));
 	}
 
 	UpdateData(FALSE);
 
 	//MessageBox(L"Initialized Received :) !");
+}
+
+void CiHR320Dlg::WaitForMono()
+{
+	VARIANT_BOOL bBusy = VARIANT_TRUE;
+
+	while (SUCCEEDED(m_jyMono->IsBusy(&bBusy)) && bBusy == VARIANT_TRUE)
+	{
+		MSG msg;
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		Sleep(50);								// To prevent 100% CPU load
+	}
 }
 
 void CiHR320Dlg::GetGratings()

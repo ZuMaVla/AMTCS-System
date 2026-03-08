@@ -4,6 +4,7 @@
 #include "afxcmn.h"
 #include <string>
 #include <array>
+#include "afxbutton.h"
 
 #define TIMER_PLC_CHECK 101
 #define TIMER_ALL_CHECK 102
@@ -68,4 +69,7 @@ public:
 	BOOL m_emulation;									// SDK emulation if true
 	
 	CButton m_CheckBoxTC;								// control for TC status
+														// Button that checks hardware connectivity
+	CMFCButton m_connectBtn;
+	CButton m_emulationMode;
 };

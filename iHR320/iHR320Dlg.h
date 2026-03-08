@@ -48,7 +48,8 @@ public:
 
 	std::array<double, 5> GetCentresWL(int startWL, int DGRangeNo);
 	int m_availableDeviceCount;
-	void ReceivedDeviceInitialized(long status, IJYEventInfo *eventInfo);
+	void ReceivedDeviceInitialised(long status, IJYEventInfo *eventInfo);
+	void WaitForMono();
 	void ReceivedDeviceStatus(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceUpdate(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceCriticalError(long status, IJYEventInfo *eventInfo);
@@ -58,11 +59,11 @@ public:
 	void DisableConnDlg();
 	bool m_bMeasurementStarted = false;
 	bool m_isCCDDataReady = false;
+	bool m_isMonoInitialised;
 protected:
 	CString m_monoArray[10][2];
 	long m_gainCCD[3], m_ADCCCD[3];
 	
-	bool m_bMonoInitialized;
 	bool m_bDetectorInitialized;
 //	bool m_bDetectorForceInit;
 	CComPtr<IJYMonoReqd> m_jyMono;
@@ -104,6 +105,8 @@ protected:
 	void LoadMonos();
 	void LoadCCDs();
 	BOOL ConnectAndInitCCD();
+
+	BOOL ConnectAndInitMono();
 
 
 	DECLARE_MESSAGE_MAP()

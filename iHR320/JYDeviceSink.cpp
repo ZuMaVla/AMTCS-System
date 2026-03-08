@@ -102,7 +102,7 @@ CJYDeviceSink::~CJYDeviceSink()
 //_______________
 void CJYDeviceSink::OnInitialized(long status, IJYEventInfo *eventInfo)
 {
-	m_parentPtr->ReceivedDeviceInitialized(status, eventInfo);
+	m_parentPtr->ReceivedDeviceInitialised(status, eventInfo);
 }
 //=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
 //	ORIG AUTHOR:	J. Martin
