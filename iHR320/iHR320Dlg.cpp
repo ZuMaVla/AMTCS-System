@@ -241,8 +241,17 @@ void CiHR320Dlg::OnClose()
 {
 	m_askUser.s_question = L"Are you sure you want to exit?";
 	isExitEnabled = m_askUser.DoModal() == IDOK;
-	if (CanExit())
+
+	if (CanExit()) {
+		SendTCPMessage(m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP), 5051, "EVENT __STOP__");
+		while (!m_isPLCConfirmedOff)
+		{
+			Sleep(100);
+		}
+
 		CDialogEx::OnClose();
+	}
+		
 }
 
 void CiHR320Dlg::OnOK()

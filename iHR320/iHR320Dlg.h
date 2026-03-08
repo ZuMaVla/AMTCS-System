@@ -59,6 +59,7 @@ public:
 	void DisableConnDlg();
 	bool m_bMeasurementStarted = false;
 	bool m_isCCDDataReady = false;
+	bool m_isPLCConfirmedOff = false;
 	bool m_isMonoInitialised;
 protected:
 	CString m_monoArray[10][2];

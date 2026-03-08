@@ -26,7 +26,7 @@ static std::atomic<bool> g_listenerRunning{ false };
 // TCP logic routine
 // ------------------------------------------------------------
 
-static void MainLogicWorker(CiHR320Dlg* pUI, MessageQueue& PLC_out, MessageQueue& PLC_in){
+static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue &PLC_in){
 
 	std::string localIP = pUI->GetLocalIP();					// (!!!) retrieving IP address of self from UI
 
@@ -113,7 +113,9 @@ static void MainLogicWorker(CiHR320Dlg* pUI, MessageQueue& PLC_out, MessageQueue
 			PLC_in.push(cmd);
 		}
 		else if (event.keyword == "EVENT" && event.payload == "__STOP__") {			// User requested abort 
-			g_logicRunning = false;
+			cmd.keyword = "SEND";
+			cmd.payload = "OFF";
+			PLC_in.push(cmd);
 		}
 		else if (event.keyword == "REQUEST" && event.payload == "PLC_STATUS") {		// User requested to ping PLC 
 			cmd.keyword = "SEND";
@@ -125,6 +127,13 @@ static void MainLogicWorker(CiHR320Dlg* pUI, MessageQueue& PLC_out, MessageQueue
 			cmd.keyword = "SEND";
 			cmd.payload = "TC?";
 			PLC_in.push(cmd);
+		}
+		else if (event.keyword == "CONFIRM_OFF") {
+			pUI->m_isPLCConfirmedOff = true;
+			cmd.keyword = "OFF";
+			cmd.payload = "";
+			PLC_in.push(cmd);
+			g_logicRunning = false;
 		}
 
 	}
@@ -174,11 +183,10 @@ static void PLCListenerWorker(std::string ip_iHR320, int port_iHR320, MessageQue
 		// ----- allow graceful stop from PLC_in -----
 		if (!PLC_in.empty()) {
 			Message cmd = PLC_in.pop();
-			if (cmd.keyword == "STATUS" && cmd.payload == "__STOP__")
-				break;
-			else if (cmd.keyword == "SEND") {
+			if (cmd.keyword == "SEND") {
 				SendTCPMessage(ip_PLC, port_PLC, cmd.payload);
 			}
+			else if (cmd.keyword == "OFF") g_listenerRunning = false;
 		}
 
 		// ----- wait for connection (1s poll) -----
