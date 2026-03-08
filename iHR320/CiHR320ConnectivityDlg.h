@@ -4,8 +4,10 @@
 #include "afxcmn.h"
 #include <string>
 #include <array>
+#include "afxbutton.h"
 
 #define TIMER_PLC_CHECK 101
+#define TIMER_ALL_CHECK 102
 
 class CiHR320Dlg;
 
@@ -58,19 +60,16 @@ protected:
 	CButton m_CheckBoxPLC;
 public:
 	CVSListBox m_ConnectionLogs;
-	// List of CCDs
-	CComboBox m_CCDSelectCtrl;
-	// // List of monochromators
-	CComboBox m_MonoSelectCtrl;
+	
+	CComboBox m_CCDSelectCtrl;							// List of CCDs installed in the system	 
+	CComboBox m_MonoSelectCtrl;							// List of monochromators installed in the system
 	CButton m_CheckBoxCCD;
 	CButton m_CheckBoxMono;
-	afx_msg void OnBnClickedAcq();
-	CButton m_acquisBtnTemp;
-	// for test, delete after!!!
-	CEdit m_gratingTestTemp;
-	afx_msg void OnBnClickedMoveToBtnTest();
-	// SDK emulation if true
-	BOOL m_emulation;
-	// control for TC status
-	CButton m_CheckBoxTC;
+	
+	BOOL m_emulation;									// SDK emulation if true
+	
+	CButton m_CheckBoxTC;								// control for TC status
+														// Button that checks hardware connectivity
+	CMFCButton m_connectBtn;
+	CButton m_emulationMode;
 };

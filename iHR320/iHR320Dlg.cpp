@@ -66,7 +66,7 @@ CiHR320Dlg::CiHR320Dlg(CWnd* pParent /*=NULL*/)
 	m_jyMono = NULL;
 	m_jyCCD = NULL;
 	m_pConfigBrowser = NULL;
-	m_bMonoInitialized = FALSE;
+	m_isMonoInitialised = FALSE;
 	m_bMeasurementStarted = FALSE;
 }
 
@@ -128,9 +128,11 @@ BOOL CiHR320Dlg::OnInitDialog()
 	// create other tabs, hide them initially
 	m_settingsDlg.MoveWindow(&rcTab);
 	m_settingsDlg.ShowWindow(SW_HIDE);
+	EnableDlg(&m_settingsDlg, FALSE);
 
 	m_flowDlg.MoveWindow(&rcTab);
 	m_flowDlg.ShowWindow(SW_HIDE);
+	EnableDlg(&m_flowDlg, FALSE);
 	// Add "About..." menu item to system menu.
 	
 
@@ -287,16 +289,18 @@ std::string CiHR320Dlg::GetLocalIP() {
 	return m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP);
 }
 
+CString CiHR320Dlg::GetCurrentDir()
+{
+	CString path;
+	m_settingsDlg.m_workDir.GetWindowTextW(path);
+	return path;
+}
+
 std::array<double, 5> CiHR320Dlg::GetCentresWL(int startWL, int DGRangeNo)
 {
 	std::array<double, 5> centres = { -1, -1, -1, -1, -1 };
 	double _startWL = 0.0;
 	double _endWL = 0.0;
-	jyUnits eUnits;
-	VARIANT vUnits;
-	CString sUnits;
-	m_jyCCD->SetMono(m_jyMono, VARIANT_TRUE);
-	m_jyCCD->GetDefaultUnits(jyutWavelength, &eUnits, &vUnits);
 	double errorWL, currentStartWL, approxSpectrWin, centreWL, step;
 	approxSpectrWin = 80000/m_settingsDlg.m_ListBoxDG.GetItemData(m_settingsDlg.m_ListBoxDG.GetCurSel());
 	currentStartWL = startWL;
@@ -316,12 +320,6 @@ std::array<double, 5> CiHR320Dlg::GetCentresWL(int startWL, int DGRangeNo)
 	}
 	return centres;
 }
-
-//CComPtr<IJYMonoReqd> CiHR320Dlg::GetMonoPtr()
-//{
-//	return m_jyMono;
-//}
-
 
 LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
 {
@@ -344,7 +342,17 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 
 			m_connectivityDlg.m_ConnectionLogs.AddItem(msg);
 		}
-		
+		else if (msg.Left(3) == _T("CT=")) {
+			msg = _T("[TC] Target temperature reached. Current T: ") + msg.Mid(4) + _T(" K");
+
+			m_flowDlg.m_ExpFLowLogs.AddItem(msg);
+		}
+		else if (msg.Left(3) == _T("SAd")) {
+			msg = _T("[TC] Current temperature received: ") + msg.Mid(2) + _T(" K");
+
+			m_flowDlg.m_ExpFLowLogs.AddItem(L"[iHR320] Spectrum acquisition completed; data saved.");
+		}
+
 		delete pStr;
 	}
 	return 0;
@@ -368,16 +376,61 @@ BOOL CiHR320Dlg::ConnectAndInitCCD()
 	}
 	
 	Sleep(2000);
-	m_connectivityDlg.m_ConnectionLogs.AddItem(L"Initialising CCD...Please wait");
+	m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Initialising CCD...Please wait"));
+	UpdateData();
 	hr = m_jyCCD->Initialize((CComVariant)false, (CComVariant)m_connectivityDlg.m_emulation);
 	SetCCDParams();
 	if (FAILED(hr))
 	{
-		m_connectivityDlg.m_ConnectionLogs.AddItem(L"Check Hardware and Try Again...");
+		m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Check CCD Camera and Try Again..."));
 		return FALSE;
 	}
-	m_connectivityDlg.m_ConnectionLogs.AddItem(L"CCD Initialised :)");
 	return TRUE;
+}
+
+BOOL CiHR320Dlg::ConnectAndInitMono()
+{
+	HRESULT hr = S_OK;
+	if (!m_isMonoInitialised) {
+		// Get the user selected id...
+		if (m_connectivityDlg.m_CCDSelectCtrl.GetCount())
+		{
+
+			CString selectedMono;
+			int nSel = m_connectivityDlg.m_MonoSelectCtrl.GetCurSel();
+			if (nSel < 10)
+			{
+				selectedMono = m_monoArray[nSel][0];
+			}
+
+			if (selectedMono) {
+				// Set the unique id to the instance of the object we created
+				hr = m_jyMono->put_Uniqueid((CComBSTR)selectedMono);
+				// Tell the device to Load it's configuration
+				hr = m_jyMono->Load();
+				// Attempt to establish communications with the device.  The
+				// communication parameters specified in the device configuration 
+				// will be used.   If we fail to find the device, we give the user
+				// the ability to select hardware emulation.
+				hr = m_jyMono->OpenCommunications();
+			}
+
+			if (FAILED(hr))
+			{
+				MessageBox(L"Check Hardware and Try Again...");
+			}
+			else
+			{
+				// Attempt to initialize the device with the appropriate parameters
+				UpdateData();
+				if (!FAILED(m_jyMono->Initialize((CComVariant)m_isMonoInitialised, (CComVariant)m_connectivityDlg.m_emulation)))
+				{
+					m_isMonoInitialised = true;
+				}
+			}
+		}
+	}
+	return m_isMonoInitialised;
 }
 
 void CiHR320Dlg::SetCCDParams()
@@ -385,10 +438,8 @@ void CiHR320Dlg::SetCCDParams()
 	UpdateData();
 	CString text;
 	m_settingsDlg.m_maxAT.GetWindowTextW(text);
-	// Define the integration Time (= max acquisition time) 
-	double AT = _ttoi(text)/1000.0;
+	double AT = _ttoi(text)/1000.0;					// Define the integration Time (= max acquisition time) in seconds
 	text.Format(_T("%.5f"), AT);
-	m_connectivityDlg.m_ConnectionLogs.AddItem(text);
 	m_jyCCD->put_IntegrationTime(AT);
 	// Select the gain
 	m_jyCCD->put_Gain(m_gainCCD[0]);
@@ -405,80 +456,24 @@ void CiHR320Dlg::SetCCDParams()
 	m_jyCCD->DefineArea(1, 1, 1, xSize, ySize, 1, ySize);
 	long dataSize;
 	m_jyCCD->get_DataSize(&dataSize);
-	// Confirm that the system is ready for acquisition
+	
 	VARIANT_BOOL ready = VARIANT_FALSE;
-	m_jyCCD->get_ReadyForAcquisition(&ready);
+	m_jyCCD->get_ReadyForAcquisition(&ready);		// Confirm that the system is ready for acquisition
 	if (!ready)
 		MessageBox(L"Controller NOT ready for Acquisition.\nCheck Parameters and try again", MB_OK);
 	else
 	{
-		m_connectivityDlg.m_acquisBtnTemp.EnableWindow();
+		m_settingsDlg.m_acquisBtnTemp.EnableWindow();
 	}
-
 }
 
-//=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
-//	ORIG AUTHOR:	J. Martin
-//
-//	PARAMETERS:
-//
-//	DESCRIPTION:	Attempt to connect to the selected CCD Device [and Mono - MZ]
-//
-//	RETURNS:
-//
-//	NOTES:
-//_______________
+
 std::array<BOOL, 2> CiHR320Dlg::ConnectMonoAndCCD()
 {
 	std::array<BOOL, 2> result = { FALSE, FALSE };
-	HRESULT hr = S_OK;
-	int nSel;
-	UpdateData(true);
-
-//*******************************---CCD---****************************************************************************
 
 	result[0] = ConnectAndInitCCD();
-
-
-//*******************************---Mono---****************************************************************************
-
-	// Get the user selected id...
-	if (m_connectivityDlg.m_CCDSelectCtrl.GetCount())
-	{
-
-		CString selectedMono;
-		nSel = m_connectivityDlg.m_MonoSelectCtrl.GetCurSel();
-		if (nSel < 10)
-		{
-			selectedMono = m_monoArray[nSel][0];
-		}
-
-		if (selectedMono) {
-			// Set the unique id to the instance of the object we created
-			hr = m_jyMono->put_Uniqueid((CComBSTR)selectedMono);
-			// Tell the device to Load it's configuration
-			hr = m_jyMono->Load();
-			// Attempt to establish communications with the device.  The
-			// communication parameters specified in the device configuration 
-			// will be used.   If we fail to find the device, we give the user
-			// the ability to select hardware emulation.
-			hr = m_jyMono->OpenCommunications();
-		}
-
-		if (FAILED(hr))
-		{
-			MessageBox(L"Check Hardware and Try Again...");
-		}
-		else
-		{
-			// Attempt to initialize the device with the appropriate parameters
-			if (!FAILED(m_jyMono->Initialize((CComVariant)m_bMonoInitialized, (CComVariant)m_connectivityDlg.m_emulation)))
-			{
-				result[1] = TRUE;
-				m_bMonoInitialized = true;
-			}
-		}
-	}
+	result[1] = ConnectAndInitMono();
 
 	return result;
 }
@@ -617,7 +612,8 @@ void CiHR320Dlg::LoadCCDs()
 HRESULT CiHR320Dlg::DoAcquisition(bool shutterOpen)
 {
 	HRESULT hr;
-	m_bMeasurementStarted = TRUE;
+	m_bMeasurementStarted = true;
+	m_isCCDDataReady = false;
 	if (shutterOpen) hr = m_jyCCD->DoAcquisition(VARIANT_TRUE);
 	else hr = m_jyCCD->DoAcquisition(VARIANT_FALSE);
 	
@@ -644,7 +640,7 @@ HRESULT CiHR320Dlg::DoAcquisition(bool shutterOpen)
 	return hr;
 }
 
-void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo)
+void CiHR320Dlg::ReceivedDeviceInitialised(long status, IJYEventInfo * eventInfo)
 {
 	// This eventInfo structure contains the "source" object that fired the initialized event
 	// because you may receive this event from multiple sources.  You can extract the source ptr and 
@@ -659,15 +655,6 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 		USES_CONVERSION;
 		int x, y;
 		CComBSTR fwVer, devDesc, devName;
-		jyUnits eUnits;
-		VARIANT vUnits;
-		CString sUnits;
-
-//		m_jyCCD->GetDefaultUnits(jyutTime, &eUnits, &vUnits);		// Acquisition time
-//		sUnits = vUnits.bstrVal;
-
-//		m_jyCCD->get_Name(&devName);
-//		m_name = devName;
 
 		CComBSTR gainStr;
 		long gainToken;
@@ -693,7 +680,7 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 			m_jyCCD->GetNextADC(&adcStr, &adcToken);
 			i++;
 		}
-		m_flowDlg.m_ExpFLowLogs.AddItem(L"Initialized Received from CCD!");
+		m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[Synapse CCD] Initialised"));
 
 	}
 
@@ -703,12 +690,28 @@ void CiHR320Dlg::ReceivedDeviceInitialized(long status, IJYEventInfo * eventInfo
 		GetSlits();
 		GetGratings();
 		SetMirror();
-		m_flowDlg.m_ExpFLowLogs.AddItem(L"Initialized Received from Mono!");
+		m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[iHR320] Initialised"));
 	}
 
 	UpdateData(FALSE);
 
 	//MessageBox(L"Initialized Received :) !");
+}
+
+void CiHR320Dlg::WaitForMono()
+{
+	VARIANT_BOOL bBusy = VARIANT_TRUE;
+
+	while (SUCCEEDED(m_jyMono->IsBusy(&bBusy)) && bBusy == VARIANT_TRUE)
+	{
+		MSG msg;
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		Sleep(50);								// To prevent 100% CPU load
+	}
 }
 
 void CiHR320Dlg::GetGratings()
@@ -742,7 +745,7 @@ void CiHR320Dlg::GetGratings()
 	m_jyMono->GetCurrentWavelength(&dTemp);
 	CString text;
 	text.Format(_T("%.2f"), dTemp);
-	m_connectivityDlg.m_gratingTestTemp.SetWindowTextW(text);
+	m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[iHR320] Current position: ") + text + _T(" nm"));
 }
 
 void CiHR320Dlg::SetMonoDG(int grating)
@@ -856,20 +859,86 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 {
 	switch (updateType)
 	{
-	case 100: // data
-	{
-		CComVariant data;
-		IJYResultsObject *resultObject = NULL;
-		CComBSTR dataDesc;
-		eventInfo->GetResult(&resultObject);
-		resultObject->GetFirstDataObject(&m_AcqDataObj);
-		m_AcqDataObj->get_Description(&dataDesc);
-		m_AcqDataObj->GetDataAsArray(&data);
-		m_flowDlg.m_ExpFLowLogs.AddItem(L"Data Update received...");
-		m_flowDlg.m_ExpFLowLogs.AddItem(L"Acquisition Completed.");
-		m_bMeasurementStarted = FALSE;
+		case 100: // data
+		{
+			CComVariant data, xData;
+			CComPtr<IJYResultsObject> resultObject = NULL;
+			eventInfo->GetResult(&resultObject);
+			if (resultObject == NULL) {
+//				m_flowDlg.m_ExpFLowLogs.AddItem(CString(_T("[CCD] Warning: no data received.")));
+				m_bMeasurementStarted = FALSE;
+				m_isCCDDataReady = true;
+				return; 
+			}
+			m_AcqDataObj = NULL;
+			resultObject->GetFirstDataObject(&m_AcqDataObj);
+			if (m_AcqDataObj == NULL) {
+//				m_flowDlg.m_ExpFLowLogs.AddItem(CString(_T("[CCD] Warning: no data received.")));
+				m_bMeasurementStarted = FALSE;
+				m_isCCDDataReady = true;
+				return;
+			}
+			CComPtr<IJYDeviceReqd> pSourceDev;
+			eventInfo->get_Source(&pSourceDev);
 
-	}
+			if (pSourceDev != NULL)
+			{
+			
+				CComPtr<IJYCCDReqd> pCCD;			// To cast the source as a Multi-Channel Detector
+				pSourceDev->QueryInterface(__uuidof(IJYCCDReqd), (void**)&pCCD);
+
+				if (pCCD != NULL)
+				{
+					// Now you can call GetAxisAs directly on the MCD interface
+					CComPtr<IJYAxis> pXAxis;
+					pCCD->GetAxisAs(m_AcqDataObj, 1, jyDATWavelength, &pXAxis);
+					if (pXAxis != NULL)
+					{
+			
+						pXAxis->GetValuesByArray(&xData);			// Retrieving X-values into CComVariant
+
+						if ((xData.vt & VT_ARRAY) && xData.parray != NULL)
+						{
+							double* pRawXData;
+							SafeArrayAccessData(xData.parray, (void**)&pRawXData);
+
+							long lBoundX, uBoundX;
+							SafeArrayGetLBound(xData.parray, 1, &lBoundX);
+							SafeArrayGetUBound(xData.parray, 1, &uBoundX);
+
+							currentData.wavelengths.assign(pRawXData, pRawXData + (uBoundX - lBoundX + 1));
+
+							SafeArrayUnaccessData(xData.parray);
+						}
+					}
+				}
+			}
+			IJYAxis *pYAxis = NULL;
+
+			CComBSTR dataDesc;
+
+			m_AcqDataObj->get_Description(&dataDesc);
+			m_AcqDataObj->GetDataAsArray(&data);
+			if ((data.vt & VT_ARRAY) && data.parray != NULL)
+			{
+				long* pRawData;
+				SafeArrayAccessData(data.parray, (void**)&pRawData);
+
+				long lBound, uBound;					// bounds of data array
+				SafeArrayGetLBound(data.parray, 1, &lBound);
+				SafeArrayGetUBound(data.parray, 1, &uBound);
+				currentData.pixelCount = uBound - lBound + 1;
+			
+				currentData.intensities.assign(pRawData, pRawData + currentData.pixelCount);
+
+				SafeArrayUnaccessData(data.parray);
+			}
+
+			Sleep(500);
+			m_bMeasurementStarted = FALSE;
+			m_isCCDDataReady = true;
+
+		}
 	break;
 	default:
 		break;
@@ -896,6 +965,21 @@ void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {
 		delete pMsg;
 }
 
+void CiHR320Dlg::EnableExpSettDlg()
+{
+	EnableDlg(&m_settingsDlg, TRUE);
+}
+
+void CiHR320Dlg::DisableConnDlg()
+{
+	EnableDlg(&m_connectivityDlg, FALSE);
+	m_jyCCD->SetMono(m_jyMono, VARIANT_TRUE);
+	m_jyCCD->SetDefaultUnits(jyutWavelength, jyuNanometers);
+	m_jyCCD->SetDefaultUnits(jyutDataUnits, jyuCounts);
+	m_jyCCD->GetDefaultUnits(jyutWavelength, &eUnits, &vUnits);
+
+}
+
 LRESULT CiHR320Dlg::OnMonoLogMessage(WPARAM wParam, LPARAM lParam)
 {
 	CString* pStr = reinterpret_cast<CString*>(lParam);
@@ -905,4 +989,18 @@ LRESULT CiHR320Dlg::OnMonoLogMessage(WPARAM wParam, LPARAM lParam)
 		delete pStr;
 	}
 	return 0;
+}
+
+void CiHR320Dlg::EnableDlg(CWnd* pTargetDlg, BOOL bEnable)
+{
+	
+	pTargetDlg->EnableWindow(bEnable);					// En/disable the window itself
+
+	CWnd* pChild = pTargetDlg->GetWindow(GW_CHILD);		// Get first child
+	while (pChild)										// Iterate though all children
+	{
+		pChild->EnableWindow(bEnable);
+		pChild->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+		pChild = pChild->GetWindow(GW_HWNDNEXT);
+	}
 }

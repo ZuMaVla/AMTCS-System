@@ -14,7 +14,7 @@
 #include "TCPtoRPi.h"
 #include "CiHR320ConnectivityDlg.h"
 #include "iHR320Dlg.h"
-
+#include "DataAcquisition.h"
 
 // CiHR320SettingsDlg dialog
 
@@ -45,6 +45,7 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LIST_DG, m_ListBoxDG);
 	DDX_Control(pDX, IDC_SLIDER_START_WL, m_sliderStartWL);
 	DDX_Control(pDX, IDC_SLIDER_DG_POSITIONS, m_sliderDGRangeNo);
+	DDX_Control(pDX, IDC_Acq, m_acquisBtnTemp);
 
 	DDX_Control(pDX, IDC_NUMBER_ACQ, m_NA);
 	DDX_Control(pDX, IDC_NEW_T, m_VSListBox_T.m_newT);
@@ -71,6 +72,10 @@ BEGIN_MESSAGE_MAP(CiHR320SettingsDlg, CDialogEx)
 	ON_EN_KILLFOCUS(IDC_SAVE_FOLDER, &CiHR320SettingsDlg::OnWorkDirChanged)
 	ON_BN_CLICKED(IDC_START, &CiHR320SettingsDlg::OnBnClickedStart)
 	ON_LBN_SELCHANGE(IDC_LIST_DG, &CiHR320SettingsDlg::OnMonoDGChanged)
+	ON_BN_CLICKED(IDC_Acq, &CiHR320SettingsDlg::OnBnClickedAcq)
+
+	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_DG_POSITIONS, &CiHR320SettingsDlg::OnDGRangeNoChanged)
+	ON_EN_CHANGE(IDC_SAMPLE_CODE, &CiHR320SettingsDlg::OnSampleCodeChanged)
 END_MESSAGE_MAP()
 
 
@@ -97,6 +102,10 @@ BOOL CiHR320SettingsDlg::OnInitDialog()
 
 }
 
+void CiHR320SettingsDlg::OnBnClickedAcq()
+{
+	TakeSpectrum(m_mainWnd, L"300");
+}
 
 
 void CiHR320SettingsDlg::OnBnClickedButtonDefaultT()
@@ -243,7 +252,8 @@ void CiHR320SettingsDlg::OnNAChanged()
 	CString msg;
 	BOOL success = FALSE;
 	int value = GetDlgItemInt(IDC_NUMBER_ACQ, &success, TRUE);
-
+	ExperimentParameters temp = experimentState.getExpParams();
+	
 	if (value < extreme_NA[0] || value > extreme_NA[1]) {
 		msg.Format(_T("Value must be between %d and %d"), extreme_NA[0], extreme_NA[1]);
 		AfxMessageBox(msg);
@@ -257,6 +267,8 @@ void CiHR320SettingsDlg::OnNAChanged()
 	else {
 		m_isCRRemoval.EnableWindow(TRUE);
 	}
+	temp.NA = value;
+	experimentState.setExpParams(temp);
 }
 
 
@@ -265,6 +277,7 @@ void CiHR320SettingsDlg::OnSlitsChanged()
 	CString msg;
 	BOOL success = FALSE;
 	int value = GetDlgItemInt(IDC_SLITS, &success, TRUE);
+	ExperimentParameters temp = experimentState.getExpParams();
 
 	if (value < extreme_Slits[0] || value > extreme_Slits[1]) {
 		msg.Format(_T("Value must be between %d and %d [µm]"), extreme_Slits[0], extreme_Slits[1]);
@@ -273,12 +286,15 @@ void CiHR320SettingsDlg::OnSlitsChanged()
 		return;
 	}
 	m_mainWnd->SetSlits(value/1000.0);
+	temp.slits = value;
+	experimentState.setExpParams(temp);
 }
 
 void CiHR320SettingsDlg::OnStartWLSliderMoving(
 	NMHDR *pNMHDR, LRESULT *pResult)
 {
 	NMTRBTHUMBPOSCHANGING* pNMTPC = reinterpret_cast<NMTRBTHUMBPOSCHANGING*>(pNMHDR);
+	ExperimentParameters temp = experimentState.getExpParams();
 
 	int continuousPos = pNMTPC->dwPos;   // <-- This is the thumb position
 //	int tick = m_sliderStartWL.GetTic(2) - m_sliderStartWL.GetTic(1);
@@ -292,6 +308,8 @@ void CiHR320SettingsDlg::OnStartWLSliderMoving(
 	m_StartWL.SetWindowTextW(newStartWL);
 	
 	*pResult = 0;
+	temp.StartWL = snappedPos;
+	experimentState.setExpParams(temp);
 }
 
 void CiHR320SettingsDlg::OnStartWLChanged()
@@ -299,6 +317,7 @@ void CiHR320SettingsDlg::OnStartWLChanged()
 	CString msg;
 	BOOL success = FALSE;
 	int value = GetDlgItemInt(IDC_MEASURE_FROM, &success, TRUE);
+	ExperimentParameters temp = experimentState.getExpParams();
 
 	if (value < extreme_StartWL[0] || value > extreme_StartWL[1]) {
 		msg.Format(_T("Value must be between %d and %d [nm]"), extreme_StartWL[0], extreme_StartWL[1]);
@@ -307,7 +326,8 @@ void CiHR320SettingsDlg::OnStartWLChanged()
 		return;
 	}
 	m_sliderStartWL.SetPos(value);
-
+	temp.StartWL = value;
+	experimentState.setExpParams(temp);
 }
 
 
@@ -316,6 +336,7 @@ void CiHR320SettingsDlg::OnMaxATChanged()
 	CString msg;
 	BOOL success = FALSE;
 	int value = GetDlgItemInt(IDC_ACQUISITION_TIME_MAX, &success, TRUE);
+	ExperimentParameters temp = experimentState.getExpParams();
 
 	if (value < extreme_AT[0] || value > extreme_AT[1]) {
 		msg.Format(_T("Value must be between %d and %d [ms]"), extreme_AT[0], extreme_AT[1]);
@@ -324,6 +345,8 @@ void CiHR320SettingsDlg::OnMaxATChanged()
 		return;
 	}
 	m_mainWnd->SetAT(value/1000.0);
+	temp.maxAT = value;
+	experimentState.setExpParams(temp);
 }
 
 
@@ -395,5 +418,47 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 void CiHR320SettingsDlg::OnMonoDGChanged()
 {
 	int index = m_ListBoxDG.GetCurSel();
+	ExperimentParameters temp = experimentState.getExpParams();
+
 	m_mainWnd->SetMonoDG(index);
+	temp.DG = index;
+	experimentState.setExpParams(temp);
+}
+
+
+void CiHR320SettingsDlg::OnDGRangeNoChanged(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	int value = m_sliderDGRangeNo.GetPos();
+	ExperimentParameters temp = experimentState.getExpParams();
+	temp.DGRangeNo = value;
+	experimentState.setExpParams(temp);
+
+	*pResult = 0;
+}
+
+
+
+void CiHR320SettingsDlg::OnSampleCodeChanged()
+{
+	CString strText;
+	m_sampleCode.GetWindowText(strText);
+	ExperimentParameters temp = experimentState.getExpParams();
+
+	CString forbiddenChars = _T("\\/:*?\"<>|");			// Characters to exclude from sample name
+
+	int foundIndex = strText.FindOneOf(forbiddenChars);
+
+	if (foundIndex != -1)
+	{
+		
+		TCHAR badChar = strText.GetAt(foundIndex);		// To show a specific bad character to the user
+		CString errorMsg;
+		errorMsg.Format(_T("The character '%c' is not allowed in sample codes."), badChar);
+
+		AfxMessageBox(errorMsg, MB_ICONSTOP);
+		m_sampleCode.SetFocus();
+	}
+	CT2A asciiText(strText);
+	temp.sampleCode = std::string(asciiText);
+	experimentState.setExpParams(temp);
 }

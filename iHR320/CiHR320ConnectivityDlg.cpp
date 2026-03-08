@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include <array>
+#include "DataAcquisition.h"
 
 
 // CiHR320ConnectivityDlg dialog
@@ -40,18 +41,16 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO_MONO, m_MonoSelectCtrl);
 	DDX_Control(pDX, IDC_CHECK_CCD, m_CheckBoxCCD);
 	DDX_Control(pDX, IDC_CHECK_IHR320, m_CheckBoxMono);
-	DDX_Control(pDX, IDC_Acq, m_acquisBtnTemp);
-	DDX_Control(pDX, IDC_EDIT1, m_gratingTestTemp);
-	DDX_Check(pDX, IDC_SDK_EMULATION, m_emulation);
 	DDX_Control(pDX, IDC_CHECK_TC, m_CheckBoxTC);
+	DDX_Control(pDX, IDC_CONNECT_BUTTON, m_connectBtn);
+	DDX_Check(pDX, IDC_SDK_EMULATION, m_emulation);
+	DDX_Control(pDX, IDC_SDK_EMULATION, m_emulationMode);
 }
 
 
 BEGIN_MESSAGE_MAP(CiHR320ConnectivityDlg, CDialogEx)
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_CONNECT_BUTTON, &CiHR320ConnectivityDlg::OnBnClickedConnectButton)
-	ON_BN_CLICKED(IDC_Acq, &CiHR320ConnectivityDlg::OnBnClickedAcq)
-	ON_BN_CLICKED(IDC_MOVE_TO_BTN_TEST, &CiHR320ConnectivityDlg::OnBnClickedMoveToBtnTest)
 END_MESSAGE_MAP()
 
 
@@ -71,27 +70,35 @@ BOOL CiHR320ConnectivityDlg::OnInitDialog()
 
 	m_ConnectionLogs.EnableBrowseButton(FALSE);
 	m_ConnectionLogs.AddItem(_T("Ready to check connectivity..."));
-
+	
+	m_emulationMode.ShowWindow(FALSE);
 
 	return TRUE;
 }
 
 void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 {
+	m_connectBtn.EnableWindow(FALSE);
+	m_connectBtn.SetWindowTextW(_T("Checking hardware..."));
+	m_mainWnd->m_availableDeviceCount = 0;
+	StartTimer(TIMER_ALL_CHECK, 10);
 
 	if (!(SendTCPMessage(GetIPstrFromCtrl(m_localIP), 5051, "REQUEST PLC_STATUS"))) {
 		AfxMessageBox(_T("Connection failed"));
 		m_ConnectionLogs.AddItem(_T("PLC offline"));
 		m_CheckBoxPLC.SetCheck(FALSE);
 		m_CheckBoxPLC.SetWindowText(_T("Offline"));
+		StopTimer(TIMER_ALL_CHECK);
+		StartTimer(TIMER_ALL_CHECK, 20);
 	}
-	StartTimer(TIMER_PLC_CHECK, 5);
+	StartTimer(TIMER_PLC_CHECK, 10);
 	std::array<BOOL, 2> l_FlagSDK = m_mainWnd->ConnectMonoAndCCD();
 	std::cout << "Result: " << l_FlagSDK[0] << l_FlagSDK[1] << "\n";
 	if (l_FlagSDK[0]) {
 		m_CheckBoxCCD.SetCheck(TRUE);
 		m_CheckBoxCCD.SetWindowText(_T("Connected"));
 		m_ConnectionLogs.AddItem(_T("CCD connected"));
+		m_mainWnd->m_availableDeviceCount++;
 	}
 	else
 	{
@@ -104,6 +111,7 @@ void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 		m_CheckBoxMono.SetCheck(TRUE);
 		m_CheckBoxMono.SetWindowText(_T("Connected"));
 		m_ConnectionLogs.AddItem(_T("Monochromator connected"));
+		m_mainWnd->m_availableDeviceCount++;
 	}
 	else
 	{
@@ -111,6 +119,9 @@ void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 		m_CheckBoxMono.SetWindowText(_T("Offline"));
 		m_ConnectionLogs.AddItem(_T("Monochromator not found"));
 	}
+	StopTimer(TIMER_ALL_CHECK);
+	StartTimer(TIMER_ALL_CHECK, 20);
+
 }
 
 void CiHR320ConnectivityDlg::StartTimer(UINT_PTR nIDEvent, int _sec) {
@@ -122,38 +133,58 @@ void CiHR320ConnectivityDlg::StopTimer(UINT_PTR nIDEvent) {
 }
 
 void CiHR320ConnectivityDlg::OnTimer(UINT_PTR nIDEvent) {
-    if (nIDEvent == TIMER_PLC_CHECK) {
-        m_CheckBoxPLC.SetCheck(FALSE);
-        m_CheckBoxPLC.SetWindowText(_T("Not Responsive"));
-        m_ConnectionLogs.AddItem(_T("PLC Timeout Error"));
-        KillTimer(TIMER_PLC_CHECK);
-    }
-    CDialogEx::OnTimer(nIDEvent);
+	if (nIDEvent == TIMER_PLC_CHECK) {
+		m_CheckBoxPLC.SetCheck(FALSE);
+		m_CheckBoxPLC.SetWindowText(_T("Not Responsive"));
+		m_ConnectionLogs.AddItem(_T("PLC Timeout Error"));
+		KillTimer(TIMER_PLC_CHECK);
+	}
+	else if (nIDEvent == TIMER_ALL_CHECK) {		
+		if (m_mainWnd->m_isMonoInitialised) m_mainWnd->WaitForMono();
+		if (m_mainWnd->m_availableDeviceCount >= 4) {
+			m_mainWnd->EnableExpSettDlg();						// enable Experimental Setting Dialog if everything is connected
+			m_mainWnd->DisableConnDlg();						// ... and disable Connectivity Dialog (not necessary anymore)
+			m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
+			m_ConnectionLogs.AddItem(_T("Hardware is ready. Please switch to Experiment Settings Tab."));
+			m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
+		}
+		else {
+			m_connectBtn.EnableWindow(TRUE);
+			m_connectBtn.SetWindowTextW(_T("Connect to equipment"));
+		}
+		KillTimer(TIMER_ALL_CHECK);
+	}
+	CDialogEx::OnTimer(nIDEvent);
 }
 
 
 void CiHR320ConnectivityDlg::UpdateSystemStatusUI(std::string device) {
 	if (device == "PLC") {
-		m_ConnectionLogs.AddItem(_T("PLC ready on 192.168.50.1"));
+		m_ConnectionLogs.AddItem(_T("[PLC] Ready on 192.168.50.1"));
 		m_CheckBoxPLC.SetCheck(TRUE);
 		m_CheckBoxPLC.SetWindowText(_T("Connected"));
 		StopTimer(TIMER_PLC_CHECK);
+		m_mainWnd->m_availableDeviceCount++;
 	}
 	else if (device == "TC_OK") {
-		m_ConnectionLogs.AddItem(_T("TC is alive"));
+		m_ConnectionLogs.AddItem(_T("[PLC] TC is alive"));
 		m_CheckBoxTC.SetCheck(TRUE);
 		m_CheckBoxTC.SetWindowText(_T("Alive"));
 	}
 	else if (device == "TC_OFF") {
-		m_ConnectionLogs.AddItem(_T("TC is not responsive"));
+		m_ConnectionLogs.AddItem(_T("[PLC] TC is not responsive"));
 		m_CheckBoxTC.SetCheck(FALSE);
 		m_CheckBoxTC.SetWindowText(_T("Off"));
 	}
 	else if (device == "TC_READY") {
-		m_ConnectionLogs.AddItem(_T("TC is ready"));
+		m_ConnectionLogs.AddItem(_T("[PLC] TC is ready"));
 		m_CheckBoxTC.SetCheck(TRUE);
 		m_CheckBoxTC.SetWindowText(_T("Ready"));
+		m_mainWnd->m_availableDeviceCount++;
 	}
+	StopTimer(TIMER_ALL_CHECK);
+	StartTimer(TIMER_ALL_CHECK, 15);
+
 	return;
 }
 
@@ -219,22 +250,3 @@ std::array<int, 4> CiHR320ConnectivityDlg::GetIPAddress(std::string type)
 }
 
 
-
-
-void CiHR320ConnectivityDlg::OnBnClickedAcq()
-{
-	m_mainWnd->DoAcquisition();
-}
-
-
-
-void CiHR320ConnectivityDlg::OnBnClickedMoveToBtnTest()
-{
-	CString strTarget;
-	
-	m_gratingTestTemp.GetWindowText(strTarget);
-
-	double posTarget = _ttof(strTarget);
-
-	m_mainWnd->MonoMoveTo(posTarget);
-}

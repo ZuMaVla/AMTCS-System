@@ -22,6 +22,7 @@
 #define WM_JY_SYS_DEVICE_CRITICAL_ERROR					WM_JY_SYS_DEVICE_MSG_BASE+4
 
 
+
 class CJYDeviceSink :
 	public IDispEventImpl<ARBITRARY_SINK, CJYDeviceSink, &DIID__IJYDeviceReqdEvents, &LIBID_JYSYSTEMLIBLib, 1, 0 >
 {
