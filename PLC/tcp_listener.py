@@ -67,8 +67,9 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
     print(f"[TCP] Server listening on {HOST}:{LISTEN_PORT}")
 
     client = None
+    is_TCP_listener_running = True
 
-    while True:
+    while is_TCP_listener_running:
         # ------------------------------------------------------------
         # 1. Handle commands from the main thread (fire-and-forget)
         # ------------------------------------------------------------
@@ -127,6 +128,9 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                     case "PING":
                         out_q.put(("STATUS", "iHR320_OK"))
                         in_q.put(("SEND", "PONG"))
+                    case "OFF":
+                        out_q.put(("REQUEST", "REQUESTED_OFF"))
+                        in_q.put(("SEND", "CONFIRM_OFF"))
                     case "TC?":
                         out_q.put(("REQUEST", "TC_STATUS"))                             # TC status has been requested
                     case "UPDATE":

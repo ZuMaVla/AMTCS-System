@@ -29,9 +29,9 @@ def serial_comm_thread(in_q: queue.Queue, out_q: queue.Queue, exp_mode: Experime
     line = None                             # Container for the incoming message  
    
     print(f"[SERIAL] Serial port opened on {ser.port}")
+    is_serial_listener_running = True
 
-
-    while True:
+    while is_serial_listener_running:
         # 1. Check for incoming commands and write if not waiting for reply
         if not waiting_for_reply:
             try:

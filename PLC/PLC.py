@@ -61,9 +61,10 @@ def main():
     PLC_mode = None
     simulated_T_TC = 300
     preExpStatus = InitStep.ID
+    is_main_logic_running = True
 
     # Main event loop
-    while True:
+    while is_main_logic_running:
         completed_cycle = experiment_state.experimentProgressIndex
         if completed_cycle + 1 < len(experiment_state.experimentParameters.Ts):
             next_T = experiment_state.experimentParameters.Ts[completed_cycle + 1]
@@ -123,7 +124,7 @@ def main():
                     cmd = "TC_STATUS"
                     msg = ""
                     ser_in.put((cmd, msg))
-                    timer_TC = Timer(5, report_TC_off, args=(tcp_in,))
+                    timer_TC = Timer(10, report_TC_off, args=(tcp_in,))
                     timer_TC.start()            # After 5 sec, report TC status "not responsive"
 
                 case (("AFFIRMATIVE", "SPECTRUM_REQUESTED")):
