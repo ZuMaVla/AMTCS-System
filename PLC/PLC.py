@@ -23,7 +23,6 @@ def report_TC_off(tcp_in):
     arg = "TC_OFF"
     tcp_in.put((cmd, arg))      # Letting user know that TC is off
 
-
 # ============================================================
 #  Main Thread (PLC)
 # ============================================================
@@ -126,6 +125,14 @@ def main():
                     ser_in.put((cmd, msg))
                     timer_TC = Timer(10, report_TC_off, args=(tcp_in,))
                     timer_TC.start()            # After 5 sec, report TC status "not responsive"
+                case (("REQUEST", "REQUESTED_OFF")):
+                    print("[MAIN] event: requested to stop PLC")
+                    cmd = "OFF"
+                    msg = ""
+                    ser_in.put((cmd, msg))
+                    tcp_in.put((cmd, msg))
+                    time.sleep(5)            # After 5 sec, set while condition false
+                    is_main_logic_running = False
 
                 case (("AFFIRMATIVE", "SPECTRUM_REQUESTED")):
                     print(f"[MAIN] event: spectrum requested")

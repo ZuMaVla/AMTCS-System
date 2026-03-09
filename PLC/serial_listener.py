@@ -52,6 +52,11 @@ def serial_comm_thread(in_q: queue.Queue, out_q: queue.Queue, exp_mode: Experime
                     case ("CONTROL_ON", payload):
                         ser.write(("CONT" + "\n").encode())  
                         waiting_for_reply = False   # remain in emitter mode 
+                    case ("OFF", payload):
+                        ser.write(("STOP" + "\n").encode())  
+                        waiting_for_reply = False   # remain in emitter mode 
+                        time.sleep(2)
+                        in_q.put(("CLOSE", ""))     # command itself to turn off
                     case ("CONTROL?", payload):
                         ser.write(("CONT?" + "\n").encode()) 
                         waiting_for_reply = True   # switch to receiver mode  
@@ -59,9 +64,8 @@ def serial_comm_thread(in_q: queue.Queue, out_q: queue.Queue, exp_mode: Experime
                         timer_T = Timer(0.5, simulate_serial, args=(state, payload))
                         timer_T.start()
                         waiting_for_reply = True   # switch to receiver mode
-                    case ("CLOSE",):
-                        ser.close()
-                        return
+                    case ("CLOSE", payload):
+                        is_serial_listener_running = False
             except queue.Empty:
                 pass
 
@@ -78,3 +82,8 @@ def serial_comm_thread(in_q: queue.Queue, out_q: queue.Queue, exp_mode: Experime
                 print(f"[SERIAL] message received on {ser.port}: {line}")
                 waiting_for_reply = False
         time.sleep(0.5)
+
+    ser.close()
+    print("[SERIAL] Serial port closed, listener thread exited...")
+
+    return

@@ -83,11 +83,8 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                                 s.sendall(payload.encode())
                         except Exception as e:
                             print(f"[TCP] SEND error: {e}")
-                    case ("CLOSE",):
-                        if client:
-                            client.close()
-                        server.close()
-                        return
+                    case ("OFF", ""):
+                        is_TCP_listener_running = False
                     case _:
                         print(f"[TCP] Unknown command: {cmd}")
 
@@ -155,3 +152,8 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                         print(f"[TCP] Unknown message: {msg}")
 
         time.sleep(1)
+
+    server.close()
+    print("[TCP] TCP server closed, listener thread exited...")
+    return
+    
