@@ -26,6 +26,8 @@ public:
 	~CExperimentState();
 
 	void importJSONString(const std::string & jsonString);
+	int experimentProgressIndex = -1;
+	int experimentLength = experimentParameters.Ts.size();
 
 	std::string serialiseState();							// State -> JSON (to be send to PLC)
 	void deserialiseState();								// JSON (from PLC) -> State 
@@ -33,7 +35,6 @@ public:
 	void setExpParams(ExperimentParameters newExpParams);	// Save experiment parameters to the State
 protected:
 	ExperimentParameters experimentParameters;
-	int experimentProgressIndex = -1;
 	nlohmann::json jsonState;
 };
 

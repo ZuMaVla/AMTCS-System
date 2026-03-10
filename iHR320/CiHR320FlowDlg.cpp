@@ -31,6 +31,7 @@ void CiHR320FlowDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_EXP_FLOW_LOGS, m_ExpFLowLogs);
+	DDX_Control(pDX, IDC_EXP_PROGRESS, m_expProgressBar);
 }
 
 

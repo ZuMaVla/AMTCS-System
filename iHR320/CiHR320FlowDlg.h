@@ -1,6 +1,7 @@
 #pragma once
 #include "afxvslistbox.h"
 #include "MyVSListBox.h"
+#include "afxcmn.h"
 
 class CiHR320Dlg;
 // CiHR320FlowDlg dialog
@@ -25,4 +26,5 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	CMyVSListBoxTS m_ExpFLowLogs;
+	CProgressCtrl m_expProgressBar;
 };

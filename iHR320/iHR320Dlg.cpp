@@ -360,6 +360,8 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			msg = _T("[TC] Current temperature received: ") + msg.Mid(2) + _T(" K");
 
 			m_flowDlg.m_ExpFLowLogs.AddItem(L"[iHR320] Spectrum acquisition completed; data saved.");
+			m_settingsDlg.experimentState.experimentProgressIndex++;
+			SetExpProgress();
 		}
 
 		delete pStr;
@@ -987,6 +989,15 @@ void CiHR320Dlg::DisableConnDlg()
 	m_jyCCD->SetDefaultUnits(jyutDataUnits, jyuCounts);
 	m_jyCCD->GetDefaultUnits(jyutWavelength, &eUnits, &vUnits);
 
+}
+
+void CiHR320Dlg::SetExpProgress()
+{
+	int done = m_settingsDlg.experimentState.experimentProgressIndex;
+	int total = m_settingsDlg.experimentState.experimentLength;
+	if (total <= 0) total = 1;					// To avoid invalid range
+	m_flowDlg.m_expProgressBar.SetRange(0, total);
+	m_flowDlg.m_expProgressBar.SetPos(done + 1);
 }
 
 LRESULT CiHR320Dlg::OnMonoLogMessage(WPARAM wParam, LPARAM lParam)
