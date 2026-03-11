@@ -77,13 +77,15 @@ class ExperimentState:
         self.experimentParameters = ExperimentParameters()
         self.experimentFlow = ExperimentFlow()
         self.experimentProgressIndex = -1
+        self.experimentLength = len(self.experimentParameters.Ts)
 
     def serialise(self) -> str:
         """Converts the current state to a JSON string."""
         # asdict() converts the nested dataclass into a dictionary automatically
         state_dict = {
             "experimentParameters": asdict(self.experimentParameters),
-            "experimentProgressIndex": self.experimentProgressIndex
+            "experimentProgressIndex": self.experimentProgressIndex,
+            "experimentLength": self.experimentLength,
         }
         return json.dumps(state_dict)
 
@@ -94,13 +96,17 @@ class ExperimentState:
             
             # Retrieve the experiment progress index
             self.experimentProgressIndex = data.get("experimentProgressIndex", -1)
-            
+
             # Retrieve the experiment parameters
             param_data = data.get("experimentParameters", {})
             if param_data:
                 for key, value in param_data.items():
                     if hasattr(self.experimentParameters, key):
                         setattr(self.experimentParameters, key, value)
+
+            # Retrieve the experiment length
+            self.experimentLength = data.get("experimentLength", 0)
+            
                 
         except (json.JSONDecodeError, TypeError) as e:
             print(f"Error parsing JSON: {e}")
