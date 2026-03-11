@@ -61,15 +61,24 @@ def main():
     simulated_T_TC = 300
     preExpStatus = InitStep.ID
     is_main_logic_running = True
+    reset_PLC = True
+    is_experiment = False
 
     # Main event loop
     while is_main_logic_running:
+
         completed_cycle = experiment_state.experimentProgressIndex
-        if completed_cycle + 1 < len(experiment_state.experimentParameters.Ts):
+        if completed_cycle + 1 < experiment_state.experimentLength:
+            reset_PLC = False
+            is_experiment = True
             next_T = experiment_state.experimentParameters.Ts[completed_cycle + 1]
         else:
-            reset_PLC = True
-            print(f"[MAIN] All cycles completed. Resetting PLC.")
+            if is_experiment:
+                reset_PLC = True
+                is_experiment = False
+                print(f"[MAIN] All cycles completed. Resetting PLC.")
+                print(f"[MAIN] No more steps to process")
+                tcp_in.put(("SEND", "EXPERIMENT_FINISHED"))
 
         PLC_mode = experiment_state.experimentFlow.PLC_mode(completed_cycle)
 
@@ -81,7 +90,6 @@ def main():
                     print(f"[MAIN] Requesting next temperature {next_T} K")
                     time.sleep(5)
                     ser_in.put(("CHECK_TARGET", ""))
-                    #experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.REQUESTED
             case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.REQUESTED):
                 if not state_T["T_requested"]:
                     ser_in.put(("CHECK_TEMPERATURE", ""))
@@ -106,18 +114,20 @@ def main():
                 print(f"[MAIN] Spectrum acquired, moving to next cycle")
                 experiment_state.experimentProgressIndex += 1   
                 continue 
-            case None:
-                print(f"[MAIN] No more steps to process")
         time.sleep(TIMEOUT)
 
 
         # Handle TCP events
         try:
-            (keyword, payload) = tcp_out.get_nowait()
+            if reset_PLC:
+                (keyword, payload) = tcp_out.get()
+            else:
+                (keyword, payload) = tcp_out.get_nowait()
             print(f"[MAIN] TCP event: {keyword}: {payload}")
             match (keyword, payload):
                 case (("STATUS", "iHR320_OK")):
                     print(f"[MAIN] event: iHR320 is OK")
+                    reset_PLC = False
                 case (("REQUEST", "TC_STATUS")):
                     print("[MAIN] event: TC status requested...")
                     cmd = "TC_STATUS"
@@ -148,6 +158,7 @@ def main():
                     cmd = "SEND"
                     msg = "INIT_CONFIRMED"
                     tcp_in.put((cmd, msg))
+                    is_experiment = True
 
 
         except queue.Empty:
@@ -227,6 +238,7 @@ def main():
                                 arg = "TC_READY"
                                 tcp_in.put((cmd, arg))      # Updating TC status to "ready" for iHR320
                                 preExpStatus = InitStep.ID
+                                reset_PLC = True
                             else:
                                 cmd = "CONTROL_ON"
                                 arg = ""
@@ -258,13 +270,8 @@ def main():
                     except ValueError:
                         print(f"[MAIN] event: received non-numeric temperature value: {msg}")  
                     if T_stabilisation_mins >= 2:  # If the temperature has been stable for 3 consecutive checks (approximately 2 minutes), consider it stabilized
-                            experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED
-                            print(f"[MAIN] event: temperature reached")
-
-
-
-
-
+                        experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED
+                        print(f"[MAIN] event: temperature reached")
                         
         # Periodic tasks or routing logic here
         time.sleep(TIMEOUT)
