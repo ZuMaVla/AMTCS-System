@@ -56,7 +56,9 @@ public:
 	ExperimentParameters GetExperimentParameters();
 	void PostMessageToUI(UINT message, CString logMessage);
 	void EnableExpSettDlg();
+	void EnableExpFlowDlg();
 	void DisableConnDlg();
+	void DisableExpSettDlg();
 	bool m_bMeasurementStarted = false;
 	bool m_isCCDDataReady = false;
 	bool m_isPLCConfirmedOff = false;

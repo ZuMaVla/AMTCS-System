@@ -94,13 +94,13 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 				reinterpret_cast<LPARAM>(pDevice)
 			);
 		}
-		else if (event.keyword == "T=") {											// Incoming current T from PLC/TC
+		else if (event.keyword == "T=") {											// Incoming current T from PLC/TC (init)
 			std::cout << "Current T: " + event.payload + " K\n";
 			CString msg = CString(event.keyword.c_str());
 			msg += event.payload.c_str();											// Converting event to CString
 			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, msg);
 		}
-		else if (event.keyword == "STAB_T=") {											// Incoming current T from PLC/TC
+		else if (event.keyword == "STAB_T=") {										// Incoming current T from PLC/TC (exp)
 			std::cout << "Current T: " + event.payload + " K\n";
 			CString msg = CString(event.keyword.c_str());
 			msg += event.payload.c_str();											// Converting event to CString
@@ -135,7 +135,11 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			PLC_in.push(cmd);
 			g_logicRunning = false;
 		}
-
+		else if (event.keyword == "EXPERIMENT_FINISHED") {
+			std::cout << "Experiment finished\n";
+			CString msg = _T("EXP_END");
+			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, msg);
+		}
 	}
 }
 

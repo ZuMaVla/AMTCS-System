@@ -403,12 +403,15 @@ void CiHR320SettingsDlg::OnWorkDirChanged()
 
 void CiHR320SettingsDlg::OnBnClickedStart()
 {
+	m_VSListBox_T.SortT(FALSE);
 	std::string msg;
 	experimentState.setExpParams(CollectExperimentParameters());
 	experimentState.experimentProgressIndex = -1;
 	experimentState.experimentLength = experimentState.getExpParams().Ts.size();
 	msg = experimentState.serialiseState();
 	std::cout << msg;
+	m_mainWnd->DisableExpSettDlg();
+	m_mainWnd->EnableExpFlowDlg();
 	if (!(SendTCPMessage(ip_PLC, port_PLC, "INIT " + msg))) {
 		AfxMessageBox(_T("Connection failed"));
 	}

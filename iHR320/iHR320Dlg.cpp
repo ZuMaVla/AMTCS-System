@@ -346,22 +346,28 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 	if (pStr)
 	{
 		CString msg = *pStr;
+		CString log;
 		if (msg.Left(2) == _T("T=")) {
-			msg = _T("[TC] Current temperature received: ") + msg.Mid(2) + _T(" K");
+			log = _T("[TC] Current temperature received: ") + msg.Mid(2) + _T(" K");
 
-			m_connectivityDlg.m_ConnectionLogs.AddItem(msg);
+			m_connectivityDlg.m_ConnectionLogs.AddItem(log);
 		}
 		else if (msg.Left(3) == _T("CT=")) {
-			msg = _T("[TC] Target temperature reached. Current T: ") + msg.Mid(4) + _T(" K");
+			log = _T("[TC] Target temperature reached. Current T: ") + msg.Mid(4) + _T(" K");
 
-			m_flowDlg.m_ExpFLowLogs.AddItem(msg);
+			m_flowDlg.m_ExpFLowLogs.AddItem(log);
 		}
 		else if (msg.Left(3) == _T("SAd")) {
-			msg = _T("[TC] Current temperature received: ") + msg.Mid(2) + _T(" K");
+			log = _T("[iHR320] Spectrum acquisition completed; data saved.");
 
-			m_flowDlg.m_ExpFLowLogs.AddItem(L"[iHR320] Spectrum acquisition completed; data saved.");
+			m_flowDlg.m_ExpFLowLogs.AddItem(log);
 			m_settingsDlg.experimentState.experimentProgressIndex++;
 			SetExpProgress();
+		}
+		else if (msg == _T("EXP_END")) {
+			log = _T("[PLC] Experiment finished. Turn off equipment or start a new experiment.");
+
+			m_flowDlg.m_ExpFLowLogs.AddItem(log);
 		}
 
 		delete pStr;
@@ -981,6 +987,11 @@ void CiHR320Dlg::EnableExpSettDlg()
 	EnableDlg(&m_settingsDlg, TRUE);
 }
 
+void CiHR320Dlg::EnableExpFlowDlg()
+{
+	EnableDlg(&m_flowDlg, TRUE);
+}
+
 void CiHR320Dlg::DisableConnDlg()
 {
 	EnableDlg(&m_connectivityDlg, FALSE);
@@ -988,6 +999,12 @@ void CiHR320Dlg::DisableConnDlg()
 	m_jyCCD->SetDefaultUnits(jyutWavelength, jyuNanometers);
 	m_jyCCD->SetDefaultUnits(jyutDataUnits, jyuCounts);
 	m_jyCCD->GetDefaultUnits(jyutWavelength, &eUnits, &vUnits);
+
+}
+
+void CiHR320Dlg::DisableExpSettDlg()
+{
+	EnableDlg(&m_settingsDlg, FALSE);
 
 }
 
