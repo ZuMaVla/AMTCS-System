@@ -8,7 +8,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iostream>
-
+#include <cstdlib>
+#include "Security.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -44,6 +45,14 @@ CComModule _Module;
 BEGIN_OBJECT_MAP(ObjectMap)
 END_OBJECT_MAP()
 
+
+bool isPLCRunning(const std::string& scriptName) {
+	// -f checks the full command line (needed for Python scripts)
+	// > nul (Windows) or > /dev/null (Linux) hides the output
+	std::string checkCmd = "plink -ssh pl-ple@192.168.50.1 -pw " + RPiPwd + " \"pgrep -f " + scriptName + "\" > nul";
+	return (std::system(checkCmd.c_str()) == 0);		// std::system returns 0 if pgrep finds the process
+}
+
 // CiHR320App initialization
 
 BOOL CiHR320App::InitInstance()
@@ -60,6 +69,11 @@ BOOL CiHR320App::InitInstance()
 
 	CWinApp::InitInstance();
 
+	if (!isPLCRunning("PLC.py")) {
+		const std::string command = "plink -ssh pl-ple@192.168.50.1 -pw " + RPiPwd + " \"python3 /home/pi/PLC.py > /dev/null 2>&1 &\"";
+		std::system(command.c_str());
+	}
+	
 
 	// Initialize OLE libraries
 	if (!AfxOleInit())

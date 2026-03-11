@@ -90,6 +90,9 @@
     <ClInclude Include="JYDeviceSink.h">
       <Filter>Header Files\JY-SDK</Filter>
     </ClInclude>
+    <ClInclude Include="Security.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="iHR320.cpp">

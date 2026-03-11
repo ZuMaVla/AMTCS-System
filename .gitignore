@@ -26,3 +26,4 @@ __pycache__/*
 workDir.txt
 *.TMP
 *.tmp
+Security.h
