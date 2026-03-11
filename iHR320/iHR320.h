@@ -14,6 +14,7 @@
 #include <atlcom.h>
 
 
+
 // CiHR320App:
 // See iHR320.cpp for the implementation of this class
 //

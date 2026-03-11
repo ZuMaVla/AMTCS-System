@@ -405,6 +405,8 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 {
 	std::string msg;
 	experimentState.setExpParams(CollectExperimentParameters());
+	experimentState.experimentProgressIndex = -1;
+	experimentState.experimentLength = experimentState.getExpParams().Ts.size();
 	msg = experimentState.serialiseState();
 	std::cout << msg;
 	if (!(SendTCPMessage(ip_PLC, port_PLC, "INIT " + msg))) {

@@ -49,8 +49,11 @@ END_OBJECT_MAP()
 bool isPLCRunning(const std::string& scriptName) {
 	// -f checks the full command line (needed for Python scripts)
 	// > nul (Windows) or > /dev/null (Linux) hides the output
-	std::string checkCmd = "plink -ssh pl-ple@192.168.50.1 -pw " + RPiPwd + " \"pgrep -f " + scriptName + "\" > nul";
-	return (std::system(checkCmd.c_str()) == 0);		// std::system returns 0 if pgrep finds the process
+	std::string checkCmd = "plink -batch -ssh pl-ple@" + ip_PLC + " -pw " + RPiPwd + " \"pgrep -f " + scriptName + "\" > nul";
+	bool result = std::system(checkCmd.c_str()) == 0;		// std::system returns 0 if pgrep finds the process
+	if (result) std::wcout << L"PLC already running...\n";
+
+	return (result);		
 }
 
 // CiHR320App initialization
@@ -69,11 +72,26 @@ BOOL CiHR320App::InitInstance()
 
 	CWinApp::InitInstance();
 
-	if (!isPLCRunning("PLC.py")) {
-		const std::string command = "plink -ssh pl-ple@192.168.50.1 -pw " + RPiPwd + " \"python3 /home/pi/PLC.py > /dev/null 2>&1 &\"";
-		std::system(command.c_str());
+	AllocConsole();
+	FILE* fp;
+	freopen_s(&fp, "CONOUT$", "w", stdout);
+	freopen_s(&fp, "CONOUT$", "w", stderr);
+	freopen_s(&fp, "CONIN$", "r", stdin);
+
+	std::string pingCmd = "ping -n 1 -w 1000 " + ip_PLC + " > nul";
+	if (std::system(pingCmd.c_str()) != 0) {
+		std::wcout << L"Error: RPi is offline. Check cables/power." << std::endl;
 	}
-	
+	else {
+		if (!isPLCRunning("PLC.py")) {
+			std::wcout << L"PLC is not running; starting it...\n";
+			const std::string command = "plink -batch -ssh pl-ple@" + ip_PLC + 
+				" -pw " + RPiPwd +
+				" \"nohup python3 '/home/pl-ple/Documents/My Projects/AMTCS-System/PLC/PLC.py' > /dev/null 2>&1 &\"";
+			std::system(command.c_str());
+			Sleep(1000);
+		}
+	}
 
 	// Initialize OLE libraries
 	if (!AfxOleInit())
@@ -130,12 +148,6 @@ BOOL CiHR320App::InitInstance()
 		if (cmdInfo.m_nShellCommand == CCommandLineInfo::AppRegister)
 			return FALSE;
 	}
-
-	AllocConsole();
-	FILE* fp;
-	freopen_s(&fp, "CONOUT$", "w", stdout);
-	freopen_s(&fp, "CONOUT$", "w", stderr);
-	freopen_s(&fp, "CONIN$", "r", stdin);
 
 
 	// Winsock init
