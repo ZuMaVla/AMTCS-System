@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-class CMyVSListBox : public CVSListBox
+class CMyVSListBox : public CVSListBox					// For the list of temperatures
 {
 public:
 	CMyVSListBox() {}
@@ -13,6 +13,8 @@ public:
 	CSpinButtonCtrl m_mod_new_T;						// Spin button for in-/decremental change of the new temperature
 	virtual void SortT(BOOL isAscending);
 	virtual int AddItem(const CString &strText, DWORD_PTR  dwData = 0UL, int iIndex = -1);
+	int getFirst();
+	int getLast();
 	void AddAll(std::vector<std::string> listTs);
 	void RemoveAll();
 	std::vector<std::string> GetAllItemTs();
@@ -23,7 +25,7 @@ protected:
 
 
 
-class CMyVSListBoxTS : public CVSListBox
+class CMyVSListBoxTS : public CVSListBox				// For logs (with time stamps)
 {
 public:
 	CMyVSListBoxTS() {}

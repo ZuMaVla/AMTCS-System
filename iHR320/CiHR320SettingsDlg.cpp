@@ -15,6 +15,7 @@
 #include "CiHR320ConnectivityDlg.h"
 #include "iHR320Dlg.h"
 #include "DataAcquisition.h"
+#include <set>
 
 // CiHR320SettingsDlg dialog
 
@@ -404,6 +405,10 @@ void CiHR320SettingsDlg::OnWorkDirChanged()
 void CiHR320SettingsDlg::OnBnClickedStart()
 {
 	m_VSListBox_T.SortT(FALSE);
+	if (abs(m_VSListBox_T.getLast() - m_mainWnd->m_currT) < abs(m_VSListBox_T.getFirst() - m_mainWnd->m_currT))
+	{
+		m_VSListBox_T.SortT(TRUE);
+	}
 	std::string msg;
 	experimentState.setExpParams(CollectExperimentParameters());
 	experimentState.experimentProgressIndex = -1;

@@ -347,24 +347,24 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 	{
 		CString msg = *pStr;
 		CString log;
-		if (msg.Left(2) == _T("T=")) {
+		if (msg.Left(2) == _T("T=")) {				// Temperature received at init
 			log = _T("[TC] Current temperature received: ") + msg.Mid(2) + _T(" K");
-
+			m_currT = _tstof(msg.Mid(2));
 			m_connectivityDlg.m_ConnectionLogs.AddItem(log);
 		}
-		else if (msg.Left(3) == _T("CT=")) {
+		else if (msg.Left(3) == _T("CT=")) {		// Temperature at request of spectrum
 			log = _T("[TC] Target temperature reached. Current T: ") + msg.Mid(4) + _T(" K");
-
+			m_currT = _tstof(msg.Mid(4));
 			m_flowDlg.m_ExpFLowLogs.AddItem(log);
 		}
-		else if (msg.Left(3) == _T("SAd")) {
+		else if (msg.Left(3) == _T("SAd")) {		// Notification about spectrum acquired
 			log = _T("[iHR320] Spectrum acquisition completed; data saved.");
 
 			m_flowDlg.m_ExpFLowLogs.AddItem(log);
 			m_settingsDlg.experimentState.experimentProgressIndex++;
 			SetExpProgress();
 		}
-		else if (msg == _T("EXP_END")) {
+		else if (msg == _T("EXP_END")) {			// Message received at the end of experiment
 			log = _T("[PLC] Experiment finished. Turn off equipment or start a new experiment.");
 
 			m_flowDlg.m_ExpFLowLogs.AddItem(log);

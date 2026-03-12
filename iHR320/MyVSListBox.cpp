@@ -24,11 +24,15 @@ void CMyVSListBox::SortT(BOOL isAscending)
 	}
 	for (int i = count - 1; i >= 0; i--)
 		RemoveItem(i);										// removing all Ts before inserting sorted ones
+	int previousT = 0;
 	for (int t : Ts)
 	{
-		CString s;
-		s.Format(_T("%d"), t);
-		AddItem(s, t);										// reinserting sorted Ts
+		if (t != previousT) {
+			CString s;
+			s.Format(_T("%d"), t);
+			AddItem(s, t);										// reinserting sorted Ts
+		}
+		previousT = t;
 	}
 }
 
@@ -44,6 +48,16 @@ int CMyVSListBox::AddItem(const CString& strText, DWORD_PTR dwData, int iIndex)
 	T_str.Format(_T("%d"), value);
 	int index = CVSListBox::AddItem(T_str, value, iIndex);
 	return index;
+}
+
+int CMyVSListBox::getFirst()
+{
+	return GetItemData(0);
+}
+
+int CMyVSListBox::getLast()
+{
+	return GetItemData(GetCount() - 1);
 }
 
 void CMyVSListBox::AddAll(std::vector<std::string> listTs)

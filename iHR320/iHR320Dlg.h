@@ -63,6 +63,7 @@ public:
 	bool m_isCCDDataReady = false;
 	bool m_isPLCConfirmedOff = false;
 	bool m_isMonoInitialised;
+	double m_currT = 294.0;
 	void SetExpProgress();
 protected:
 	CString m_monoArray[10][2];
