@@ -91,6 +91,7 @@ protected:
 	CiHR320FlowDlg m_flowDlg;
 	BOOL
 		isExitEnabled = FALSE,
+		m_isNextExpRefused = FALSE,
 		CanExit();
 
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support

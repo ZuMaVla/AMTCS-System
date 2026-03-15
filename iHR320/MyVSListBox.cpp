@@ -112,3 +112,12 @@ int CMyVSListBoxTS::AddItem(const CString & strText)
 	SelectItem(index);
 	return index;
 }
+
+void CMyVSListBoxTS::RemoveAll()
+{
+	int count = GetCount();
+	for (int i = count - 1; i >= 0; --i)
+	{
+		RemoveItem(i);
+	}
+}
