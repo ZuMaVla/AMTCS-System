@@ -136,6 +136,8 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                         out_q.put(("REQUEST", "iHR320_CANCEL")) 
                     case "INIT":   
                         out_q.put(("INITIALISATION", payload))                          # pass the temperature list to the PLC
+                    case "EXP_STATUS":   
+                        out_q.put(("EXP_STATUS", payload))                              # pass current experiment status to the PLC
                     case "DONE":
                         out_q.put(("REPORT", "SPECTRUM_ACQUIRED"))                      # Spectrum has been acquired
                     case "AFFIRMATIVE":
