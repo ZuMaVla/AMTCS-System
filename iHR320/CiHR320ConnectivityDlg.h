@@ -24,6 +24,7 @@ public:
 	virtual ~CiHR320ConnectivityDlg();
 	afx_msg void OnBnClickedConnectButton();
 	void UpdateSystemStatusUI(std::string device);
+	void CheckHardware(bool isExperiment);
 	void SetMainWnd(CiHR320Dlg* main);
 	void StartTimer(UINT_PTR nIDEvent, int _sec);
 	void StopTimer(UINT_PTR nIDEvent);

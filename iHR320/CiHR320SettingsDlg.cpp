@@ -58,6 +58,7 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_ACQUISITION_TIME_MAX, m_maxAT);
 	DDX_Control(pDX, IDC_SAVE_FOLDER, m_workDir);
 	DDX_Control(pDX, IDC_SAMPLE_CODE, m_sampleCode);
+	DDX_Control(pDX, IDC_START, m_startExpBtn);
 }
 
 
@@ -404,19 +405,21 @@ void CiHR320SettingsDlg::OnWorkDirChanged()
 
 void CiHR320SettingsDlg::OnBnClickedStart()
 {
-	m_VSListBox_T.SortT(FALSE);
-	if (abs(m_VSListBox_T.getLast() - m_mainWnd->m_currT) < abs(m_VSListBox_T.getFirst() - m_mainWnd->m_currT))
-	{
-		m_VSListBox_T.SortT(TRUE);
+	if (experimentState.experimentProgressIndex == -1) {
+		m_VSListBox_T.SortT(FALSE);
+		if (abs(m_VSListBox_T.getLast() - m_mainWnd->m_currT) < abs(m_VSListBox_T.getFirst() - m_mainWnd->m_currT))
+		{
+			m_VSListBox_T.SortT(TRUE);
+		}
+		experimentState.setExpParams(CollectExperimentParameters());
+		experimentState.experimentProgressIndex = -1;
+		experimentState.experimentLength = experimentState.getExpParams().Ts.size();
+		m_mainWnd->DisableExpSettDlg();
+		m_mainWnd->EnableExpFlowDlg();
 	}
 	std::string msg;
-	experimentState.setExpParams(CollectExperimentParameters());
-	experimentState.experimentProgressIndex = -1;
-	experimentState.experimentLength = experimentState.getExpParams().Ts.size();
 	msg = experimentState.serialiseState();
 	std::cout << msg;
-	m_mainWnd->DisableExpSettDlg();
-	m_mainWnd->EnableExpFlowDlg();
 	if (!(SendTCPMessage(ip_PLC, port_PLC, "INIT " + msg))) {
 		AfxMessageBox(_T("Connection failed"));
 	}

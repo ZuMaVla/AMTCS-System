@@ -89,8 +89,9 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_WM_CLOSE()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CiHR320Dlg::OnTabSelChange)
+	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
+	ON_MESSAGE(WM_UPDATE_SYSTEM_EVENT, &CiHR320Dlg::OnUpdateSystemEvent)
 	ON_MESSAGE(WM_USER_MONO_LOG_MESSAGE, &CiHR320Dlg::OnMonoLogMessage)
 	ON_MESSAGE(WM_USER_LOG_MESSAGE, &CiHR320Dlg::OnPutLog)
 END_MESSAGE_MAP()
@@ -337,6 +338,20 @@ LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
 	m_connectivityDlg.UpdateSystemStatusUI(*device);
 
 	delete device;   // free the memory after using
+	return 0;
+}
+
+LRESULT CiHR320Dlg::OnUpdateSystemEvent(WPARAM wParam, LPARAM lParam)
+{
+	CString* pEvent = reinterpret_cast<CString*>(lParam);
+	CString event = *pEvent;
+	if (event == _T("RECOVER_EXP")) {
+		m_connectivityDlg.CheckHardware(true);
+	}
+	else if (event == _T("CONTINUE_EXP")) {
+		m_settingsDlg.OnBnClickedStart();
+	}
+	delete pEvent;   // free the memory after using
 	return 0;
 }
 
@@ -971,6 +986,11 @@ void CiHR320Dlg::ReceivedDeviceCriticalError(long status, IJYEventInfo * eventIn
 ExperimentParameters CiHR320Dlg::GetExperimentParameters()
 {
 	return m_settingsDlg.GetExperimentParameters();
+}
+
+int CiHR320Dlg::GetExperimentProgressIndex()
+{
+	return m_settingsDlg.experimentState.experimentProgressIndex;
 }
 
 void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {
