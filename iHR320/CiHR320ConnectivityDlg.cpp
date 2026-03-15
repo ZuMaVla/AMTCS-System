@@ -167,6 +167,8 @@ void CiHR320ConnectivityDlg::OnTimer(UINT_PTR nIDEvent) {
 		else {
 			m_connectBtn.EnableWindow(TRUE);
 			m_connectBtn.SetWindowTextW(_T("Connect to equipment"));
+			m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
+			m_ConnectionLogs.AddItem(_T("Not all hardware is ready! Please, check your equipment."));
 		}
 		KillTimer(TIMER_ALL_CHECK);
 	}

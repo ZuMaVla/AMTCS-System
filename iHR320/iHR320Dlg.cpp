@@ -249,12 +249,20 @@ void CiHR320Dlg::OnClose()
 	}
 
 	if (CanExit()) {
-		SendTCPMessage(m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP), 5051, "EVENT __STOP__");
-		while (!m_isPLCConfirmedOff)
+		if (m_connectivityDlg.m_CheckBoxPLC.GetCheck()) 
 		{
-			Sleep(100);
+			SendTCPMessage(m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP), 5051, "EVENT __STOP__");
+			while (!m_isPLCConfirmedOff)
+			{
+				MSG msg;
+				while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+				{
+					TranslateMessage(&msg);
+					DispatchMessage(&msg);
+				}
+				Sleep(50);
+			}
 		}
-
 		CDialogEx::OnClose();
 		CDialogEx::OnCancel();
 	}

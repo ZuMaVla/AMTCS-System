@@ -59,10 +59,10 @@ protected:
 
 	CComPtr<IJYMonoReqd> m_jyMono;
 	CIPAddressCtrl m_instIP;							// IP on the institutional network
-	CButton m_CheckBoxPLC;
 public:
 	CMyVSListBoxTS m_ConnectionLogs;
 	
+	CButton m_CheckBoxPLC;
 	CComboBox m_CCDSelectCtrl;							// List of CCDs installed in the system	 
 	CComboBox m_MonoSelectCtrl;							// List of monochromators installed in the system
 	CButton m_CheckBoxCCD;
