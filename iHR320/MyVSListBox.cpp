@@ -47,6 +47,8 @@ int CMyVSListBox::AddItem(const CString& strText, DWORD_PTR dwData, int iIndex)
 	int value = _ttoi(T_str);
 	T_str.Format(_T("%d"), value);
 	int index = CVSListBox::AddItem(T_str, value, iIndex);
+	m_newT.SetFocus();
+
 	return index;
 }
 

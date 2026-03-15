@@ -119,7 +119,8 @@ void CiHR320SettingsDlg::OnBnClickedButtonDefaultT()
 
 void CiHR320SettingsDlg::OnBnClickedButtonValidateT()
 {
-	m_VSListBox_T.SortT(FALSE);
+	m_VSListBox_T.RemoveAll();
+	m_VSListBox_T.m_newT.SetFocus();
 }
 
 void CiHR320SettingsDlg::ExperimentConfiguration()
@@ -406,16 +407,22 @@ void CiHR320SettingsDlg::OnWorkDirChanged()
 void CiHR320SettingsDlg::OnBnClickedStart()
 {
 	if (experimentState.experimentProgressIndex == -1) {
-		m_VSListBox_T.SortT(FALSE);
-		if (abs(m_VSListBox_T.getLast() - m_mainWnd->m_currT) < abs(m_VSListBox_T.getFirst() - m_mainWnd->m_currT))
-		{
-			m_VSListBox_T.SortT(TRUE);
+		if (m_VSListBox_T.GetCount() > 0) {
+			m_VSListBox_T.SortT(FALSE);
+			if (abs(m_VSListBox_T.getLast() - m_mainWnd->m_currT) < abs(m_VSListBox_T.getFirst() - m_mainWnd->m_currT))
+			{
+				m_VSListBox_T.SortT(TRUE);
+			}
+			experimentState.setExpParams(CollectExperimentParameters());
+			experimentState.experimentProgressIndex = -1;
+			experimentState.experimentLength = experimentState.getExpParams().Ts.size();
+			m_mainWnd->DisableExpSettDlg();
+			m_mainWnd->EnableExpFlowDlg();
 		}
-		experimentState.setExpParams(CollectExperimentParameters());
-		experimentState.experimentProgressIndex = -1;
-		experimentState.experimentLength = experimentState.getExpParams().Ts.size();
-		m_mainWnd->DisableExpSettDlg();
-		m_mainWnd->EnableExpFlowDlg();
+		else {
+			AfxMessageBox(_T("At least one temperature is required to start an experiment!"));
+			return;
+		}
 	}
 	std::string msg;
 	msg = experimentState.serialiseState();
