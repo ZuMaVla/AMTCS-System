@@ -89,6 +89,7 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_WM_CLOSE()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_WM_TIMER()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CiHR320Dlg::OnTabSelChange)
 	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
 	ON_MESSAGE(WM_UPDATE_SYSTEM_EVENT, &CiHR320Dlg::OnUpdateSystemEvent)
@@ -251,7 +252,7 @@ void CiHR320Dlg::OnClose()
 	if (CanExit()) {
 		if (m_connectivityDlg.m_CheckBoxPLC.GetCheck()) 
 		{
-			SendTCPMessage(m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP), 5051, "EVENT __STOP__");
+			SendTCPMessage(this, m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP), 5051, "EVENT __STOP__");
 			while (!m_isPLCConfirmedOff)
 			{
 				MSG msg;
@@ -376,7 +377,23 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 	{
 		CString msg = *pStr;
 		CString log;
-		if (msg.Left(2) == _T("T=")) {				// Temperature received at init
+		if (msg.Left(3) == _T("EDA")) {				// Experiment details accepted
+			log = _T("[PLC] ") + msg.Mid(5);
+			m_flowDlg.m_ExpFlowLogs.AddItem(log);
+			EnableExpFlowDlg();
+			SetExpProgress();
+			m_isExperimentStarted = TRUE;
+			StopTimer(TIMER_EXP_SENT);
+		}
+		else if (msg.Left(3) == _T("EDF")) {		// Experiment details failed
+			log = _T("[PLC] ") + msg.Mid(5);
+			AfxMessageBox(log);
+			m_flowDlg.m_ExpFlowLogs.AddItem(log);
+			EnableExpSettDlg();
+			m_isExperimentStarted = FALSE;
+			StopTimer(TIMER_EXP_SENT);
+		}
+		else if (msg.Left(2) == _T("T=")) {			// Temperature received at init
 			log = _T("[TC] Current temperature received: ") + msg.Mid(2) + _T(" K");
 			m_currT = _tstof(msg.Mid(2));
 			m_connectivityDlg.m_ConnectionLogs.AddItem(log);
@@ -384,26 +401,27 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 		else if (msg.Left(3) == _T("CT=")) {		// Temperature at request of spectrum
 			log = _T("[TC] Target temperature reached. Current T: ") + msg.Mid(4) + _T(" K");
 			m_currT = _tstof(msg.Mid(4));
-			m_flowDlg.m_ExpFLowLogs.AddItem(log);
+			m_flowDlg.m_ExpFlowLogs.AddItem(log);
 		}
 		else if (msg.Left(3) == _T("SAd")) {		// Notification about spectrum acquired
 			log = _T("[iHR320] Spectrum acquisition completed; data saved.");
 
-			m_flowDlg.m_ExpFLowLogs.AddItem(log);
+			m_flowDlg.m_ExpFlowLogs.AddItem(log);
 			m_settingsDlg.experimentState.experimentProgressIndex++;
 			SetExpProgress();
 		}
 		else if (msg == _T("EXP_END")) {			// Message received at the end of experiment
 			log = _T("[PLC] Experiment finished. Turn off equipment or start a new experiment.");
-			m_flowDlg.m_ExpFLowLogs.AddItem(log);
+			m_flowDlg.m_ExpFlowLogs.AddItem(log);
 
 			m_settingsDlg.experimentState.experimentProgressIndex = -1;
+			m_isExperimentStarted = FALSE;
 
 			m_askUser.s_question = _T("Your experiment has finished.\nWould you like to start a new experiment?");
 			bool isNewExp = m_askUser.DoModal() == IDOK;
 
 			if (isNewExp) {
-				m_flowDlg.m_ExpFLowLogs.RemoveAll();
+				m_flowDlg.m_ExpFlowLogs.RemoveAll();
 				SetExpProgress();
 				EnableExpSettDlg();						// enable Experimental Setting Dialog if everything is connected
 				DisableConnDlg();						// ... and disable Connectivity Dialog (not necessary anymore)
@@ -913,7 +931,7 @@ void CiHR320Dlg::ReceivedDeviceStatus(long status, IJYEventInfo * eventInfo)
 	CComBSTR desc;
 	eventInfo->get_Description(&desc);
 	CString strValue(desc);
-	m_flowDlg.m_ExpFLowLogs.AddItem(strValue);
+	m_flowDlg.m_ExpFlowLogs.AddItem(strValue);
 	UpdateData(FALSE);
 }
 
@@ -1023,6 +1041,45 @@ int CiHR320Dlg::GetExperimentProgressIndex()
 	return m_settingsDlg.experimentState.experimentProgressIndex;
 }
 
+void CiHR320Dlg::AddNewT(int T)
+{
+	bool l_isTAdded = false;
+	int previousT;
+	if (m_settingsDlg.experimentState.experimentProgressIndex < 0) {
+		previousT = m_settingsDlg.m_VSListBox_T.GetItemData(0);
+	}
+	else previousT = m_settingsDlg.m_VSListBox_T.GetItemData(m_settingsDlg.experimentState.experimentProgressIndex);
+
+	
+	int currentT = m_settingsDlg.m_VSListBox_T.GetItemData(m_settingsDlg.experimentState.experimentProgressIndex + 1);
+	int lastT = m_settingsDlg.m_VSListBox_T.GetItemData(m_settingsDlg.experimentState.experimentLength - 1);
+	CString strT;
+	strT.Format(_T("%d"), T);
+	
+	ExperimentParameters newParams = GetExperimentParameters();
+
+	if (currentT > lastT && previousT > T) {
+		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
+		m_settingsDlg.m_VSListBox_T.SortT(FALSE);
+		l_isTAdded = true;
+	}
+	else if (currentT < lastT && previousT < T) {
+		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
+		m_settingsDlg.m_VSListBox_T.SortT(TRUE);
+		l_isTAdded = true;
+	}
+	if (l_isTAdded) {
+		newParams.Ts = m_settingsDlg.m_VSListBox_T.GetAllItemTs();
+		m_settingsDlg.experimentState.setExpParams(newParams);
+		m_settingsDlg.experimentState.experimentLength++;
+		m_settingsDlg.OnBnClickedStart();
+		m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature (") + strT + _T(" K) requested."));
+	}
+	else m_flowDlg.m_ExpFlowLogs.AddItem(_T("New temperature (") + strT + _T(" K) is out of allowed range"));
+
+
+}
+
 void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {
 	// Basic guard: ensure we are only posting user-defined messages
 	if (message < WM_USER) return;
@@ -1067,9 +1124,20 @@ void CiHR320Dlg::SetExpProgress()
 {
 	int done = m_settingsDlg.experimentState.experimentProgressIndex;
 	int total = m_settingsDlg.experimentState.experimentLength;
+
+	if (done > -1) m_flowDlg.m_repeatPreviousTBtn.EnableWindow(TRUE);
+	else m_flowDlg.m_repeatPreviousTBtn.EnableWindow(FALSE);
+
 	if (total <= 0) total = 1;					// To avoid invalid range
 	m_flowDlg.m_expProgressBar.SetRange(0, total);
 	m_flowDlg.m_expProgressBar.SetPos(done + 1);
+}
+
+void CiHR320Dlg::RepeatPreviousT()
+{
+	m_settingsDlg.experimentState.experimentProgressIndex--;
+	EnableDlg(&m_flowDlg, FALSE);
+	m_settingsDlg.OnBnClickedStart();
 }
 
 LRESULT CiHR320Dlg::OnMonoLogMessage(WPARAM wParam, LPARAM lParam)
@@ -1077,7 +1145,7 @@ LRESULT CiHR320Dlg::OnMonoLogMessage(WPARAM wParam, LPARAM lParam)
 	CString* pStr = reinterpret_cast<CString*>(lParam);
 	if (pStr)
 	{
-		m_flowDlg.m_ExpFLowLogs.AddItem(*pStr);
+		m_flowDlg.m_ExpFlowLogs.AddItem(*pStr);
 		delete pStr;
 	}
 	return 0;
@@ -1094,5 +1162,71 @@ void CiHR320Dlg::EnableDlg(CWnd* pTargetDlg, BOOL bEnable)
 		pChild->EnableWindow(bEnable);
 		pChild->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
 		pChild = pChild->GetWindow(GW_HWNDNEXT);
+	}
+}
+
+void CiHR320Dlg::StartTimer(UINT_PTR nIDEvent, int _sec) {
+	SetTimer(nIDEvent, 100 + 1000 * _sec, NULL);
+}
+
+void CiHR320Dlg::StopTimer(UINT_PTR nIDEvent) {
+	if (nIDEvent == TIMER_EXP_PAUSE_CONTINUE) {
+		m_flowDlg.m_pauseResumeBtn.SetWindowTextW(m_flowDlg.m_nextUserAction);
+		if (m_flowDlg.m_nextUserAction == _T("Continue")) {
+			m_flowDlg.m_cancelExp.EnableWindow(FALSE);
+			m_flowDlg.m_repeatPreviousTBtn.EnableWindow(FALSE);
+			m_flowDlg.m_addNewTBtn.EnableWindow(FALSE);
+		}
+	}
+	KillTimer(nIDEvent);
+}
+
+void CiHR320Dlg::OnTimer(UINT_PTR nIDEvent) {
+	if (nIDEvent == TIMER_PLC_CHECK) {
+		m_connectivityDlg.m_CheckBoxPLC.SetCheck(FALSE);
+		m_connectivityDlg.m_CheckBoxPLC.SetWindowText(_T("Not Responsive"));
+		m_connectivityDlg.m_ConnectionLogs.AddItem(_T("PLC Timeout Error"));
+		KillTimer(nIDEvent);
+	}
+	else if (nIDEvent == TIMER_ALL_CHECK) {
+		if (m_isMonoInitialised) WaitForMono();
+		if (m_availableDeviceCount >= 4) {
+			if (GetExperimentProgressIndex() == -1) {
+				EnableExpSettDlg();						// enable Experimental Setting Dialog if everything is connected
+				DisableConnDlg();						// ... and disable Connectivity Dialog (not necessary anymore)
+				m_connectivityDlg.m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
+				m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Hardware is ready. Please switch to Experiment Settings Tab."));
+			}
+			else {
+				CString msg = _T("CONTINUE_EXP");
+				PostMessageToUI(WM_UPDATE_SYSTEM_EVENT, msg);
+			}
+		}
+		else {
+			m_connectivityDlg.m_connectBtn.EnableWindow(TRUE);
+			m_connectivityDlg.m_connectBtn.SetWindowTextW(_T("Connect to equipment"));
+			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
+			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Not all hardware is ready! Please, check your equipment."));
+		}
+		KillTimer(nIDEvent);
+	}
+	else if (nIDEvent == TIMER_EXP_SENT) {
+		AfxMessageBox(_T("PLC did not respond. Please check RPi\n"));
+		KillTimer(nIDEvent);
+	}
+	else if (nIDEvent == TIMER_PLC_STOP) {
+		m_isPLCConfirmedOff = true;
+		std::cout << "PLC is not responsive. Exiting anyway...\n";
+		KillTimer(nIDEvent);
+		Sleep(2000);
+
+	}
+	else if (nIDEvent == TIMER_EXP_PAUSE_CONTINUE) {
+		AfxMessageBox(_T("PLC is not responsive. Please check RPi\n"));
+		KillTimer(nIDEvent);
+	}
+	else if (nIDEvent == TIMER_EXP_CANCEL) {
+		AfxMessageBox(_T("PLC is not responsive. Please check RPi\n"));
+		KillTimer(nIDEvent);
 	}
 }

@@ -4,10 +4,20 @@
 
 #pragma once
 
+// messages
 #define WM_UPDATE_SYSTEM_STATUS (WM_APP + 1)
 #define WM_USER_MONO_LOG_MESSAGE (WM_USER + 110)
 #define WM_USER_LOG_MESSAGE (WM_USER + 111)
 #define WM_UPDATE_SYSTEM_EVENT (WM_USER + 112)
+
+
+// timers
+#define TIMER_PLC_CHECK 101
+#define TIMER_ALL_CHECK 102
+#define TIMER_EXP_SENT 103
+#define TIMER_PLC_STOP 104
+#define TIMER_EXP_PAUSE_CONTINUE 105
+#define TIMER_EXP_CANCEL 106
 
 class CiHR320DlgAutoProxy;
 #include <afxcmn.h>
@@ -56,6 +66,7 @@ public:
 	void WaitForMono();
 	ExperimentParameters GetExperimentParameters();
 	int GetExperimentProgressIndex(); 
+	void AddNewT(int T);
 	void PostMessageToUI(UINT message, CString logMessage);
 	void EnableExpSettDlg();
 	void EnableExpFlowDlg();
@@ -66,7 +77,19 @@ public:
 	bool m_isPLCConfirmedOff = false;
 	bool m_isMonoInitialised;
 	double m_currT = 294.0;
+
+	void StartTimer(UINT_PTR nIDEvent, int _sec);
+	void StopTimer(UINT_PTR nIDEvent);
+	afx_msg void OnTimer(UINT_PTR nIDEvent); // Ensure this is in the Message Map
+
 	void SetExpProgress();
+	void RepeatPreviousT();
+	BOOL
+		isExitEnabled = FALSE,
+		m_isNextExpRefused = FALSE,
+		m_isExperimentStarted = FALSE,
+		CanExit();
+
 protected:
 	CString m_monoArray[10][2];
 	long m_gainCCD[3], m_ADCCCD[3];
@@ -89,10 +112,6 @@ protected:
 	CiHR320ConnectivityDlg m_connectivityDlg;
 	CiHR320SettingsDlg m_settingsDlg;
 	CiHR320FlowDlg m_flowDlg;
-	BOOL
-		isExitEnabled = FALSE,
-		m_isNextExpRefused = FALSE,
-		CanExit();
 
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 

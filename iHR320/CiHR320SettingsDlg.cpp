@@ -406,7 +406,7 @@ void CiHR320SettingsDlg::OnWorkDirChanged()
 
 void CiHR320SettingsDlg::OnBnClickedStart()
 {
-	if (experimentState.experimentProgressIndex == -1) {
+	if (!m_mainWnd->m_isExperimentStarted) {
 		if (m_VSListBox_T.GetCount() > 0) {
 			m_VSListBox_T.SortT(FALSE);
 			if (abs(m_VSListBox_T.getLast() - m_mainWnd->m_currT) < abs(m_VSListBox_T.getFirst() - m_mainWnd->m_currT))
@@ -417,7 +417,6 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 			experimentState.experimentProgressIndex = -1;
 			experimentState.experimentLength = experimentState.getExpParams().Ts.size();
 			m_mainWnd->DisableExpSettDlg();
-			m_mainWnd->EnableExpFlowDlg();
 		}
 		else {
 			AfxMessageBox(_T("At least one temperature is required to start an experiment!"));
@@ -427,9 +426,11 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 	std::string msg;
 	msg = experimentState.serialiseState();
 	std::cout << msg;
-	if (!(SendTCPMessage(ip_PLC, port_PLC, "INIT " + msg))) {
+	if (!(SendTCPMessage(m_mainWnd, ip_PLC, port_PLC, "INIT " + msg))) {
 		AfxMessageBox(_T("Connection failed"));
+		m_mainWnd->StopTimer(TIMER_EXP_SENT);
 	}
+	m_mainWnd->DisableExpSettDlg();
 }
 
 

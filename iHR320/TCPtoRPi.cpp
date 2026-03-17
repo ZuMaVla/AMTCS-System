@@ -30,7 +30,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 
 	std::string localIP = pUI->GetLocalIP();					// (!!!) retrieving IP address of self from UI
 
-	StartPLCListenerThread(localIP, port_iHR320, PLC_out, PLC_in);
+	StartPLCListenerThread(pUI, localIP, port_iHR320, PLC_out, PLC_in);
 	g_logicRunning = true;
 	bool isMeasuring = false;
 	Message cmd;
@@ -42,7 +42,28 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 
 		// 2. Process the event (event interpretation) 
 
-		if (event.keyword == "ACQUIRE_SPECTRUM") {									// Spectrum acquisition requested				
+		if (event.keyword == "PONG") {												// PLC response - alive
+			std::cout << "PLC alive\n"; 
+			auto* pDevice = new std::string("PLC");									// create pointer to a string containing "PLC"
+			pUI->PostMessage(
+				WM_UPDATE_SYSTEM_STATUS,
+				0,
+				reinterpret_cast<LPARAM>(pDevice)
+			);
+			cmd.keyword = "SEND";
+			cmd.payload = "TC?";
+			PLC_in.push(cmd); 														// Request status of TC
+		}
+		else if (event.keyword == "EXP_CONFIRMED") {								// PLC confirmed experiment state				
+			CString msg = _T("Experiment details accepted");
+			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, _T("EDA: ") + msg);			// Message to main window
+		}
+		else if (event.keyword == "EXP_ERROR") {									// PLC confirmed experiment state				
+			CString msg = _T("Experiment details failed: ") + CString(event.payload.c_str());
+			pUI->PostMessageToUI(
+				WM_USER_LOG_MESSAGE, _T("EDF: ") + msg);							// Message to main window
+		}
+		else if (event.keyword == "ACQUIRE_SPECTRUM") {								// Spectrum acquisition requested				
 			cmd.keyword = "SEND";
 			cmd.payload = "AFFIRMATIVE";			
 			PLC_in.push(cmd); 														// Confirming request
@@ -55,18 +76,6 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			else { cmd.payload = "ERROR"; }
 			PLC_in.push(cmd);														// Confirming success/error
 		}
-		else if (event.keyword == "PONG") {											// PLC response - alive
-			std::cout << "PLC alive\n"; 
-			auto* pDevice = new std::string("PLC");									// create pointer to a string containing "PLC"
-			pUI->PostMessage(
-				WM_UPDATE_SYSTEM_STATUS,
-				0,
-				reinterpret_cast<LPARAM>(pDevice)
-			);
-			cmd.keyword = "SEND";
-			cmd.payload = "TC?";
-			PLC_in.push(cmd); 														// Confirming request
-		} 
 		else if (event.keyword == "TC_OK") {										// PLC response - TC alive
 			std::cout << "TC alive\n";
 			auto* pDevice = new std::string(event.keyword);							// create pointer to a string containing device/status
@@ -129,7 +138,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			PLC_in.push(cmd);
 		}
 		else if (event.keyword == "REQUEST" && event.payload == "EXP_STATUS?") {
-			if (pUI->GetExperimentProgressIndex() > -1) {
+			if (pUI->m_isExperimentStarted) {
 				cmd.keyword = "SEND";
 				cmd.payload = "EXP_STATUS RUNNING";
 			}
@@ -144,6 +153,12 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			CString msg = _T("RECOVER_EXP");
 			pUI->PostMessageToUI(WM_UPDATE_SYSTEM_EVENT, msg);
 		}
+		else if (event.keyword == "CONFIRM_PAUSE_CONTINUE") {
+			pUI->StopTimer(TIMER_EXP_PAUSE_CONTINUE);
+		}
+		else if (event.keyword == "CONFIRM_CANCEL") {
+			pUI->StopTimer(TIMER_EXP_CANCEL);
+		}
 
 		else if (event.keyword == "CONFIRM_OFF") {
 			pUI->m_isPLCConfirmedOff = true;
@@ -151,6 +166,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			cmd.payload = "";
 			PLC_in.push(cmd);
 			g_logicRunning = false;
+			pUI->StopTimer(TIMER_PLC_STOP);
 		}
 		else if (event.keyword == "EXPERIMENT_FINISHED") {
 			std::cout << "Experiment finished\n";
@@ -190,7 +206,7 @@ void StopMainLogicThread()
 // TCP listener routine
 // ------------------------------------------------------------
 
-static void PLCListenerWorker(std::string ip_iHR320, int port_iHR320, MessageQueue& PLC_out, MessageQueue& PLC_in)
+static void PLCListenerWorker(CiHR320Dlg *pUI, std::string ip_iHR320, int port_iHR320, MessageQueue& PLC_out, MessageQueue& PLC_in)
 {
 
 	g_listenerRunning = true;
@@ -205,7 +221,7 @@ static void PLCListenerWorker(std::string ip_iHR320, int port_iHR320, MessageQue
 		if (!PLC_in.empty()) {
 			Message cmd = PLC_in.pop();
 			if (cmd.keyword == "SEND") {
-				SendTCPMessage(ip_PLC, port_PLC, cmd.payload);
+				SendTCPMessage(pUI, ip_PLC, port_PLC, cmd.payload);
 			}
 			else if (cmd.keyword == "OFF") g_listenerRunning = false;
 		}
@@ -282,9 +298,9 @@ static void PLCListenerWorker(std::string ip_iHR320, int port_iHR320, MessageQue
 // TCP Listener Starter/Stopper
 // ------------------------------------------------------------
 
-void StartPLCListenerThread(std::string ip_iHR320, int port_iHR320, MessageQueue& queue_out, MessageQueue& queue_in)
+void StartPLCListenerThread(CiHR320Dlg *pUI, std::string ip_iHR320, int port_iHR320, MessageQueue& queue_out, MessageQueue& queue_in)
 {
-	g_listenerThread = std::thread(PLCListenerWorker, ip_iHR320, port_iHR320, std::ref(queue_out), std::ref(queue_in));
+	g_listenerThread = std::thread(PLCListenerWorker, pUI, ip_iHR320, port_iHR320, std::ref(queue_out), std::ref(queue_in));
 }
 
 void StopPLCListenerThread()
@@ -362,8 +378,16 @@ SOCKET StartTCPListener(std::string ip, int port) {
 }
 
 
-bool SendTCPMessage(std::string ip, int port, const std::string& msg)
+bool SendTCPMessage(CiHR320Dlg *pUI, std::string ip, int port, const std::string& msg)
 {
+	CString timerStr = CString(msg.c_str());
+
+	if (timerStr == _T("REQUEST PLC_STATUS")) pUI->StartTimer(TIMER_PLC_CHECK, 10);
+	else if (timerStr.Left(4) == _T("INIT")) pUI->StartTimer(TIMER_EXP_SENT, 10);
+	else if (timerStr == _T("EVENT __STOP__")) pUI->StartTimer(TIMER_PLC_STOP, 10);
+	else if (timerStr == _T("PAUSE")) pUI->StartTimer(TIMER_EXP_PAUSE_CONTINUE, 5);
+	else if (timerStr == _T("CONTINUE")) pUI->StartTimer(TIMER_EXP_PAUSE_CONTINUE, 5);
+	else if (timerStr == _T("CANCEL")) pUI->StartTimer(TIMER_EXP_CANCEL, 5);
 
 	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);		// Create socket using IPv4 and TCP
 	if (sock == INVALID_SOCKET)
@@ -387,6 +411,7 @@ bool SendTCPMessage(std::string ip, int port, const std::string& msg)
 	send(sock, msg.c_str(), static_cast<int>(msg.size()), 0);
 
 	closesocket(sock);
+
 	return true;
 }
 

@@ -7,8 +7,6 @@
 #include "afxbutton.h"
 #include "MyVSListBox.h"
 
-#define TIMER_PLC_CHECK 101
-#define TIMER_ALL_CHECK 102
 
 class CiHR320Dlg;
 
@@ -26,9 +24,6 @@ public:
 	void UpdateSystemStatusUI(std::string device);
 	void CheckHardware(bool isExperiment);
 	void SetMainWnd(CiHR320Dlg* main);
-	void StartTimer(UINT_PTR nIDEvent, int _sec);
-	void StopTimer(UINT_PTR nIDEvent);
-	afx_msg void OnTimer(UINT_PTR nIDEvent); // Ensure this is in the Message Map
 	std::array<int, 4> GetIPAddress(std::string type);
 	CIPAddressCtrl m_localIP;							// variable for IP on the network with RPi/PLC
 	std::string CiHR320ConnectivityDlg::GetIPstrFromCtrl(const CIPAddressCtrl& ctrl)

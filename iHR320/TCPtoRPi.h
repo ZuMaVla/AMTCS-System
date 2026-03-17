@@ -5,6 +5,9 @@
 #include <mutex>
 #include <queue>
 
+class CiHR320Dlg;
+
+
 const std::string ip_PLC = "192.168.50.1";
 const int port_PLC = 5050;
 const int port_iHR320 = 5051;
@@ -29,7 +32,7 @@ void StartMainLogicThread(LPVOID pParam);
 void StopMainLogicThread();
 
 // TCP listener threads
-void StartPLCListenerThread(const std::string ip, int port, MessageQueue& queue_out, MessageQueue& queue_in);
+void StartPLCListenerThread(CiHR320Dlg *pUI, const std::string ip, int port, MessageQueue& queue_out, MessageQueue& queue_in);
 void StopPLCListenerThread();
-bool SendTCPMessage(std::string ip, int port, const std::string& msg);
+bool SendTCPMessage(CiHR320Dlg *pUI, std::string ip, int port, const std::string& msg);
 SOCKET StartTCPListener(std::string ip, int port);
