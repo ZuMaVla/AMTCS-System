@@ -133,7 +133,8 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                     case "UPDATE":
                         out_q.put(("REQUEST", "iHR320_UPDATE"))
                     case "CANCEL":
-                        out_q.put(("REQUEST", "iHR320_CANCEL")) 
+                        out_q.put(("REQUEST", "USER_CANCEL")) 
+                        in_q.put(("SEND", "CONFIRM_CANCEL"))
                     case "INIT":   
                         out_q.put(("INITIALISATION", payload))                          # pass the temperature list to the PLC
                     case "EXP_STATUS":   
@@ -144,8 +145,10 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                         out_q.put(("AFFIRMATIVE", "SPECTRUM_REQUESTED"))                # Spectrum request has been received 
                     case "PAUSE":
                         out_q.put(("REQUEST", "USER_PAUSE"))
-                    case "RESUME":
-                        out_q.put(("REQUEST", "USER_RESUME"))
+                        in_q.put(("SEND", "CONFIRM_PAUSE_CONTINUE"))
+                    case "CONTINUE":
+                        out_q.put(("REQUEST", "USER_CONTINUE"))
+                        in_q.put(("SEND", "CONFIRM_PAUSE_CONTINUE"))
                     case "ADD":
                         out_q.put(("ADD T", msg.split()[1]))                            # pass additional temperature to the PLC
                     case "REMOVE":

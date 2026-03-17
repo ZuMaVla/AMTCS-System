@@ -4,7 +4,7 @@ import queue
 import time
 from serial_listener import serial_comm_thread
 from tcp_listener import tcp_comm_thread
-from config import ExperimentMode, PLCcfg, experiment_mode
+from config import ExperimentMode, PLCcfg, experiment_mode, RT
 from experiment_state_class import ExperimentState, ExperimentStep, StepName, StepStatus, InitStep   
 from dataclasses import asdict
 from threading import Timer
@@ -71,6 +71,7 @@ def main():
     is_main_logic_running = True
     wait_for_event = True
     is_experiment = False
+    is_paused = False
     tcp_out.put(("REQUEST", "EXP_STATUS"))                  # Task to itself: Request the experiment status
 
     # Main event loop
@@ -79,16 +80,16 @@ def main():
         if is_experiment:
             completed_cycle = experiment_state.experimentProgressIndex
             if completed_cycle + 1 < experiment_state.experimentLength:
-                wait_for_event = False
+                if not is_paused:
+                    wait_for_event = False
                 is_experiment = True
                 next_T = experiment_state.experimentParameters.Ts[completed_cycle + 1]
             else:
-                if is_experiment:
-                    wait_for_event = True
-                    is_experiment = False
-                    print(f"[MAIN] All cycles completed. Resetting PLC.")
-                    print(f"[MAIN] No more steps to process")
-                    tcp_in.put(("SEND", "EXPERIMENT_FINISHED"))
+                wait_for_event = True
+                is_experiment = False
+                print(f"[MAIN] All cycles completed. Resetting PLC.")
+                print(f"[MAIN] No more steps to process")
+                tcp_in.put(("SEND", "EXPERIMENT_FINISHED"))
 
             PLC_mode = experiment_state.experimentFlow.PLC_mode(completed_cycle)
 
@@ -141,23 +142,35 @@ def main():
                 case (("REQUEST", "TC_STATUS")):
                     print("[MAIN] event: TC status requested...")
                     cmd = "TC_STATUS"
-                    msg = ""
-                    ser_in.put((cmd, msg))
+                    arg = ""
+                    ser_in.put((cmd, arg))
                     timer_TC = Timer(10, report_TC_off, args=(tcp_in,))
                     timer_TC.start()                    # After 5 sec, report TC status "not responsive"
                 case (("REQUEST", "EXP_STATUS")):
                     print("[MAIN] event: Experiment status requested...")
                     cmd = "SEND"
-                    msg = "REQUEST EXP_STATUS?"
-                    tcp_in.put((cmd, msg))
+                    arg = "REQUEST EXP_STATUS?"
+                    tcp_in.put((cmd, arg))
                     timer_exp_status = Timer(10, report_no_exp)
                     timer_exp_status.start()            # After 10 sec, report TC status "not responsive"
+                case (("REQUEST", "USER_CANCEL")):
+                    print("[MAIN] event: Experiment has been cancelled by user...") 
+                    # Artificially ending experiment
+                    experiment_state.experimentProgressIndex = experiment_state.experimentLength
+                case (("REQUEST", "USER_PAUSE")):
+                    print("[MAIN] event: Experiment has been paused by user...")
+                    wait_for_event = True
+                    is_paused = True
+                case (("REQUEST", "USER_CONTINUE")):
+                    print("[MAIN] event: Experiment has been resumed by user...")
+                    wait_for_event = False
+                    is_paused = False
                 case (("REQUEST", "REQUESTED_OFF")):
                     print("[MAIN] event: requested to stop PLC")
                     cmd = "OFF"
-                    msg = ""
-                    ser_in.put((cmd, msg))
-                    tcp_in.put((cmd, msg))
+                    arg = ""
+                    ser_in.put((cmd, arg))
+                    tcp_in.put((cmd, arg))
                     time.sleep(5)                       # After 5 sec, set while condition false
                     is_main_logic_running = False
                 case (("EXP_STATUS", "NOT_STARTED")):
@@ -170,8 +183,8 @@ def main():
                     print("[MAIN] event: Experiment already running... Requesting experiment state")
                     timer_exp_status.cancel()
                     cmd = "SEND"
-                    msg = "REQUEST EXP_STATE?"
-                    tcp_in.put((cmd, msg))
+                    arg = "REQUEST EXP_STATE?"
+                    tcp_in.put((cmd, arg))
 
                 case (("AFFIRMATIVE", "SPECTRUM_REQUESTED")):
                     print(f"[MAIN] event: spectrum requested")
@@ -180,14 +193,20 @@ def main():
                     print(f"[MAIN] event: spectrum acquired")    
                 case (("INITIALISATION", str() as experiment_state_string)): 
                     print(f"[MAIN] event: initialisation with state {experiment_state_string}") 
-                    # Update the experiment state from the received JSON string
-                    experiment_state.deserialise(experiment_state_string)
-                    experiment_state.experimentFlow.populate(len(experiment_state.experimentParameters.Ts))  # Populate the experiment flow based on the number of temperature steps
-                    print(f"[MAIN] updated experiment state: {asdict(experiment_state.experimentParameters)}")
-                    cmd = "SEND"
-                    msg = "INIT_CONFIRMED"
-                    tcp_in.put((cmd, msg))
-                    is_experiment = True
+                    try:
+                        # Update the experiment state from the received JSON string
+                        experiment_state.deserialise(experiment_state_string)
+                        experiment_state.experimentFlow.populate(len(experiment_state.experimentParameters.Ts))  # Populate the experiment flow based on the number of temperature steps
+                        print(f"[MAIN] updated experiment state: {asdict(experiment_state.experimentParameters)}")
+                        cmd = "SEND"
+                        arg = "EXP_CONFIRMED"
+                        tcp_in.put((cmd, arg))
+                        is_experiment = True
+                    except ValueError as e:
+                        # Inform iHR320 app of error
+                        cmd = "SEND"
+                        arg = "EXP_ERROR " + str(e)
+                        tcp_in.put((cmd, arg))
 
 
         except queue.Empty:
