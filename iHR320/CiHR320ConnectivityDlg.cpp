@@ -76,8 +76,8 @@ BOOL CiHR320ConnectivityDlg::OnInitDialog()
 	return TRUE;
 }
 
-void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
-{
+void CiHR320ConnectivityDlg::CheckHardware(bool isExperiment)
+{	
 	m_connectBtn.EnableWindow(FALSE);
 	m_connectBtn.SetWindowTextW(_T("Checking hardware..."));
 	m_mainWnd->m_availableDeviceCount = 0;
@@ -91,37 +91,48 @@ void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
 		StopTimer(TIMER_ALL_CHECK);
 		StartTimer(TIMER_ALL_CHECK, 20);
 	}
-	StartTimer(TIMER_PLC_CHECK, 10);
-	std::array<BOOL, 2> l_FlagSDK = m_mainWnd->ConnectMonoAndCCD();
-	std::cout << "Result: " << l_FlagSDK[0] << l_FlagSDK[1] << "\n";
-	if (l_FlagSDK[0]) {
-		m_CheckBoxCCD.SetCheck(TRUE);
-		m_CheckBoxCCD.SetWindowText(_T("Connected"));
-		m_ConnectionLogs.AddItem(_T("CCD connected"));
-		m_mainWnd->m_availableDeviceCount++;
-	}
-	else
-	{
-		m_CheckBoxCCD.SetCheck(FALSE);
-		m_CheckBoxCCD.SetWindowText(_T("Offline"));
-		m_ConnectionLogs.AddItem(_T("CCD not found"));
-	}
 
-	if (l_FlagSDK[1]) {
-		m_CheckBoxMono.SetCheck(TRUE);
-		m_CheckBoxMono.SetWindowText(_T("Connected"));
-		m_ConnectionLogs.AddItem(_T("Monochromator connected"));
-		m_mainWnd->m_availableDeviceCount++;
+	StartTimer(TIMER_PLC_CHECK, 10);
+
+	if (!isExperiment) {
+		std::array<BOOL, 2> l_FlagSDK = m_mainWnd->ConnectMonoAndCCD();
+		std::cout << "Result: " << l_FlagSDK[0] << l_FlagSDK[1] << "\n";
+		if (l_FlagSDK[0]) {
+			m_CheckBoxCCD.SetCheck(TRUE);
+			m_CheckBoxCCD.SetWindowText(_T("Connected"));
+			m_ConnectionLogs.AddItem(_T("CCD connected"));
+			m_mainWnd->m_availableDeviceCount++;
+		}
+		else
+		{
+			m_CheckBoxCCD.SetCheck(FALSE);
+			m_CheckBoxCCD.SetWindowText(_T("Offline"));
+			m_ConnectionLogs.AddItem(_T("CCD not found"));
+		}
+
+		if (l_FlagSDK[1]) {
+			m_CheckBoxMono.SetCheck(TRUE);
+			m_CheckBoxMono.SetWindowText(_T("Connected"));
+			m_ConnectionLogs.AddItem(_T("Monochromator connected"));
+			m_mainWnd->m_availableDeviceCount++;
+		}
+		else
+		{
+			m_CheckBoxMono.SetCheck(FALSE);
+			m_CheckBoxMono.SetWindowText(_T("Offline"));
+			m_ConnectionLogs.AddItem(_T("Monochromator not found"));
+		}
 	}
-	else
-	{
-		m_CheckBoxMono.SetCheck(FALSE);
-		m_CheckBoxMono.SetWindowText(_T("Offline"));
-		m_ConnectionLogs.AddItem(_T("Monochromator not found"));
+	else {
+		m_mainWnd->m_availableDeviceCount += 2;
 	}
 	StopTimer(TIMER_ALL_CHECK);
 	StartTimer(TIMER_ALL_CHECK, 20);
+}
 
+void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
+{
+	CheckHardware(false);
 }
 
 void CiHR320ConnectivityDlg::StartTimer(UINT_PTR nIDEvent, int _sec) {
@@ -142,14 +153,22 @@ void CiHR320ConnectivityDlg::OnTimer(UINT_PTR nIDEvent) {
 	else if (nIDEvent == TIMER_ALL_CHECK) {		
 		if (m_mainWnd->m_isMonoInitialised) m_mainWnd->WaitForMono();
 		if (m_mainWnd->m_availableDeviceCount >= 4) {
-			m_mainWnd->EnableExpSettDlg();						// enable Experimental Setting Dialog if everything is connected
-			m_mainWnd->DisableConnDlg();						// ... and disable Connectivity Dialog (not necessary anymore)
-			m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
-			m_ConnectionLogs.AddItem(_T("Hardware is ready. Please switch to Experiment Settings Tab."));
+			if (m_mainWnd->GetExperimentProgressIndex() == -1) {
+				m_mainWnd->EnableExpSettDlg();						// enable Experimental Setting Dialog if everything is connected
+				m_mainWnd->DisableConnDlg();						// ... and disable Connectivity Dialog (not necessary anymore)
+				m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
+				m_ConnectionLogs.AddItem(_T("Hardware is ready. Please switch to Experiment Settings Tab."));
+			}
+			else {
+				CString msg = _T("CONTINUE_EXP");
+				m_mainWnd->PostMessageToUI(WM_UPDATE_SYSTEM_EVENT, msg);
+			}
 		}
 		else {
 			m_connectBtn.EnableWindow(TRUE);
 			m_connectBtn.SetWindowTextW(_T("Connect to equipment"));
+			m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
+			m_ConnectionLogs.AddItem(_T("Not all hardware is ready! Please, check your equipment."));
 		}
 		KillTimer(TIMER_ALL_CHECK);
 	}

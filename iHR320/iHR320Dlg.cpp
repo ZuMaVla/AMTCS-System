@@ -89,8 +89,9 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_WM_CLOSE()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CiHR320Dlg::OnTabSelChange)
+	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
+	ON_MESSAGE(WM_UPDATE_SYSTEM_EVENT, &CiHR320Dlg::OnUpdateSystemEvent)
 	ON_MESSAGE(WM_USER_MONO_LOG_MESSAGE, &CiHR320Dlg::OnMonoLogMessage)
 	ON_MESSAGE(WM_USER_LOG_MESSAGE, &CiHR320Dlg::OnPutLog)
 END_MESSAGE_MAP()
@@ -239,17 +240,31 @@ HCURSOR CiHR320Dlg::OnQueryDragIcon()
 
 void CiHR320Dlg::OnClose()
 {
-	m_askUser.s_question = L"Are you sure you want to exit?";
-	isExitEnabled = m_askUser.DoModal() == IDOK;
+	if (!m_isNextExpRefused) {
+		m_askUser.s_question = L"Are you sure you want to exit?";
+		isExitEnabled = m_askUser.DoModal() == IDOK;
+	}
+	else {
+		isExitEnabled = TRUE;
+	}
 
 	if (CanExit()) {
-		SendTCPMessage(m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP), 5051, "EVENT __STOP__");
-		while (!m_isPLCConfirmedOff)
+		if (m_connectivityDlg.m_CheckBoxPLC.GetCheck()) 
 		{
-			Sleep(100);
+			SendTCPMessage(m_connectivityDlg.GetIPstrFromCtrl(m_connectivityDlg.m_localIP), 5051, "EVENT __STOP__");
+			while (!m_isPLCConfirmedOff)
+			{
+				MSG msg;
+				while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+				{
+					TranslateMessage(&msg);
+					DispatchMessage(&msg);
+				}
+				Sleep(50);
+			}
 		}
-
 		CDialogEx::OnClose();
+		CDialogEx::OnCancel();
 	}
 		
 }
@@ -340,6 +355,20 @@ LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
+LRESULT CiHR320Dlg::OnUpdateSystemEvent(WPARAM wParam, LPARAM lParam)
+{
+	CString* pEvent = reinterpret_cast<CString*>(lParam);
+	CString event = *pEvent;
+	if (event == _T("RECOVER_EXP")) {
+		m_connectivityDlg.CheckHardware(true);
+	}
+	else if (event == _T("CONTINUE_EXP")) {
+		m_settingsDlg.OnBnClickedStart();
+	}
+	delete pEvent;   // free the memory after using
+	return 0;
+}
+
 LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 {
 	CString* pStr = reinterpret_cast<CString*>(lParam);
@@ -366,9 +395,25 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 		}
 		else if (msg == _T("EXP_END")) {			// Message received at the end of experiment
 			log = _T("[PLC] Experiment finished. Turn off equipment or start a new experiment.");
-
 			m_flowDlg.m_ExpFLowLogs.AddItem(log);
+
+			m_settingsDlg.experimentState.experimentProgressIndex = -1;
+
+			m_askUser.s_question = _T("Your experiment has finished.\nWould you like to start a new experiment?");
+			bool isNewExp = m_askUser.DoModal() == IDOK;
+
+			if (isNewExp) {
+				m_flowDlg.m_ExpFLowLogs.RemoveAll();
+				SetExpProgress();
+				EnableExpSettDlg();						// enable Experimental Setting Dialog if everything is connected
+				DisableConnDlg();						// ... and disable Connectivity Dialog (not necessary anymore)
+			}
+			else {
+				m_isNextExpRefused = TRUE;
+				OnClose();
+			}
 		}
+
 
 		delete pStr;
 	}
@@ -973,6 +1018,11 @@ ExperimentParameters CiHR320Dlg::GetExperimentParameters()
 	return m_settingsDlg.GetExperimentParameters();
 }
 
+int CiHR320Dlg::GetExperimentProgressIndex()
+{
+	return m_settingsDlg.experimentState.experimentProgressIndex;
+}
+
 void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {
 	// Basic guard: ensure we are only posting user-defined messages
 	if (message < WM_USER) return;
@@ -985,21 +1035,26 @@ void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {
 void CiHR320Dlg::EnableExpSettDlg()
 {
 	EnableDlg(&m_settingsDlg, TRUE);
+	EnableDlg(&m_connectivityDlg, FALSE);
+	EnableDlg(&m_flowDlg, FALSE);
 }
 
 void CiHR320Dlg::EnableExpFlowDlg()
 {
 	EnableDlg(&m_flowDlg, TRUE);
+	EnableDlg(&m_connectivityDlg, FALSE);
+	EnableDlg(&m_settingsDlg, FALSE);
 }
 
 void CiHR320Dlg::DisableConnDlg()
 {
 	EnableDlg(&m_connectivityDlg, FALSE);
+	EnableDlg(&m_flowDlg, FALSE);
+
 	m_jyCCD->SetMono(m_jyMono, VARIANT_TRUE);
 	m_jyCCD->SetDefaultUnits(jyutWavelength, jyuNanometers);
 	m_jyCCD->SetDefaultUnits(jyutDataUnits, jyuCounts);
 	m_jyCCD->GetDefaultUnits(jyutWavelength, &eUnits, &vUnits);
-
 }
 
 void CiHR320Dlg::DisableExpSettDlg()
@@ -1022,7 +1077,7 @@ LRESULT CiHR320Dlg::OnMonoLogMessage(WPARAM wParam, LPARAM lParam)
 	CString* pStr = reinterpret_cast<CString*>(lParam);
 	if (pStr)
 	{
-		m_connectivityDlg.m_ConnectionLogs.AddItem(*pStr);
+		m_flowDlg.m_ExpFLowLogs.AddItem(*pStr);
 		delete pStr;
 	}
 	return 0;

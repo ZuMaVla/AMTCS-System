@@ -31,5 +31,6 @@ public:
 	CMyVSListBoxTS() {}
 	virtual ~CMyVSListBoxTS() {}
 	virtual int AddItem(const CString &strText);
+	void RemoveAll();
 protected:
 };

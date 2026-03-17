@@ -7,6 +7,7 @@
 #define WM_UPDATE_SYSTEM_STATUS (WM_APP + 1)
 #define WM_USER_MONO_LOG_MESSAGE (WM_USER + 110)
 #define WM_USER_LOG_MESSAGE (WM_USER + 111)
+#define WM_UPDATE_SYSTEM_EVENT (WM_USER + 112)
 
 class CiHR320DlgAutoProxy;
 #include <afxcmn.h>
@@ -49,11 +50,12 @@ public:
 	std::array<double, 5> GetCentresWL(int startWL, int DGRangeNo);
 	int m_availableDeviceCount;
 	void ReceivedDeviceInitialised(long status, IJYEventInfo *eventInfo);
-	void WaitForMono();
 	void ReceivedDeviceStatus(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceUpdate(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceCriticalError(long status, IJYEventInfo *eventInfo);
+	void WaitForMono();
 	ExperimentParameters GetExperimentParameters();
+	int GetExperimentProgressIndex(); 
 	void PostMessageToUI(UINT message, CString logMessage);
 	void EnableExpSettDlg();
 	void EnableExpFlowDlg();
@@ -89,6 +91,7 @@ protected:
 	CiHR320FlowDlg m_flowDlg;
 	BOOL
 		isExitEnabled = FALSE,
+		m_isNextExpRefused = FALSE,
 		CanExit();
 
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
@@ -103,6 +106,7 @@ protected:
 	virtual void OnCancel();
 	afx_msg void OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg LRESULT OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnUpdateSystemEvent(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnPutLog(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnMonoLogMessage(WPARAM wParam, LPARAM lParam);
 	void EnableDlg(CWnd * pTargetDlg, BOOL bEnable);

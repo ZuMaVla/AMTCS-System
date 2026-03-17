@@ -58,6 +58,7 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_ACQUISITION_TIME_MAX, m_maxAT);
 	DDX_Control(pDX, IDC_SAVE_FOLDER, m_workDir);
 	DDX_Control(pDX, IDC_SAMPLE_CODE, m_sampleCode);
+	DDX_Control(pDX, IDC_START, m_startExpBtn);
 }
 
 
@@ -118,7 +119,8 @@ void CiHR320SettingsDlg::OnBnClickedButtonDefaultT()
 
 void CiHR320SettingsDlg::OnBnClickedButtonValidateT()
 {
-	m_VSListBox_T.SortT(FALSE);
+	m_VSListBox_T.RemoveAll();
+	m_VSListBox_T.m_newT.SetFocus();
 }
 
 void CiHR320SettingsDlg::ExperimentConfiguration()
@@ -404,19 +406,27 @@ void CiHR320SettingsDlg::OnWorkDirChanged()
 
 void CiHR320SettingsDlg::OnBnClickedStart()
 {
-	m_VSListBox_T.SortT(FALSE);
-	if (abs(m_VSListBox_T.getLast() - m_mainWnd->m_currT) < abs(m_VSListBox_T.getFirst() - m_mainWnd->m_currT))
-	{
-		m_VSListBox_T.SortT(TRUE);
+	if (experimentState.experimentProgressIndex == -1) {
+		if (m_VSListBox_T.GetCount() > 0) {
+			m_VSListBox_T.SortT(FALSE);
+			if (abs(m_VSListBox_T.getLast() - m_mainWnd->m_currT) < abs(m_VSListBox_T.getFirst() - m_mainWnd->m_currT))
+			{
+				m_VSListBox_T.SortT(TRUE);
+			}
+			experimentState.setExpParams(CollectExperimentParameters());
+			experimentState.experimentProgressIndex = -1;
+			experimentState.experimentLength = experimentState.getExpParams().Ts.size();
+			m_mainWnd->DisableExpSettDlg();
+			m_mainWnd->EnableExpFlowDlg();
+		}
+		else {
+			AfxMessageBox(_T("At least one temperature is required to start an experiment!"));
+			return;
+		}
 	}
 	std::string msg;
-	experimentState.setExpParams(CollectExperimentParameters());
-	experimentState.experimentProgressIndex = -1;
-	experimentState.experimentLength = experimentState.getExpParams().Ts.size();
 	msg = experimentState.serialiseState();
 	std::cout << msg;
-	m_mainWnd->DisableExpSettDlg();
-	m_mainWnd->EnableExpFlowDlg();
 	if (!(SendTCPMessage(ip_PLC, port_PLC, "INIT " + msg))) {
 		AfxMessageBox(_T("Connection failed"));
 	}

@@ -128,6 +128,23 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			cmd.payload = "TC?";
 			PLC_in.push(cmd);
 		}
+		else if (event.keyword == "REQUEST" && event.payload == "EXP_STATUS?") {
+			if (pUI->GetExperimentProgressIndex() > -1) {
+				cmd.keyword = "SEND";
+				cmd.payload = "EXP_STATUS RUNNING";
+			}
+			else {
+				cmd.keyword = "SEND";
+				cmd.payload = "EXP_STATUS NOT_STARTED";
+			}
+			PLC_in.push(cmd);
+			std::cout << "PLC has been informed: " + cmd.payload + "\n";
+		}
+		else if (event.keyword == "REQUEST" && event.payload == "EXP_STATE?") {
+			CString msg = _T("RECOVER_EXP");
+			pUI->PostMessageToUI(WM_UPDATE_SYSTEM_EVENT, msg);
+		}
+
 		else if (event.keyword == "CONFIRM_OFF") {
 			pUI->m_isPLCConfirmedOff = true;
 			cmd.keyword = "OFF";

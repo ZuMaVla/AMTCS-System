@@ -64,4 +64,5 @@ public:
 
 	afx_msg void OnDGRangeNoChanged(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnSampleCodeChanged();
+	CButton m_startExpBtn;
 };

@@ -47,6 +47,8 @@ int CMyVSListBox::AddItem(const CString& strText, DWORD_PTR dwData, int iIndex)
 	int value = _ttoi(T_str);
 	T_str.Format(_T("%d"), value);
 	int index = CVSListBox::AddItem(T_str, value, iIndex);
+	m_newT.SetFocus();
+
 	return index;
 }
 
@@ -111,4 +113,13 @@ int CMyVSListBoxTS::AddItem(const CString & strText)
 	int index = CVSListBox::AddItem(l_timeStamp + strText);
 	SelectItem(index);
 	return index;
+}
+
+void CMyVSListBoxTS::RemoveAll()
+{
+	int count = GetCount();
+	for (int i = count - 1; i >= 0; --i)
+	{
+		RemoveItem(i);
+	}
 }

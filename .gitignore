@@ -20,10 +20,14 @@ iHR320_i.c
 *.log
 Debug/
 Release/
+# Python
 __pycache__/
-__pycache__/*
+__logs__/
+.api_key
+venv/
 *.pyc
-workDir.txt
 *.TMP
 *.tmp
+# Security
 Security.h
+workDir.txt
