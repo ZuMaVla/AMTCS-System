@@ -64,7 +64,7 @@ class ExperimentFlow:
             self.cycles[i].S.status = StepStatus.COMPLETED
 
     def PLC_mode(self, cycle_index: int) -> ExperimentStep | None:
-        if len(self.cycles) == cycle_index + 1:                                  # End of experiment, all steps completed
+        if len(self.cycles) <= cycle_index + 1:                                  # End of experiment, all steps completed
             return None
         step = self.cycles[cycle_index + 1].T                                    # First step of a cicle -> Go to temperature
         if step.status == StepStatus.COMPLETED:
