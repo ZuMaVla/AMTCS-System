@@ -92,7 +92,8 @@ void CiHR320ConnectivityDlg::CheckHardware(bool isExperiment)
 
 	if (!isExperiment) {
 		std::array<BOOL, 2> l_FlagSDK = m_mainWnd->ConnectMonoAndCCD();
-		std::cout << "Result: " << l_FlagSDK[0] << l_FlagSDK[1] << "\n";
+		std::cout << "[UI-APP] CCD Inited: " << (l_FlagSDK[0] == 1) << "\n";
+		std::cout << "[UI-APP] Mono Inited: " << (l_FlagSDK[1] == 1) << "\n";
 		if (l_FlagSDK[0]) {
 			m_CheckBoxCCD.SetCheck(TRUE);
 			m_CheckBoxCCD.SetWindowText(_T("Connected"));

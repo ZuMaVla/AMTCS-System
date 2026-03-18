@@ -409,6 +409,11 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 	if (!m_mainWnd->m_isExperimentStarted) {
 		if (m_VSListBox_T.GetCount() > 0) {
 			m_VSListBox_T.SortT(FALSE);
+			if (m_VSListBox_T.m_isHT) {
+				m_mainWnd->m_askUser.s_question = L"Are you sure you want add over 300K temperatures?";
+				if (m_mainWnd->m_askUser.DoModal() != IDOK)
+					return;
+			}
 			if (abs(m_VSListBox_T.getLast() - m_mainWnd->m_currT) < abs(m_VSListBox_T.getFirst() - m_mainWnd->m_currT))
 			{
 				m_VSListBox_T.SortT(TRUE);
@@ -422,10 +427,11 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 			AfxMessageBox(_T("At least one temperature is required to start an experiment!"));
 			return;
 		}
+		m_mainWnd->m_flowDlg.m_ExpFlowLogs.AddItem(_T("Experiment started..."));
 	}
 	std::string msg;
 	msg = experimentState.serialiseState();
-	std::cout << msg;
+	std::cout << "[UI-APP] Serialised experiment state: " << msg << "\n";
 	if (!(SendTCPMessage(m_mainWnd, ip_PLC, port_PLC, "INIT " + msg))) {
 		AfxMessageBox(_T("Connection failed"));
 		m_mainWnd->StopTimer(TIMER_EXP_SENT);

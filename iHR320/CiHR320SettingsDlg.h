@@ -4,6 +4,7 @@
 #include "MyVSListBox.h"
 #include "afxeditbrowsectrl.h"
 #include "ExperimentState.h"
+#include "AskUser.h"
 
 
 class CiHR320Dlg;

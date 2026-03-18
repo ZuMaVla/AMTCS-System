@@ -43,7 +43,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 		// 2. Process the event (event interpretation) 
 
 		if (event.keyword == "PONG") {												// PLC response - alive
-			std::cout << "PLC alive\n"; 
+			std::cout << "[PLC] I am alive\n"; 
 			auto* pDevice = new std::string("PLC");									// create pointer to a string containing "PLC"
 			pUI->PostMessage(
 				WM_UPDATE_SYSTEM_STATUS,
@@ -77,7 +77,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			PLC_in.push(cmd);														// Confirming success/error
 		}
 		else if (event.keyword == "TC_OK") {										// PLC response - TC alive
-			std::cout << "TC alive\n";
+			std::cout << "[PLC] TC alive\n";
 			auto* pDevice = new std::string(event.keyword);							// create pointer to a string containing device/status
 			pUI->PostMessage(
 				WM_UPDATE_SYSTEM_STATUS,
@@ -86,7 +86,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			);
 		}
 		else if (event.keyword == "TC_OFF") {										// PLC response - TC not connected
-			std::cout << "TC not responding\n";
+			std::cout << "[PLC] TC not responding\n";
 			auto* pDevice = new std::string(event.keyword);							// create pointer to a string containing device/status
 			pUI->PostMessage(
 				WM_UPDATE_SYSTEM_STATUS,
@@ -95,7 +95,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			);
 		}
 		else if (event.keyword == "TC_READY") {										// PLC response - TC ready
-			std::cout << "TC ready\n";
+			std::cout << "[PLC] TC ready\n";
 			auto* pDevice = new std::string(event.keyword);							// create pointer to a string containing device/status
 			pUI->PostMessage(
 				WM_UPDATE_SYSTEM_STATUS,
@@ -104,13 +104,13 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			);
 		}
 		else if (event.keyword == "T=") {											// Incoming current T from PLC/TC (init)
-			std::cout << "Current T: " + event.payload + " K\n";
+			std::cout << "[TC] Current T: " + event.payload + " K\n";
 			CString msg = CString(event.keyword.c_str());
 			msg += event.payload.c_str();											// Converting event to CString
 			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, msg);
 		}
-		else if (event.keyword == "STAB_T=") {										// Incoming current T from PLC/TC (exp)
-			std::cout << "Current T: " + event.payload + " K\n";
+		else if (event.keyword == "TARGET_T=") {									// Incoming target T from PLC/TC (exp)
+			std::cout << "[TC] New target: " + event.payload + " K\n";
 			CString msg = CString(event.keyword.c_str());
 			msg += event.payload.c_str();											// Converting event to CString
 			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, msg);
@@ -221,6 +221,7 @@ static void PLCListenerWorker(CiHR320Dlg *pUI, std::string ip_iHR320, int port_i
 		if (!PLC_in.empty()) {
 			Message cmd = PLC_in.pop();
 			if (cmd.keyword == "SEND") {
+				std::cout << "[UI-APP] Message to PLC: " << cmd.payload << "\n";
 				SendTCPMessage(pUI, ip_PLC, port_PLC, cmd.payload);
 			}
 			else if (cmd.keyword == "OFF") g_listenerRunning = false;
@@ -246,7 +247,7 @@ static void PLCListenerWorker(CiHR320Dlg *pUI, std::string ip_iHR320, int port_i
 			&client_len);
 
 		if (client_fd == INVALID_SOCKET) {
-			std::cerr << "accept failed: " << WSAGetLastError() << "\n";
+			std::cerr << "[TCP] accept failed: " << WSAGetLastError() << "\n";
 			continue;
 		}
 
@@ -284,7 +285,7 @@ static void PLCListenerWorker(CiHR320Dlg *pUI, std::string ip_iHR320, int port_i
 
 		PLC_out.push(evt);
 
-		std::cout << "[TCP] received: " << fullMsg << "\n";
+//		std::cout << "[PLC] " << fullMsg << "\n";
 	}
 
 	closesocket(server_fd);

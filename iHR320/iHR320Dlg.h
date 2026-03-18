@@ -90,6 +90,11 @@ public:
 		m_isExperimentStarted = FALSE,
 		CanExit();
 
+	CTabCtrl m_tab;
+	CiHR320ConnectivityDlg m_connectivityDlg;
+	CiHR320SettingsDlg m_settingsDlg;
+	CiHR320FlowDlg m_flowDlg;
+
 protected:
 	CString m_monoArray[10][2];
 	long m_gainCCD[3], m_ADCCCD[3];
@@ -108,10 +113,6 @@ protected:
 	HICON m_hIcon;
 	CiHR320DlgAutoProxy* m_pAutoProxy;
 
-	CTabCtrl m_tab;
-	CiHR320ConnectivityDlg m_connectivityDlg;
-	CiHR320SettingsDlg m_settingsDlg;
-	CiHR320FlowDlg m_flowDlg;
 
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 

@@ -398,17 +398,26 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			m_currT = _tstof(msg.Mid(2));
 			m_connectivityDlg.m_ConnectionLogs.AddItem(log);
 		}
+		else if (msg.Left(9) == _T("TARGET_T=")) {	// Temperature target
+			log = _T("[TC] New target set: ") + msg.Mid(9) + _T(" K");
+			m_flowDlg.m_ExpFlowLogs.AddItem(log);
+			log = _T("Current target => ") + msg.Mid(9) + _T(" K");
+			m_flowDlg.m_currTargetT.SetWindowTextW(log);
+		}
 		else if (msg.Left(3) == _T("CT=")) {		// Temperature at request of spectrum
 			log = _T("[TC] Target temperature reached. Current T: ") + msg.Mid(4) + _T(" K");
 			m_currT = _tstof(msg.Mid(4));
 			m_flowDlg.m_ExpFlowLogs.AddItem(log);
+			EnableDlg(&m_flowDlg, FALSE);
 		}
 		else if (msg.Left(3) == _T("SAd")) {		// Notification about spectrum acquired
 			log = _T("[iHR320] Spectrum acquisition completed; data saved.");
 
 			m_flowDlg.m_ExpFlowLogs.AddItem(log);
 			m_settingsDlg.experimentState.experimentProgressIndex++;
+			EnableDlg(&m_flowDlg, TRUE);
 			SetExpProgress();
+
 		}
 		else if (msg == _T("EXP_END")) {			// Message received at the end of experiment
 			log = _T("[PLC] Experiment finished. Turn off equipment or start a new experiment.");
@@ -847,11 +856,11 @@ void CiHR320Dlg::MonoMoveTo(double newPos)
 
 	if (SUCCEEDED(hr))
 	{
-		PostMessageToUI(WM_USER_MONO_LOG_MESSAGE, L"Mono moving to the new position..." + strTarget);
+		PostMessageToUI(WM_USER_MONO_LOG_MESSAGE, _T("[iHR320] Moving to spectral window. Centre position: ") + strTarget + _T(" nm"));
 	}
 	else
 	{
-		PostMessageToUI(WM_USER_MONO_LOG_MESSAGE, L"Failed to move Monochromator position...");
+		PostMessageToUI(WM_USER_MONO_LOG_MESSAGE, _T("Failed to move Monochromator position..."));
 	}
 
 	VARIANT_BOOL isMonoBusy = true;
@@ -861,10 +870,9 @@ void CiHR320Dlg::MonoMoveTo(double newPos)
 		Sleep(10);
 	}
 
-	PostMessageToUI(WM_USER_MONO_LOG_MESSAGE, L"Mono is at the new position: " + strTarget + L" nm");
-	
 	Sleep(1000);
 
+	PostMessageToUI(WM_USER_MONO_LOG_MESSAGE, _T("[Synapse CCD] Acquiring current spectral window data..."));
 }
 
 void CiHR320Dlg::GetSlits()
@@ -1043,7 +1051,6 @@ int CiHR320Dlg::GetExperimentProgressIndex()
 
 void CiHR320Dlg::AddNewT(int T)
 {
-	bool l_isTAdded = false;
 	int previousT;
 	if (m_settingsDlg.experimentState.experimentProgressIndex < 0) {
 		previousT = m_settingsDlg.m_VSListBox_T.GetItemData(0);
@@ -1055,27 +1062,35 @@ void CiHR320Dlg::AddNewT(int T)
 	int lastT = m_settingsDlg.m_VSListBox_T.GetItemData(m_settingsDlg.experimentState.experimentLength - 1);
 	CString strT;
 	strT.Format(_T("%d"), T);
-	
+
 	ExperimentParameters newParams = GetExperimentParameters();
 
-	if (currentT > lastT && previousT > T) {
+	if (m_settingsDlg.experimentState.experimentLength == 1) {
+		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
+	}
+	else if (currentT > lastT && previousT > T) {
 		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
 		m_settingsDlg.m_VSListBox_T.SortT(FALSE);
-		l_isTAdded = true;
 	}
 	else if (currentT < lastT && previousT < T) {
 		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
 		m_settingsDlg.m_VSListBox_T.SortT(TRUE);
-		l_isTAdded = true;
 	}
-	if (l_isTAdded) {
+	else {
+		m_flowDlg.m_ExpFlowLogs.AddItem(_T("New temperature (") + strT + _T(" K) is out of allowed range"));
+		return;
+	}
+	m_askUser.s_question.Format(_T("Are you sure you want to add an over %d K temperature?"), HT);
+	if (T <= HT || m_askUser.DoModal() == IDOK) {
 		newParams.Ts = m_settingsDlg.m_VSListBox_T.GetAllItemTs();
 		m_settingsDlg.experimentState.setExpParams(newParams);
 		m_settingsDlg.experimentState.experimentLength++;
 		m_settingsDlg.OnBnClickedStart();
 		m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature (") + strT + _T(" K) requested."));
 	}
-	else m_flowDlg.m_ExpFlowLogs.AddItem(_T("New temperature (") + strT + _T(" K) is out of allowed range"));
+	else {
+		m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature: (") + strT + _T(" K) cancelled."));
+	}
 
 
 }
@@ -1135,9 +1150,14 @@ void CiHR320Dlg::SetExpProgress()
 
 void CiHR320Dlg::RepeatPreviousT()
 {
-	m_settingsDlg.experimentState.experimentProgressIndex--;
-	EnableDlg(&m_flowDlg, FALSE);
-	m_settingsDlg.OnBnClickedStart();
+	if (m_settingsDlg.experimentState.experimentProgressIndex > -1) {
+		m_settingsDlg.experimentState.experimentProgressIndex--;
+		EnableDlg(&m_flowDlg, FALSE);
+		m_settingsDlg.OnBnClickedStart();
+	}
+	else {
+		AfxMessageBox(_T("There is no 'previous setpoint' yet!"));
+	}
 }
 
 LRESULT CiHR320Dlg::OnMonoLogMessage(WPARAM wParam, LPARAM lParam)
@@ -1176,6 +1196,11 @@ void CiHR320Dlg::StopTimer(UINT_PTR nIDEvent) {
 			m_flowDlg.m_cancelExp.EnableWindow(FALSE);
 			m_flowDlg.m_repeatPreviousTBtn.EnableWindow(FALSE);
 			m_flowDlg.m_addNewTBtn.EnableWindow(FALSE);
+		}
+		else {
+			m_flowDlg.m_cancelExp.EnableWindow(TRUE);
+			m_flowDlg.m_repeatPreviousTBtn.EnableWindow(TRUE);
+			m_flowDlg.m_addNewTBtn.EnableWindow(TRUE);
 		}
 	}
 	KillTimer(nIDEvent);

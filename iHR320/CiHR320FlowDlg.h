@@ -44,4 +44,6 @@ public:
 	afx_msg void OnClickedAddNewT();
 	afx_msg void OnKillfocusNewT();
 	CEdit m_newAddT;
+	// Stati text for current T target
+	CStatic m_currTargetT;
 };

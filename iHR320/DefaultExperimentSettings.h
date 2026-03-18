@@ -23,6 +23,7 @@ const std::vector<int> extreme_AT = {
 	50, 5000
 };
 
+const int HT = 320;					// High temperature threshold
 const int default_newT = 300;
 const int default_DG = 2;			// 600 grooves/inch by default (Grating 3)
 const int default_StartWL = 340;

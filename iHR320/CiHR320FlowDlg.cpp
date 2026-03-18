@@ -39,6 +39,7 @@ void CiHR320FlowDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CANCEL, m_cancelExp);
 	DDX_Control(pDX, IDC_ADD_T, m_addNewTBtn);
 	DDX_Control(pDX, IDC_NEW_T, m_newAddT);
+	DDX_Control(pDX, IDC_CURRENT_TARGET, m_currTargetT);
 }
 
 
@@ -53,9 +54,7 @@ END_MESSAGE_MAP()
 BOOL CiHR320FlowDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
-//	m_ExpFLowLogs.Ge
 	m_ExpFlowLogs.EnableBrowseButton(FALSE);
-	m_ExpFlowLogs.AddItem(_T("Experiment started..."));
 	
 
 	return TRUE;
@@ -95,9 +94,12 @@ void CiHR320FlowDlg::OnBnClickedPause()
 
 void CiHR320FlowDlg::OnClickedCancelExp()
 {
-	if (!(SendTCPMessage(m_mainWnd, ip_PLC, port_PLC, "CANCEL"))) {
-		AfxMessageBox(_T("Connection failed"));
-		return;
+	m_mainWnd->m_askUser.s_question = L"Are you sure you want to cancel current experiment?";
+	if (m_mainWnd->m_askUser.DoModal() == IDOK) {
+		if (!(SendTCPMessage(m_mainWnd, ip_PLC, port_PLC, "CANCEL"))) {
+			AfxMessageBox(_T("Connection failed"));
+			return;
+		}
 	}
 }
 

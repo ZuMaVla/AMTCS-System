@@ -10,7 +10,8 @@
 
 void CMyVSListBox::SortT(BOOL isAscending)
 {
-	 
+	m_isHT = false;											// reset high temperature flag
+
 	int count = GetCount();									// amount of Ts in the list
 	std::vector<int> Ts;
 	Ts.reserve(count);
@@ -30,7 +31,7 @@ void CMyVSListBox::SortT(BOOL isAscending)
 		if (t != previousT) {
 			CString s;
 			s.Format(_T("%d"), t);
-			AddItem(s, t);										// reinserting sorted Ts
+			AddItem(s, t);									// reinserting sorted Ts, HT flag restored if HT
 		}
 		previousT = t;
 	}
@@ -45,6 +46,7 @@ int CMyVSListBox::AddItem(const CString& strText, DWORD_PTR dwData, int iIndex)
 	else
 		T_str = strText;
 	int value = _ttoi(T_str);
+	if (value > HT) m_isHT = true;							// Set high temperature flag if HT detected
 	T_str.Format(_T("%d"), value);
 	int index = CVSListBox::AddItem(T_str, value, iIndex);
 	m_newT.SetFocus();
@@ -87,7 +89,6 @@ std::vector<std::string> CMyVSListBox::GetAllItemTs()
 {
 	std::vector<std::string> Ts;
 	int tCount = GetCount();
-
 	for (int i = 0; i < tCount; i++)
 	{
 		DWORD_PTR data = GetItemData(i);
