@@ -297,9 +297,12 @@ def main():
 #-----------------------Experiment flow-----------------------------------------------------------------------------------
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                     try:
-                        received_T = int(float(msg[0:4]))
+                        received_T = int(float(msg[0:4]))           
                         if next_T == str(received_T):  # Check if the received temperature matches the next_T
                             print(f"[MAIN] event: target accepted: {received_T} K")
+                            cmd = "SEND"
+                            arg = "TARGET_T= " + str(received_T)
+                            tcp_in.put((cmd, arg))      # Inform iHR320 about new T target
                             experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.REQUESTED
                     except ValueError:
                         print(f"[MAIN] event: received non-numeric temperature value: {msg}")
