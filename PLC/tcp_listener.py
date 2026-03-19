@@ -68,6 +68,7 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
 
     client = None
     is_TCP_listener_running = True
+    HBR = 0
 
     while is_TCP_listener_running:
         # ------------------------------------------------------------
@@ -125,6 +126,9 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                     case "PING":
                         out_q.put(("STATUS", "iHR320_OK"))
                         in_q.put(("SEND", "PONG"))
+                    case "ALIVE?":
+#                        out_q.put(("STATUS", "iHR320_OK"))
+                        in_q.put(("SEND", "YES"))
                     case "OFF":
                         out_q.put(("REQUEST", "REQUESTED_OFF"))
                         in_q.put(("SEND", "CONFIRM_OFF"))
