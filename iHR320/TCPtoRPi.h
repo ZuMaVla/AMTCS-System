@@ -21,6 +21,7 @@ struct Message {
 class MessageQueue{
 public: void push(const Message& msg);
 		Message pop();
+		bool popTimed(Message& out, int timeout_ms);
 		bool empty() const;
 private: mutable std::mutex m_mutex;
 		 std::condition_variable m_cv;

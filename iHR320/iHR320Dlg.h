@@ -59,6 +59,8 @@ public:
 
 	std::array<double, 5> GetCentresWL(int startWL, int DGRangeNo);
 	int m_availableDeviceCount;
+	int m_missedPLCHeartbeatCount = 0;
+	void RestartPLC();
 	void ReceivedDeviceInitialised(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceStatus(long status, IJYEventInfo *eventInfo);
 	void ReceivedDeviceUpdate(long status, IJYEventInfo *eventInfo);

@@ -13,6 +13,8 @@
 #include "JYDeviceSink.h"
 #include <string>
 #include <iostream>
+#include "Security.h"
+
 
 
 #ifdef _DEBUG
@@ -417,7 +419,14 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			m_settingsDlg.experimentState.experimentProgressIndex++;
 			EnableDlg(&m_flowDlg, TRUE);
 			SetExpProgress();
-
+		}
+		else if (msg == _T("RESET_PLC")) {			// Request to restart PLC 
+			RestartPLC();
+		}
+		else if (msg == _T("PLC_OK")) {				// Flag PLC is on (again)
+			m_flowDlg.m_ExpFlowLogs.AddItem(_T("[PLC] Ready on 192.168.50.1"));
+			m_connectivityDlg.m_CheckBoxPLC.SetCheck(TRUE);
+			m_connectivityDlg.m_CheckBoxPLC.SetWindowText(_T("Connected"));
 		}
 		else if (msg == _T("EXP_END")) {			// Message received at the end of experiment
 			log = _T("[PLC] Experiment finished. Turn off equipment or start a new experiment.");
@@ -727,6 +736,20 @@ HRESULT CiHR320Dlg::DoAcquisition(bool shutterOpen)
 	//}
 
 	return hr;
+}
+
+void CiHR320Dlg::RestartPLC()
+{
+	m_flowDlg.m_ExpFlowLogs.AddItem(_T("[UI-APP] PLC stopped responding. Restarting..."));
+	m_connectivityDlg.m_CheckBoxPLC.SetCheck(FALSE);
+	m_connectivityDlg.m_CheckBoxPLC.SetWindowText(_T("Offline"));
+	std::wcout << L"PLC is not responding; restarting it...\n";
+	const std::string command = "plink -batch -ssh pl-ple@" + ip_PLC +
+		" -pw " + RPiPwd +
+		" \"nohup python3 '/home/pl-ple/Documents/My Projects/AMTCS-System/PLC/PLC.py' > /dev/null 2>&1 &\"";
+	std::system(command.c_str());
+	Sleep(1000);
+
 }
 
 void CiHR320Dlg::ReceivedDeviceInitialised(long status, IJYEventInfo * eventInfo)

@@ -33,12 +33,13 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 	StartPLCListenerThread(pUI, localIP, port_iHR320, PLC_out, PLC_in);
 	g_logicRunning = true;
 	bool isMeasuring = false;
-	Message cmd;
+	Message cmd, event;
 	while (g_logicRunning){
 
 		// 1. Wait for next PLC event (blocking) 
-		Message event = PLC_out.pop();
-
+		// event = PLC_out.pop();
+		event = {"", ""};
+		PLC_out.popTimed(event, HBRate*1000);
 
 		// 2. Process the event (event interpretation) 
 
@@ -138,6 +139,8 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			PLC_in.push(cmd);
 		}
 		else if (event.keyword == "REQUEST" && event.payload == "EXP_STATUS?") {
+			pUI->m_missedPLCHeartbeatCount = 0;
+			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, _T("PLC_OK"));
 			if (pUI->m_isExperimentStarted) {
 				cmd.keyword = "SEND";
 				cmd.payload = "EXP_STATUS RUNNING";
@@ -172,6 +175,25 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			std::cout << "Experiment finished\n";
 			CString msg = _T("EXP_END");
 			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, msg);
+		}
+		else if (event.keyword == "YES") {
+			pUI->m_missedPLCHeartbeatCount = 0;
+			if (pUI->m_connectivityDlg.m_CheckBoxPLC.GetCheck()) {
+				cmd.keyword = "SEND";
+				cmd.payload = "ALIVE?";
+				PLC_in.push(cmd);
+			}
+		}
+		else if (event.keyword == "") {
+			if (pUI->m_connectivityDlg.m_CheckBoxPLC.GetCheck()) {
+				cmd.keyword = "SEND";
+				cmd.payload = "ALIVE?";
+				PLC_in.push(cmd);
+				pUI->m_missedPLCHeartbeatCount++;
+				if (pUI->m_missedPLCHeartbeatCount >= 3) {
+					pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, _T("RESET_PLC"));
+				}
+			}
 		}
 	}
 }
@@ -212,7 +234,8 @@ static void PLCListenerWorker(CiHR320Dlg *pUI, std::string ip_iHR320, int port_i
 	g_listenerRunning = true;
 
 	SOCKET server_fd = StartTCPListener(ip_iHR320, port_iHR320);
-	
+	int HBRCount = 0;
+
 	// MAIN LOOP (fire-and-forget style communication)
 
 	while (g_listenerRunning)
@@ -283,9 +306,7 @@ static void PLCListenerWorker(CiHR320Dlg *pUI, std::string ip_iHR320, int port_i
 			evt.payload = fullMsg.substr(pos + 1);
 		}
 
-		PLC_out.push(evt);
-
-//		std::cout << "[PLC] " << fullMsg << "\n";
+		if (evt.keyword != "YES" || pUI->m_missedPLCHeartbeatCount > 1) PLC_out.push(evt);
 	}
 
 	closesocket(server_fd);
@@ -334,6 +355,18 @@ Message MessageQueue::pop()
 	Message msg = m_queue.front();
 	m_queue.pop();
 	return msg;
+}
+
+bool MessageQueue::popTimed(Message & out, int timeout_ms)
+{
+	std::unique_lock<std::mutex> lock(m_mutex);
+	if (!m_cv.wait_for(lock, std::chrono::milliseconds(timeout_ms), [this] { return !m_queue.empty(); })) // wait until queue is not empty or timeout expire
+	{
+		return false; // Timeout occured, mo message available
+	}
+	out = m_queue.front();
+	m_queue.pop();
+	return true;
 }
 
 bool MessageQueue::empty() const
