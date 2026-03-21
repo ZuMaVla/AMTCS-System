@@ -18,6 +18,7 @@
 #define TIMER_PLC_STOP 104
 #define TIMER_EXP_PAUSE_CONTINUE 105
 #define TIMER_EXP_CANCEL 106
+#define TIMER_EXP_REQUESTED_BY_UI 107
 
 class CiHR320DlgAutoProxy;
 #include <afxcmn.h>
@@ -29,7 +30,6 @@ class CiHR320DlgAutoProxy;
 
 // forward declarations
 class CJYDeviceSink; 
-
 
 
 struct CCDThreadData {							// CCD data container for export
@@ -54,8 +54,10 @@ public:
 // 
 	CAskUser m_askUser;
 	CCDThreadData currentData;
+	std::string jsonState = "";
 	std::string GetLocalIP();
 	CString GetCurrentDir();
+	void SelectTab(int index);
 
 	std::array<double, 5> GetCentresWL(int startWL, int DGRangeNo);
 	int m_availableDeviceCount;

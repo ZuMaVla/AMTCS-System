@@ -437,6 +437,9 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 		m_mainWnd->StopTimer(TIMER_EXP_SENT);
 	}
 	m_mainWnd->DisableExpSettDlg();
+	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);				// prevent system from sleeping
+	Sleep(2000);
+	m_mainWnd->SelectTab(2);
 }
 
 

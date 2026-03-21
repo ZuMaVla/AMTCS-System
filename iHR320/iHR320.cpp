@@ -15,6 +15,8 @@
 #define new DEBUG_NEW
 #endif
 
+bool g_isPLCOnAtStart = false;
+
 
 // CiHR320App
 
@@ -91,6 +93,7 @@ BOOL CiHR320App::InitInstance()
 			std::system(command.c_str());
 			Sleep(1000);
 		}
+		else g_isPLCOnAtStart = true;
 	}
 
 	// Initialize OLE libraries

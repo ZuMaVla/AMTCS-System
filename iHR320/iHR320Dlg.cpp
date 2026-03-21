@@ -309,7 +309,14 @@ void CiHR320Dlg::OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult)
 	case 2: m_flowDlg.ShowWindow(SW_SHOW); break;
 	}
 
-	*pResult = 0;
+	if (pResult)
+		*pResult = 0;
+}
+
+void CiHR320Dlg::SelectTab(int index)
+{
+	m_tab.SetCurSel(index);
+	OnTabSelChange(nullptr, nullptr);
 }
 
 std::string CiHR320Dlg::GetLocalIP() {
@@ -428,6 +435,26 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			m_connectivityDlg.m_CheckBoxPLC.SetCheck(TRUE);
 			m_connectivityDlg.m_CheckBoxPLC.SetWindowText(_T("Connected"));
 		}
+		else if (msg == _T("EXP_NONE")) {			// No running experiment on PLC
+			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[PLC] No active experiment. Ready to accept one."));
+			Sleep(2000);
+			SelectTab(1);
+		}
+		else if (msg == _T("EXP_ON")) {				// Experiment state from PLC received
+			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[PLC] An experiment is running. Sharing details..."));
+			m_settingsDlg.experimentState.importJSONString(jsonState);
+			m_settingsDlg.experimentState.deserialiseState();
+			m_settingsDlg.SetExperimentParameters();
+			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[UI-APP] Experiment restored. Switch to Experiment flow tab."));
+
+			DisableExpSettDlg();
+			DisableConnDlg();
+			EnableExpFlowDlg();
+			SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);				// prevent system from sleeping
+			Sleep(2000);
+			SelectTab(2);
+			m_flowDlg.m_ExpFlowLogs.AddItem(_T("[UI-APP] Experiment successfully restored and currently paused."));
+		}
 		else if (msg == _T("EXP_END")) {			// Message received at the end of experiment
 			log = _T("[PLC] Experiment finished. Turn off equipment or start a new experiment.");
 			m_flowDlg.m_ExpFlowLogs.AddItem(log);
@@ -443,11 +470,13 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 				SetExpProgress();
 				EnableExpSettDlg();						// enable Experimental Setting Dialog if everything is connected
 				DisableConnDlg();						// ... and disable Connectivity Dialog (not necessary anymore)
+				SelectTab(1);							// Swith to Experiment settings Tab
 			}
 			else {
 				m_isNextExpRefused = TRUE;
 				OnClose();
 			}
+			SetThreadExecutionState(ES_CONTINUOUS);		// normal system behaviour restored
 		}
 
 
@@ -572,7 +601,6 @@ std::array<BOOL, 2> CiHR320Dlg::ConnectMonoAndCCD()
 
 	result[0] = ConnectAndInitCCD();
 	result[1] = ConnectAndInitMono();
-
 	return result;
 }
 
@@ -803,6 +831,7 @@ void CiHR320Dlg::ReceivedDeviceInitialised(long status, IJYEventInfo * eventInfo
 		GetGratings();
 		SetMirror();
 		m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[iHR320] Initialised"));
+
 	}
 
 	UpdateData(FALSE);
@@ -1230,6 +1259,7 @@ void CiHR320Dlg::StopTimer(UINT_PTR nIDEvent) {
 }
 
 void CiHR320Dlg::OnTimer(UINT_PTR nIDEvent) {
+
 	if (nIDEvent == TIMER_PLC_CHECK) {
 		m_connectivityDlg.m_CheckBoxPLC.SetCheck(FALSE);
 		m_connectivityDlg.m_CheckBoxPLC.SetWindowText(_T("Not Responsive"));
@@ -1237,17 +1267,38 @@ void CiHR320Dlg::OnTimer(UINT_PTR nIDEvent) {
 		KillTimer(nIDEvent);
 	}
 	else if (nIDEvent == TIMER_ALL_CHECK) {
-		if (m_isMonoInitialised) WaitForMono();
 		if (m_availableDeviceCount >= 4) {
 			if (GetExperimentProgressIndex() == -1) {
 				EnableExpSettDlg();						// enable Experimental Setting Dialog if everything is connected
 				DisableConnDlg();						// ... and disable Connectivity Dialog (not necessary anymore)
 				m_connectivityDlg.m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
-				m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Hardware is ready. Please switch to Experiment Settings Tab."));
+				if (g_isPLCOnAtStart) {
+					m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Hardware is ready. Please wait for experiment status on PLC..."));
+				}
+				else {
+					m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Hardware is ready. Please switch to Experiment Settings Tab."));
+				}
+				m_connectivityDlg.m_ConnectionLogs.Invalidate();
+				m_connectivityDlg.m_ConnectionLogs.UpdateWindow();
 			}
 			else {
 				CString msg = _T("CONTINUE_EXP");
 				PostMessageToUI(WM_UPDATE_SYSTEM_EVENT, msg);
+			}
+			if (g_isPLCOnAtStart) {
+				if (!(SendTCPMessage(this, ip_PLC, port_PLC, "EXPERIMENT?"))) {
+					AfxMessageBox(_T("TCP connection failed: experiment status could not be requested."));
+					StopTimer(TIMER_EXP_REQUESTED_BY_UI);
+					Sleep(2000);
+					SelectTab(1);
+				}
+				else {
+					m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Experiment state requested. Waiting for PLC response..."));
+				}
+			}
+			else {
+				Sleep(2000);
+				SelectTab(1);
 			}
 		}
 		else {
@@ -1255,6 +1306,8 @@ void CiHR320Dlg::OnTimer(UINT_PTR nIDEvent) {
 			m_connectivityDlg.m_connectBtn.SetWindowTextW(_T("Connect to equipment"));
 			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("-------------------------------------------------"));
 			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Not all hardware is ready! Please, check your equipment."));
+			m_connectivityDlg.m_ConnectionLogs.Invalidate();
+			m_connectivityDlg.m_ConnectionLogs.UpdateWindow();
 		}
 		KillTimer(nIDEvent);
 	}

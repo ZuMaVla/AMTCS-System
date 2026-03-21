@@ -39,6 +39,7 @@ public:
 														// even if signal is low)
 	CExperimentState experimentState;					// Experiment State (The State 8))
 	ExperimentParameters GetExperimentParameters();
+	void SetExperimentParameters();						// Set expirement parameters from the State (e.g., after a program crash)
 protected:
 	CiHR320Dlg* m_mainWnd;
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -54,7 +55,6 @@ protected:
 	afx_msg void OnWorkDirChanged();
 	void ExperimentConfiguration();
 	ExperimentParameters CollectExperimentParameters();	// Returns user defined/amended experiment parameters (e.g., before experiment start)
-	void SetExperimentParameters();						// Set expirement parameters from the State (e.g., after a program crash)
 
 	DECLARE_MESSAGE_MAP()
 public:
