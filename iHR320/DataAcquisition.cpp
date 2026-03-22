@@ -5,6 +5,7 @@
 #include "JYDeviceSink.h"
 #include <fstream>
 #include <string>
+#include <iostream>
 
 std::vector<long> CollectData(CiHR320Dlg* pUI) {
 	std::vector<long> l_pixelData;
@@ -50,7 +51,57 @@ std::vector<double> CalculateData(const std::vector<std::vector<long>> &data, co
 	return l_averagedData;
 }
 
+double SkippedAvg(const std::vector<long> &data1D, int skippedIndex = -1) {
+	size_t numAccums = data1D.size();
+	if (numAccums < 2 && skippedIndex != -1) {
+		return SkippedAvg(data1D);						// Downgrade to standard average
+	}
+
+	double avg = 0.0;
+	for (size_t r = 0; r < numAccums; r++) {
+		if (r != skippedIndex) avg += data1D[r];
+	}
+	if (skippedIndex == -1 || skippedIndex >= numAccums) avg /= numAccums;
+	else avg = avg/(numAccums - 1);
+
+	return avg;
+}
+
+std::vector<long> Repair1D(std::vector<long> data1D) {
+	size_t numAccums = data1D.size();
+	double avg = SkippedAvg(data1D);
+	int CRIndex = -1;
+	for (size_t r = 0; r < numAccums; r++) {
+		if (abs(data1D[r] - avg) / max(avg, 320) > 0.2) {
+			CRIndex = r;
+		}
+	}
+	if (CRIndex != -1) {
+		std::cout << "Cosmic ray pixel detected.\n";
+		avg = SkippedAvg(data1D, CRIndex);
+		data1D[CRIndex] = static_cast<long>(round(avg));
+		return Repair1D(data1D);
+	}
+	else { return data1D; }
+}
+
 std::vector<std::vector<long>> RepareData(std::vector<std::vector<long>> data) {
+	size_t numPixels = data[0].size();
+	size_t numAccums = data.size();
+	if (numAccums < 3) { return data; }
+	std::vector<long> column(numAccums), repairedColumn(numAccums);
+
+	for (size_t c = 0; c < numPixels; c++)
+	{
+		for (size_t r = 0; r < numAccums; r++) {
+			column[r] = data[r][c];
+		}
+		repairedColumn = Repair1D(column);
+		for (size_t r = 0; r < numAccums; r++) {
+			data[r][c] = repairedColumn[r];
+		}
+	}
+	std::cout << "Repaired for cosmic rays. \n";
 	return data;
 }
 
