@@ -62,6 +62,8 @@ class ExperimentFlow:
         for i in range(cycle_index + 1):        
             self.cycles[i].T.status = StepStatus.COMPLETED
             self.cycles[i].S.status = StepStatus.COMPLETED
+        self.cycles[cycle_index + 1].T.status = StepStatus.WAITING
+        self.cycles[cycle_index + 1].S.status = StepStatus.WAITING
 
     def PLC_mode(self, cycle_index: int) -> ExperimentStep | None:
         if len(self.cycles) <= cycle_index + 1:                                  # End of experiment, all steps completed

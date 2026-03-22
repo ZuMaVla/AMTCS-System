@@ -71,7 +71,10 @@ def main():
     is_main_logic_running = True
     wait_for_event = True
     is_experiment = False
+    is_experiment_suspended = False
     is_paused = False
+    spectum_requested = False
+
     tcp_out.put(("REQUEST", "EXP_STATUS"))                  # Task to itself: Request the experiment status
 
     # Main event loop
@@ -91,7 +94,10 @@ def main():
                 print(f"[MAIN] No more steps to process")
                 tcp_in.put(("SEND", "EXPERIMENT_FINISHED"))
 
-            PLC_mode = experiment_state.experimentFlow.PLC_mode(completed_cycle)
+            if not is_experiment_suspended:
+                PLC_mode = experiment_state.experimentFlow.PLC_mode(completed_cycle)
+            else:
+                PLC_mode = None
 
             match PLC_mode:
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
@@ -114,11 +120,11 @@ def main():
                             ser_in.put(("SIMULATE", str(simulated_T_TC)))       # Trigger the temperature simulation
                     else:
                         print(f"[MAIN] Waiting for temperature ")    
-
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.WAITING):
                     print(f"[MAIN] Requesting spectrum step")
-                    tcp_in.put(("SEND", "ACQUIRE_SPECTRUM " + next_T))
-                    experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.REQUESTED
+                    if not spectum_requested:
+                        tcp_in.put(("SEND", "ACQUIRE_SPECTRUM " + next_T))
+                        spectum_requested = True
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.REQUESTED):
                     print(f"[MAIN] Waiting for spectrum being measured")
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.COMPLETED):
@@ -136,16 +142,24 @@ def main():
                 (keyword, payload) = tcp_out.get_nowait()
             print(f"[MAIN] TCP event: {keyword}: {payload}")
             match (keyword, payload):
-                case (("STATUS", "iHR320_OK")):
-                    print(f"[MAIN] event: iHR320 is OK")
+                case (("iHR320", "PING")):
+                    print(f"[MAIN] event: fresh instance of iHR320 is detected")
+                    if is_experiment:
+                        is_paused = True
+                    is_experiment_suspended = True
                     wait_for_event = False              # Turn of waiting while in initialisation
-                case (("REQUEST", "TC_STATUS")):
+                case (("STATUS", "iHR320_ERROR")):
+                    if is_experiment:
+                        wait_for_event = True 
+                        is_paused = True
+                    print(f"[MAIN] event: UI App stayed silent for too long. Check it.")
+                case (("IHR320", "TC_STATUS")):
                     print("[MAIN] event: TC status requested...")
                     cmd = "TC_STATUS"
                     arg = ""
                     ser_in.put((cmd, arg))
                     timer_TC = Timer(10, report_TC_off, args=(tcp_in,))
-                    timer_TC.start()                    # After 5 sec, report TC status "not responsive"
+                    timer_TC.start()                    # After 10 sec, report TC status "not responsive"
                 case (("REQUEST", "EXP_STATUS")):
                     print("[MAIN] event: Experiment status requested...")
                     cmd = "SEND"
@@ -153,19 +167,30 @@ def main():
                     tcp_in.put((cmd, arg))
                     timer_exp_status = Timer(10, report_no_exp)
                     timer_exp_status.start()            # After 10 sec, report TC status "not responsive"
-                case (("REQUEST", "USER_CANCEL")):
+                case (("IHR320", "EXP_STATE?")):
+                    print("[MAIN] event: Experiment state requested by UI App...") 
+                    if is_experiment:
+                        cmd = "SEND"
+                        arg = "EXP: " + experiment_state.serialise()
+                        tcp_in.put((cmd, arg))
+                        experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.WAITING
+                    else:
+                        cmd = "SEND"
+                        arg = "EXP_NONE"
+                        tcp_in.put((cmd, arg))
+                case (("IHR320", "USER_CANCEL")):
                     print("[MAIN] event: Experiment has been cancelled by user...") 
                     # Artificially ending experiment
                     experiment_state.experimentProgressIndex = experiment_state.experimentLength
-                case (("REQUEST", "USER_PAUSE")):
+                case (("IHR320", "USER_PAUSE")):
                     print("[MAIN] event: Experiment has been paused by user...")
                     wait_for_event = True
                     is_paused = True
-                case (("REQUEST", "USER_CONTINUE")):
+                case (("IHR320", "USER_CONTINUE")):
                     print("[MAIN] event: Experiment has been resumed by user...")
                     wait_for_event = False
                     is_paused = False
-                case (("REQUEST", "REQUESTED_OFF")):
+                case (("IHR320", "REQUESTED_OFF")):
                     print("[MAIN] event: requested to stop PLC")
                     cmd = "OFF"
                     arg = ""
@@ -178,16 +203,19 @@ def main():
                     timer_exp_status.cancel()
                     is_experiment = False
                     wait_for_event = True
-
                 case (("EXP_STATUS", "RUNNING")):
                     print("[MAIN] event: Experiment already running... Requesting experiment state")
                     timer_exp_status.cancel()
                     cmd = "SEND"
                     arg = "REQUEST EXP_STATE?"
                     tcp_in.put((cmd, arg))
-
                 case (("AFFIRMATIVE", "SPECTRUM_REQUESTED")):
+                    experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.REQUESTED
                     print(f"[MAIN] event: spectrum requested")
+                case (("ERROR", "SPECTRUM_REQUESTED")):
+                    experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.WAITING
+                    print(f"[MAIN] event: spectrum request failed. Check UI App.")
+                    is_paused = True
                 case (("REPORT", "SPECTRUM_ACQUIRED")):
                     experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.COMPLETED
                     print(f"[MAIN] event: spectrum acquired")    
@@ -287,6 +315,7 @@ def main():
                                 tcp_in.put((cmd, arg))      # Updating TC status to "ready" for iHR320
                                 preExpStatus = InitStep.ID
                                 wait_for_event = True       # Turn on waiting upon end of initialisation
+                                is_experiment_suspended = False
                             else:
                                 cmd = "CONTROL_ON"
                                 arg = ""
@@ -297,8 +326,9 @@ def main():
 #-----------------------Experiment flow-----------------------------------------------------------------------------------
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                     try:
+                        spectum_requested = False       # Flag spectrum not requested at the start of a new cycle
                         received_T = int(float(msg[0:4]))           
-                        if next_T == str(received_T):  # Check if the received temperature matches the next_T
+                        if next_T == str(received_T):   # Check if the received temperature matches the next_T
                             print(f"[MAIN] event: target accepted: {received_T} K")
                             cmd = "SEND"
                             arg = "TARGET_T= " + str(received_T)
@@ -322,6 +352,7 @@ def main():
                         print(f"[MAIN] event: received non-numeric temperature value: {msg}")  
                     if T_stabilisation_mins >= 2:  # If the temperature has been stable for 3 consecutive checks (approximately 2 minutes), consider it stabilized
                         experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED
+                        experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.WAITING
                         print(f"[MAIN] event: temperature reached")
                         
         # Periodic tasks or routing logic here
