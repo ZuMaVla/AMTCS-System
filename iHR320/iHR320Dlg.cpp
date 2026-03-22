@@ -442,15 +442,24 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 		}
 		else if (msg == _T("EXP_ON")) {				// Experiment state from PLC received
 			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[PLC] An experiment is running. Sharing details..."));
+			std::cout << "RAW JSON RECEIVED (size=" << jsonState.size() << "):\n";
+			for (unsigned char c : jsonState) {
+				if (std::isprint(c))
+					std::cout << c;
+				else
+					std::cout << "\\x" << std::hex << (int)c << std::dec;
+			}
+			std::cout << "\n";
 			m_settingsDlg.experimentState.importJSONString(jsonState);
 			m_settingsDlg.experimentState.deserialiseState();
 			m_settingsDlg.SetExperimentParameters();
 			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[UI-APP] Experiment restored. Switch to Experiment flow tab."));
-
+			m_isExperimentStarted = TRUE;
 			DisableExpSettDlg();
 			DisableConnDlg();
 			EnableExpFlowDlg();
 			SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);				// prevent system from sleeping
+			m_flowDlg.m_pauseResumeBtn.SetWindowTextW(_T("Continue"));
 			Sleep(2000);
 			SelectTab(2);
 			m_flowDlg.m_ExpFlowLogs.AddItem(_T("[UI-APP] Experiment successfully restored and currently paused."));

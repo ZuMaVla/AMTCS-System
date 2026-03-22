@@ -73,25 +73,32 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 		else if (event.keyword == "EXP:") {											// PLC sent experiment state				
 			pUI->jsonState = event.payload;
 			Sleep(100);
-			std::cout << "[PLC] Exp State: " << event.payload;
+			std::cout << "[PLC] Exp State: " << event.payload << "\n";
 			pUI->PostMessageToUI(
 				WM_USER_LOG_MESSAGE, _T("EXP_ON"));									// Message to main window to pass exp state
 		}
 		else if (event.keyword == "ACQUIRE_SPECTRUM") {								// Spectrum acquisition requested				
-			SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, 2);			// turn off monitors
-			cmd.keyword = "SEND";
-			cmd.payload = "AFFIRMATIVE";			
-			PLC_in.push(cmd); 														// Confirming request
-			CString msg = CString(event.payload.c_str());
-			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"CT= " + msg);				// Current temperature + T itself (msg)
-			Sleep(10000);															// To let monitors to turn of completely
-			if (TakeSpectrum(pUI, msg)) { 
-				cmd.payload = "DONE";
-				pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"SAd");					// Spectrum acquired (SAd)
+			if (pUI->m_isExperimentStarted) {
+				SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, 2);			// turn off monitors
+				cmd.keyword = "SEND";
+				cmd.payload = "AFFIRMATIVE";
+				PLC_in.push(cmd); 														// Confirming request
+				CString msg = CString(event.payload.c_str());
+				pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"CT= " + msg);				// Current temperature + T itself (msg)
+				Sleep(10000);															// To let monitors to turn of completely
+				if (TakeSpectrum(pUI, msg)) {
+					cmd.payload = "DONE";
+					pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"SAd");					// Spectrum acquired (SAd)
+				}
+				else { cmd.payload = "ERROR_SPECTRUM"; }
+				PLC_in.push(cmd);														// Confirming success/error
+				SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, -1);		// turn monitors back
 			}
-			else { cmd.payload = "ERROR"; }
-			PLC_in.push(cmd);														// Confirming success/error
-			SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, -1);		// turn monitors back
+			else {
+				cmd.keyword = "SEND";
+				cmd.payload = "ERROR_SPECTRUM";
+				PLC_in.push(cmd); 														// Confirming request
+			}
 		}
 		else if (event.keyword == "TC_OK") {										// PLC response - TC alive
 			std::cout << "[PLC] TC alive\n";
