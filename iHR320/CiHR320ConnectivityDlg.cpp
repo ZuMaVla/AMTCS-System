@@ -154,6 +154,9 @@ void CiHR320ConnectivityDlg::UpdateSystemStatusUI(std::string device) {
 		m_CheckBoxTC.SetCheck(TRUE);
 		m_CheckBoxTC.SetWindowText(_T("Ready"));
 		m_mainWnd->m_availableDeviceCount++;
+		m_ConnectionLogs.Invalidate();
+		m_ConnectionLogs.UpdateWindow();
+		if (m_mainWnd->m_isMonoInitialised) m_mainWnd->WaitForMono();
 	}
 	m_mainWnd->StopTimer(TIMER_ALL_CHECK);
 	m_mainWnd->StartTimer(TIMER_ALL_CHECK, 15);

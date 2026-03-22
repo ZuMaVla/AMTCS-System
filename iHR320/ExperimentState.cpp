@@ -1,5 +1,6 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "ExperimentState.h"
+#include <iostream>
 
 
 CExperimentState::CExperimentState()
@@ -11,19 +12,36 @@ CExperimentState::~CExperimentState()
 {
 }
 
+#include <iostream>
+#include <iomanip>   // for std::hex, std::dec
+#include <cctype>    // for std::isprint
+
 void CExperimentState::importJSONString(const std::string& jsonString)
 {
-	nlohmann::json j;
+	// Raw bytes exactly as received
+	std::cout << "RAW JSON RECEIVED (size=" << jsonString.size() << "):\n";
+
+	for (unsigned char c : jsonString)
+	{
+		if (std::isprint(c))
+			std::cout << c;
+		else
+			std::cout << "\\x" << std::hex << std::setw(2) << std::setfill('0') << (int)c << std::dec;
+	}
+
+	std::cout << "\n";
+
 	try
 	{
-		auto j = nlohmann::json::parse(jsonString);
+		jsonState = nlohmann::json::parse(jsonString);
+		std::cout << "PARSED TYPE: " << jsonState.type_name() << "\n";
 	}
-	catch (nlohmann::json::exception& e)
+	catch (const nlohmann::json::exception& e)
 	{
-		OutputDebugStringA(e.what());
+		std::cout << "JSON PARSE ERROR: " << e.what() << "\n";
 	}
-	jsonState = j;
 }
+
 
 std::string CExperimentState::serialiseState()
 {

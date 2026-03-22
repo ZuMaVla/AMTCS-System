@@ -13,6 +13,7 @@
 #include <atlbase.h>
 #include <atlcom.h>
 
+extern bool g_isPLCOnAtStart;
 
 
 // CiHR320App:

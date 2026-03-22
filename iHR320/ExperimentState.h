@@ -16,8 +16,18 @@ struct ExperimentParameters {
 	bool isCRRemoval = default_isCRRemoval;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ExperimentParameters,
-	sampleCode, Ts, StartWL, DG, DGRangeNo, NA, slits, maxAT, isCRRemoval)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+	ExperimentParameters,
+	sampleCode,
+	Ts, 
+	StartWL,
+	DG, 
+	DGRangeNo,
+	NA, 
+	slits,
+	maxAT,
+	isCRRemoval
+)
 
 class CExperimentState
 {
@@ -36,6 +46,14 @@ public:
 protected:
 	ExperimentParameters experimentParameters;
 	nlohmann::json jsonState;
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+		CExperimentState,
+		experimentParameters,
+		experimentProgressIndex,
+		experimentLength
+	)
 };
+
+
 
 
