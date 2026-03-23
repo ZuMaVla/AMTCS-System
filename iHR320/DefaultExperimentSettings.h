@@ -36,4 +36,4 @@ const std::vector<std::string> default_Ts = {
 const bool default_isCRRemoval = TRUE;
 const int default_Slits = 0;
 
-const int HBRate = 60;
+const int HBRate = 60;				// in seconds

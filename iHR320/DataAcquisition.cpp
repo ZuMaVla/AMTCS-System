@@ -190,3 +190,19 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 
 	return SaveData(fullX, fullData, path,  sampleCode, T);
 }
+
+
+
+AcquisitionParameters::AcquisitionParameters()
+{
+}
+
+
+AcquisitionParameters::~AcquisitionParameters()
+{
+}
+
+AcqParams AcquisitionParameters::AdjustAcqParam(AcqParams oldAcqParams, double factor)
+{
+	return oldAcqParams;
+}
