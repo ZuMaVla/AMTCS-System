@@ -20,16 +20,18 @@
 #define TIMER_EXP_CANCEL 106
 #define TIMER_EXP_REQUESTED_BY_UI 107
 
-class CiHR320DlgAutoProxy;
+
 #include <afxcmn.h>
 #include "CiHR320ConnectivityDlg.h"
 #include "CiHR320SettingsDlg.h"
 #include "CiHR320FlowDlg.h"
 #include "AskUser.h"
 #include "Resource.h"
+#include "DataAcquisition.h"
 
 // forward declarations
 class CJYDeviceSink; 
+class CiHR320DlgAutoProxy;
 
 
 struct CCDThreadData {							// CCD data container for export
@@ -81,6 +83,7 @@ public:
 	bool m_isPLCConfirmedOff = false;
 	bool m_isMonoInitialised;
 	double m_currT = 294.0;
+	AcquisitionParameters acqParams;
 
 	void StartTimer(UINT_PTR nIDEvent, int _sec);
 	void StopTimer(UINT_PTR nIDEvent);
