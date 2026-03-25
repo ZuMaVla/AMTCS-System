@@ -137,7 +137,7 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                         if timer_UI:
                             timer_UI.cancel()
                         print(f"[TCP] event: UI App is OK.")
-                        timer_UI = Timer(10, report_UI_off, args=(out_q,))
+                        timer_UI = Timer(300, report_UI_off, args=(out_q,))
                         timer_UI.start()                    # After 10 sec, report UI problem
                     case "EXPERIMENT?":
                         out_q.put(("IHR320", "EXP_STATE?"))                             # UI app requests experiment state   
