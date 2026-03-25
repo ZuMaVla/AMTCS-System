@@ -2,10 +2,6 @@
 class CiHR320Dlg;
 struct ExperimentParameters;
 
-struct AcqParams {
-	int slits = default_Slits;
-	int AT = default_MaxAT;
-};
 
 bool TakeSpectrum(CiHR320Dlg* pUI, CString T);
 
@@ -14,7 +10,8 @@ class AcquisitionParameters
 public:
 	AcquisitionParameters();
 	~AcquisitionParameters();
-	AcqParams currAcqParams;
+	int slits = -1;			// Indication of not yet initialised value
+	int AT = -1;			// Indication of not yet initialised value
 	int paramCount = 0;
-	AcqParams AdjustAcqParam(AcqParams oldAcqParams, double factor);
+	bool AdjustAcqParam(int maxAT, int maxSlits, double factor);
 };
