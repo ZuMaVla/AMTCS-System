@@ -74,7 +74,7 @@ BOOL CiHR320App::InitInstance()
 
 	CWinApp::InitInstance();
 
-	AllocConsole();
+	AllocConsole();					// Console for debugging
 	FILE* fp;
 	freopen_s(&fp, "CONOUT$", "w", stdout);
 	freopen_s(&fp, "CONOUT$", "w", stderr);
@@ -87,6 +87,7 @@ BOOL CiHR320App::InitInstance()
 	else {
 		if (!isPLCRunning("PLC.py")) {
 			std::wcout << L"PLC is not running; starting it...\n";
+			// Start PLC
 			const std::string command = "plink -batch -ssh pl-ple@" + ip_PLC + 
 				" -pw " + RPiPwd +
 				" \"nohup python3 '/home/pl-ple/Documents/My Projects/AMTCS-System/PLC/PLC.py' > /dev/null 2>&1 &\"";
@@ -152,7 +153,6 @@ BOOL CiHR320App::InitInstance()
 			return FALSE;
 	}
 
-
 	// Winsock init
 
 	WSADATA wsa;
@@ -163,12 +163,9 @@ BOOL CiHR320App::InitInstance()
 	CiHR320Dlg dlg;
 	m_pMainWnd = &dlg;
 
-	dlg.DoModal();
+	dlg.DoModal();							// creats the window
 
 	StopMainLogicThread();					// Stopping communication with PLC 
-
-
-	
 
 	WSACleanup();							// WSA cleanup
 
@@ -208,7 +205,7 @@ BOOL CiHR320App::InitATL()
 		return TRUE;
 
 	// Match the vendor example first:
-	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+	HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);		// STA single threaded apartment
 
 	if (hr == RPC_E_CHANGED_MODE)
 	{

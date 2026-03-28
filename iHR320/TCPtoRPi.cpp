@@ -83,7 +83,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 				cmd.keyword = "SEND";
 				cmd.payload = "AFFIRMATIVE";
 				PLC_in.push(cmd); 														// Confirming request
-				CString msg = CString(event.payload.c_str());
+				msg = CString(event.payload.c_str());
 				pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"CT= " + msg);				// Current temperature + T itself (msg)
 				Sleep(10000);															// To let monitors to turn of completely
 				if (TakeSpectrum(pUI, msg)) {

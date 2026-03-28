@@ -288,7 +288,7 @@ void CiHR320SettingsDlg::OnSlitsChanged()
 		m_Slits.SetFocus();
 		return;
 	}
-	m_mainWnd->SetSlits(value/1000.0);
+	m_mainWnd->SetSlits(value/1000.0);		// Convert µm (UI) -> mm (CCD)
 	temp.slits = value;
 	experimentState.setExpParams(temp);
 }

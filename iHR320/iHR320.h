@@ -15,10 +15,7 @@
 
 extern bool g_isPLCOnAtStart;
 
-
 // CiHR320App:
-// See iHR320.cpp for the implementation of this class
-//
 
 class CiHR320App : public CWinApp
 {

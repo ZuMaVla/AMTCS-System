@@ -71,6 +71,7 @@ public:
 	void ReceivedDeviceCriticalError(long status, IJYEventInfo *eventInfo);
 	void WaitForMono();
 	ExperimentParameters GetExperimentParameters();
+	AcquisitionParameters acqParams;
 	int GetExperimentProgressIndex(); 
 	void AddNewT(int T);
 	void PostMessageToUI(UINT message, CString logMessage);
@@ -83,7 +84,6 @@ public:
 	bool m_isPLCConfirmedOff = false;
 	bool m_isMonoInitialised;
 	double m_currT = 294.0;
-	AcquisitionParameters acqParams;
 
 	void StartTimer(UINT_PTR nIDEvent, int _sec);
 	void StopTimer(UINT_PTR nIDEvent);

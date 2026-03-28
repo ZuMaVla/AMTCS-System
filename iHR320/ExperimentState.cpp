@@ -1,34 +1,30 @@
 ﻿#include "stdafx.h"
 #include "ExperimentState.h"
 #include <iostream>
+#include <iomanip>   // for std::hex, std::dec
+#include <cctype>    // for std::isprint
 
 
 CExperimentState::CExperimentState()
 {
 }
 
-
 CExperimentState::~CExperimentState()
 {
 }
 
-#include <iostream>
-#include <iomanip>   // for std::hex, std::dec
-#include <cctype>    // for std::isprint
-
 void CExperimentState::importJSONString(const std::string& jsonString)
 {
-	// Raw bytes exactly as received
-	std::cout << "RAW JSON RECEIVED (size=" << jsonString.size() << "):\n";
+	// Raw bytes exactly as received (for debugging/logging)
+	std::cout << "RAW JSON RECEIVED (size=" << jsonString.size() << "):\n"; 
 
 	for (unsigned char c : jsonString)
 	{
 		if (std::isprint(c))
-			std::cout << c;
+			std::cout << c;				// Print as is if printable
 		else
 			std::cout << "\\x" << std::hex << std::setw(2) << std::setfill('0') << (int)c << std::dec;
 	}
-
 	std::cout << "\n";
 
 	try

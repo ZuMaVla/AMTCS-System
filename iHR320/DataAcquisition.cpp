@@ -7,7 +7,7 @@
 #include <string>
 #include <iostream>
 
-std::vector<long> CollectData(CiHR320Dlg* pUI) {
+std::vector<long> CollectData(CiHR320Dlg* pUI) {	// Retrieve Y-values from the last measurment container (CCD counts)
 	std::vector<long> l_pixelData;
 	if (!pUI->currentData.intensities.empty()) {
 		l_pixelData = pUI->currentData.intensities;
@@ -15,10 +15,17 @@ std::vector<long> CollectData(CiHR320Dlg* pUI) {
 	return l_pixelData;
 }
 
+std::vector<double> CollectX(CiHR320Dlg* pUI) {		// Retrieve X-values from the last measurment container (CCD wavelengths)
+	std::vector<double> l_xData;
+	if (!pUI->currentData.wavelengths.empty()) {
+		l_xData = pUI->currentData.wavelengths;
+	}
+	return l_xData;
+}
+
+// Averaged and background subtracted data
 std::vector<double> CalculateData(const std::vector<std::vector<long>> &data, const std::vector<double> &bckg) {
 	if (data.empty()) return{};
-	
-
 	
 	std::vector<double> l_averagedData(data[0].begin(), data[0].end());	// Start with a copy of the first accumulation
 	size_t numPixels = l_averagedData.size();
@@ -51,8 +58,50 @@ std::vector<double> CalculateData(const std::vector<std::vector<long>> &data, co
 	return l_averagedData;
 }
 
-double SkippedAvg(const std::vector<long> &data1D, int skippedIndex = -1) {
+bool SaveData(					// Saving data into file
+	const std::vector<double> &fullX,
+	const std::vector<double> &fullData,
+	CString path,
+	CString sampleCode,
+	CiHR320Dlg* pUI,
+	CString T) {
+	CString apcStr;				// Count of acquisition parameters implemented for current measurement
+	apcStr.Format(_T("%02d"), pUI->acqParams.paramCount);
+	CString filename = path + L"\\" + sampleCode + L"_" + T + L"_" + apcStr + L".xy";
+
+	CFile outputFile;
+	if (outputFile.Open(filename, CFile::modeCreate | CFile::modeWrite))
+	{
+		CString line;
+
+		// Header
+		line = _T("Wavelength\t\\i(I)\\-(PL)\n");
+		outputFile.Write(CT2A(line), line.GetLength());
+		line = _T("nm\tCounts\n");
+		outputFile.Write(CT2A(line), line.GetLength());
+		line = _T("\t") + sampleCode + _T("\n");
+		outputFile.Write(CT2A(line), line.GetLength());
+		line.Format(_T("AT: %04d\tslits: %04d\n"), pUI->acqParams.AT, pUI->acqParams.slits);
+		outputFile.Write(CT2A(line), line.GetLength());
+
+
+		// Data rows
+		for (size_t i = 0; i < fullData.size(); i++) {
+			line.Format(L"%.4f\t%.4f\n", fullX[i], fullData[i]);
+			outputFile.Write(CT2A(line), line.GetLength());
+		}
+		outputFile.Close();
+		return true;
+	}
+
+	return false;
+}
+
+//************************ Cosmic ray removal helpers ************************\\
+
+double SkippedAvg(const std::vector<long> &data1D, int skippedIndex = -1) { // Returns average excluding skippedIndex element
 	size_t numAccums = data1D.size();
+	if (numAccums < 1) return NAN;
 	if (numAccums < 2 && skippedIndex != -1) {
 		return SkippedAvg(data1D);						// Downgrade to standard average
 	}
@@ -70,10 +119,13 @@ double SkippedAvg(const std::vector<long> &data1D, int skippedIndex = -1) {
 std::vector<long> Repair1D(std::vector<long> data1D) {
 	size_t numAccums = data1D.size();
 	double avg = SkippedAvg(data1D);
+	double deviation, maxDeviation = 0;
 	int CRIndex = -1;
 	for (size_t r = 0; r < numAccums; r++) {
-		if (abs(data1D[r] - avg) / max(avg, 320) > 0.2) {
+		deviation = abs(data1D[r] - avg) / max(avg, 320);		// 320 is approx 1% of full scale of CCD
+		if (deviation > 0.2 && deviation > maxDeviation) {		// Finding pixel with max deviation
 			CRIndex = r;
+			maxDeviation = deviation;
 		}
 	}
 	if (CRIndex != -1) {
@@ -105,64 +157,9 @@ std::vector<std::vector<long>> RepareData(std::vector<std::vector<long>> data) {
 	return data;
 }
 
-std::vector<long> TakeBackground(CiHR320Dlg* pUI) {
-	std::vector<long> l_backgroundData;
-	if (!pUI->currentData.intensities.empty()) {
-		l_backgroundData = pUI->currentData.intensities;
-	}
-	return l_backgroundData;
-}
-
-std::vector<double> CollectX(CiHR320Dlg* pUI) {
-	std::vector<double> l_xData;
-	if (!pUI->currentData.wavelengths.empty()) {
-		l_xData = pUI->currentData.wavelengths;
-	}
-	return l_xData;
-}
-
-bool SaveData(
-	const std::vector<double> &fullX, 
-	const std::vector<double> &fullData, 
-	CString path,
-	CString sampleCode,
-	CiHR320Dlg* pUI,
-	CString T) {
-	CString apcStr;
-	apcStr.Format(_T("%02d"), pUI->acqParams.paramCount);
-	CString filename = path + L"\\" + sampleCode + L"_" + T + L"_" + apcStr + L".xy";
-
-	CFile outputFile;
-	if (outputFile.Open(filename, CFile::modeCreate | CFile::modeWrite))
-	{
-		CString line;
-
-		// Header
-		line = _T("Wavelength\t\\i(I)\\-(PL)\n");
-		outputFile.Write(CT2A(line), line.GetLength());
-		line = _T("nm\tCPS\n");
-		outputFile.Write(CT2A(line), line.GetLength());
-		line = _T("\t") + sampleCode + _T("\n");
-		outputFile.Write(CT2A(line), line.GetLength());
-		line.Format(_T("AT: %04d\tslits: %04d\n"), pUI->acqParams.AT, pUI->acqParams.slits);
-		outputFile.Write(CT2A(line), line.GetLength());
-
-
-		// Data rows
-		for (size_t i = 0; i < fullData.size(); i++) {
-			line.Format(L"%.4f\t%.4f\n", fullX[i], fullData[i]);
-			outputFile.Write(CT2A(line), line.GetLength());
-		}
-		outputFile.Close();
-		return true;
-	}
-
-	return false;
-}
-
 bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 	ExperimentParameters params = pUI->GetExperimentParameters();
-	bool success = false;
+	bool success = false;		// Flag containing the result of the spectrum acquisition attempt
 	int NA = params.NA;
 	int DGRangeNo = params.DGRangeNo;
 	std::array<double, 5> centresWL = pUI->GetCentresWL(params.StartWL, params.DGRangeNo);
@@ -173,19 +170,19 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 		pUI->acqParams.AT = params.maxAT;
 		pUI->acqParams.slits = params.slits;
 	}
-	pUI->SetSlits(pUI->acqParams.slits / 1000.0);
+	pUI->SetSlits(pUI->acqParams.slits / 1000.0); 
 	pUI->SetAT(pUI->acqParams.AT / 1000.0);
 
 
-	for (int j = 0; j < 2*params.NA; j++) {
-		pUI->DoAcquisition(false);
+	for (int j = 0; j < 2*params.NA; j++) {		
+		pUI->DoAcquisition(false);								// Shutter closed for bckg measurements
 		while (!pUI->m_isCCDDataReady) {
 			Sleep(100);
 		}
-		bckgData.push_back(CollectData(pUI));
+		bckgData.push_back(CollectData(pUI));					// Stack in 2D vector (bckg)
 	}
-	if (params.isCRRemoval) bckgData = RepareData(bckgData);			// Cosmic ray removal - TODO
-	bckg = CalculateData(bckgData, zero);
+	if (params.isCRRemoval) bckgData = RepareData(bckgData);	// Cosmic ray removal 
+	bckg = CalculateData(bckgData, zero);						// Averaging bckg
 
 
 	for (int i = 0; i < params.DGRangeNo; i++) {
@@ -193,27 +190,27 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 		pUI->MonoMoveTo(centresWL[i]);
 
 		for (int j = 0; j < params.NA; j++) {
-			pUI->DoAcquisition();
+			pUI->DoAcquisition();								// Open shutter (by default) for actual signal
 			while (!pUI->m_isCCDDataReady) {
 				Sleep(100);
 			}
-			totalData.push_back(CollectData(pUI));
+			totalData.push_back(CollectData(pUI));				//Stack in 2D vector (actual data)
 		}
 
-		if (params.isCRRemoval) totalData = RepareData(totalData);			// Cosmic ray removal - TODO
-		finalData = CalculateData(totalData, bckg);
-		finalX = CollectX(pUI);
-		fullData.insert(fullData.end(), finalData.begin(), finalData.end());
-		fullX.insert(fullX.end(), finalX.begin(), finalX.end());
+		if (params.isCRRemoval) totalData = RepareData(totalData);				// Cosmic ray removal
+		finalData = CalculateData(totalData, bckg);				// Averaged and bckg-subtracted data for current spectral window
+		finalX = CollectX(pUI);									// Taking wavelengths (one time for the last measurement)
+		fullData.insert(fullData.end(), finalData.begin(), finalData.end());	// Combined Y-data for all spectral windows
+		fullX.insert(fullX.end(), finalX.begin(), finalX.end());				// Combined X-data (WL) -//-
 	}
 
 	long maxIntensity = *std::max_element(fullData.begin(), fullData.end());
 
 	CString path = pUI->GetCurrentDir();
 	CString sampleCode = CString(params.sampleCode.c_str());
-	success = SaveData(fullX, fullData, path, sampleCode, pUI, T);
+	success = SaveData(fullX, fullData, path, sampleCode, pUI, T);				// Saving data disregarding max intensity
 	std::cout << "Max intensity: " << maxIntensity << "\n";
-	if (params.isCRRemoval && maxIntensity > maxCCDI) {
+	if (params.isCRRemoval && maxIntensity > maxCCDI) {			// If cosmic rays removal ON and intensity out of range
 		if (pUI->acqParams.AdjustAcqParam(params.maxAT, params.slits, 1.5*minCCDI/maxIntensity)) success = TakeSpectrum(pUI, T);
 	}
 	else if (params.isCRRemoval && maxIntensity < minCCDI) {
@@ -244,7 +241,7 @@ bool AcquisitionParameters::AdjustAcqParam(int maxAT, int maxSlits, double facto
 			AT = max(50, int(AT*factor));						
 		}
 		else {
-			factor = factor*maxAT/AT;						// Residual factor (decreased proportionally to AT change)
+			factor = factor*AT/maxAT;						// Residual factor (decreased proportionally to AT change)
 			AT = maxAT;										// Increase AT as much as possible
 			if (maxSlits / max(slits, minPhS) >= factor) {
 				slits = int(max(slits, minPhS)*factor);		// Increase slits propotional to the residual factor

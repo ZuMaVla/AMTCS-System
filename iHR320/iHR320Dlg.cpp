@@ -762,16 +762,6 @@ HRESULT CiHR320Dlg::DoAcquisition(bool shutterOpen)
 		}
 		Sleep(10);
 	}
-	//while (GetTickCount() - start < 3000) {
-	//	MSG msg;
-	//	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-	//	{
-	//		TranslateMessage(&msg);
-	//		DispatchMessage(&msg);
-	//	}
-	//	Sleep(10);
-	//}
-
 	return hr;
 }
 
