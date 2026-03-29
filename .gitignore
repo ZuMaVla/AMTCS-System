@@ -12,9 +12,22 @@ ipch/
 *.aps
 *.ilk
 *.pdb
+iHR320_h.h
+iHR320_i.c
 *.idb
 *.obj
 *.exe
 *.log
 Debug/
 Release/
+# Python
+__pycache__/
+__logs__/
+.api_key
+venv/
+*.pyc
+*.TMP
+*.tmp
+# Security
+Security.h
+workDir.txt

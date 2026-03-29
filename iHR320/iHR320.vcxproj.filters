@@ -13,15 +13,36 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\UI">
+      <UniqueIdentifier>{5bd4099a-d0cb-4ec4-a200-734cad6c1cb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\TCP">
+      <UniqueIdentifier>{33eb3f42-10f4-49e5-b069-ae1b72234395}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\UI">
+      <UniqueIdentifier>{82eae22f-f208-4b66-89dc-0d164ec88aa3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\TCP">
+      <UniqueIdentifier>{9845a5d9-09ca-49d3-98bc-5e752f2e4b1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\JY-SDK">
+      <UniqueIdentifier>{ebeb0f34-fcf4-4038-a13b-903ffbe90e5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\JY-SDK">
+      <UniqueIdentifier>{cdcca938-79f0-45ce-beb8-74369c240cbf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\UI\Components">
+      <UniqueIdentifier>{37a9f0bc-c085-43b4-b820-aecc1f68b484}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\UI\Components">
+      <UniqueIdentifier>{a29b75f5-52dd-407f-87e7-085f647d2a64}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="iHR320.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="iHR320Dlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DlgProxy.h">
@@ -37,20 +58,44 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CiHR320ConnectivityDlg.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CiHR320SettingsDlg.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\UI</Filter>
     </ClInclude>
     <ClInclude Include="CiHR320FlowDlg.h">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="CiHR320SettingsDlg.h">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="iHR320Dlg.h">
+      <Filter>Header Files\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="TCPtoRPi.h">
+      <Filter>Header Files\TCP</Filter>
+    </ClInclude>
+    <ClInclude Include="DataAcquisition.h">
+      <Filter>Header Files\JY-SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="MyVSListBox.h">
+      <Filter>Header Files\UI\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="DefaultExperimentSettings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ExperimentState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AskUser.h">
+      <Filter>Header Files\UI\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="JYDeviceSink.h">
+      <Filter>Header Files\JY-SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="Security.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="iHR320.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="iHR320Dlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DlgProxy.cpp">
@@ -59,14 +104,35 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CiHR320ConnectivityDlg.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="iHR320Dlg.cpp">
+      <Filter>Source Files\UI</Filter>
     </ClCompile>
-    <ClCompile Include="CiHR320SettingsDlg.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="CiHR320ConnectivityDlg.cpp">
+      <Filter>Source Files\UI</Filter>
     </ClCompile>
     <ClCompile Include="CiHR320FlowDlg.cpp">
+      <Filter>Source Files\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="CiHR320SettingsDlg.cpp">
+      <Filter>Source Files\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="TCPtoRPi.cpp">
+      <Filter>Source Files\TCP</Filter>
+    </ClCompile>
+    <ClCompile Include="DataAcquisition.cpp">
+      <Filter>Source Files\JY-SDK</Filter>
+    </ClCompile>
+    <ClCompile Include="MyVSListBox.cpp">
+      <Filter>Source Files\UI\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="AskUser.cpp">
+      <Filter>Source Files\UI\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="ExperimentState.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="JYDeviceSink.cpp">
+      <Filter>Source Files\JY-SDK</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

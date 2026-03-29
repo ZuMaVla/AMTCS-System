@@ -28,7 +28,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseOfMfc>Static</UseOfMfc>
   </PropertyGroup>
@@ -87,14 +87,16 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\PL&amp;PLE\Documents\Lab software\AMTCS-System\iHR320\include;C:\Users\PL&amp;PLE\Documents\Lab Software\AMTCS System\iHR320\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <RegisterOutput>true</RegisterOutput>
+      <DataExecutionPrevention>false</DataExecutionPrevention>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -147,6 +149,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <RegisterOutput>true</RegisterOutput>
+      <DataExecutionPrevention>false</DataExecutionPrevention>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -193,29 +196,43 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AskUser.h" />
     <ClInclude Include="CiHR320ConnectivityDlg.h" />
     <ClInclude Include="CiHR320FlowDlg.h" />
     <ClInclude Include="CiHR320SettingsDlg.h" />
+    <ClInclude Include="DataAcquisition.h" />
+    <ClInclude Include="DefaultExperimentSettings.h" />
     <ClInclude Include="DlgProxy.h" />
+    <ClInclude Include="ExperimentState.h" />
     <ClInclude Include="iHR320.h" />
     <ClInclude Include="iHR320Dlg.h" />
+    <ClInclude Include="JYDeviceSink.h" />
+    <ClInclude Include="MyVSListBox.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="Security.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TCPtoRPi.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AskUser.cpp" />
     <ClCompile Include="CiHR320ConnectivityDlg.cpp" />
     <ClCompile Include="CiHR320FlowDlg.cpp" />
     <ClCompile Include="CiHR320SettingsDlg.cpp" />
+    <ClCompile Include="DataAcquisition.cpp" />
     <ClCompile Include="DlgProxy.cpp" />
+    <ClCompile Include="ExperimentState.cpp" />
     <ClCompile Include="iHR320.cpp" />
     <ClCompile Include="iHR320Dlg.cpp" />
+    <ClCompile Include="JYDeviceSink.cpp" />
+    <ClCompile Include="MyVSListBox.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TCPtoRPi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="iHR320.idl" />

@@ -9,6 +9,7 @@
 #define VC_EXTRALEAN            // Exclude rarely-used stuff from Windows headers
 #endif
 
+//#include <atlbase.h>
 #include "targetver.h"
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS      // some CString constructors will be explicit
@@ -18,24 +19,26 @@
 
 #include <afxwin.h>         // MFC core and standard components
 #include <afxext.h>         // MFC extensions
-
-
 #include <afxdisp.h>        // MFC Automation classes
-
+#include <afxdtctl.h>       // MFC support for Internet Explorer 4 Common Controls
 
 
 #ifndef _AFX_NO_OLE_SUPPORT
-#include <afxdtctl.h>           // MFC support for Internet Explorer 4 Common Controls
+
 #endif
+
+
 #ifndef _AFX_NO_AFXCMN_SUPPORT
 #include <afxcmn.h>             // MFC support for Windows Common Controls
 #endif // _AFX_NO_AFXCMN_SUPPORT
 
 #include <afxcontrolbars.h>     // MFC support for ribbons and control bars
 
-
-
-
+#import "C:\Program Files\Jobin Yvon\Common\JY Components\JYSupport\jysystemLib.dll" raw_interfaces_only, raw_native_types, no_namespace, named_guids //  <DEVELOPMENT RELATIVE PATH
+#import "C:\Program Files\Jobin Yvon\Common\JY Components\JYSupport\JYConfigBrowserComponent.dll" raw_interfaces_only, raw_native_types, no_namespace, named_guids //  <DEVELOPMENT RELATIVE PATH should be inserted here
+#include <atlbase.h>
+#include <atlcom.h>
+#include <atlctl.h>
 
 
 
