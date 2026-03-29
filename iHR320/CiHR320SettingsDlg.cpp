@@ -47,7 +47,6 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER_START_WL, m_sliderStartWL);
 	DDX_Control(pDX, IDC_SLIDER_DG_POSITIONS, m_sliderDGRangeNo);
 	DDX_Control(pDX, IDC_Acq, m_acquisBtnTemp);
-
 	DDX_Control(pDX, IDC_NUMBER_ACQ, m_NA);
 	DDX_Control(pDX, IDC_NEW_T, m_VSListBox_T.m_newT);
 	DDX_Control(pDX, IDC_SPIN_NEW_T, m_VSListBox_T.m_mod_new_T);
@@ -65,7 +64,7 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CiHR320SettingsDlg, CDialogEx)
 	ON_EN_KILLFOCUS(IDC_NEW_T, &CiHR320SettingsDlg::OnNewTChanged)
 	ON_BN_CLICKED(IDC_BUTTON_DEFAULT_T, &CiHR320SettingsDlg::OnBnClickedButtonDefaultT)
-	ON_BN_CLICKED(IDC_BUTTON_VALIDATE_T, &CiHR320SettingsDlg::OnBnClickedButtonValidateT)
+	ON_BN_CLICKED(IDC_BUTTON_VALIDATE_T, &CiHR320SettingsDlg::OnBnClickedClearListT)
 	ON_NOTIFY(TRBN_THUMBPOSCHANGING, IDC_SLIDER_START_WL, &CiHR320SettingsDlg::OnStartWLSliderMoving)
 	ON_EN_KILLFOCUS(IDC_NUMBER_ACQ, &CiHR320SettingsDlg::OnNAChanged)
 	ON_EN_KILLFOCUS(IDC_SLITS, &CiHR320SettingsDlg::OnSlitsChanged)
@@ -104,7 +103,7 @@ BOOL CiHR320SettingsDlg::OnInitDialog()
 
 }
 
-void CiHR320SettingsDlg::OnBnClickedAcq()
+void CiHR320SettingsDlg::OnBnClickedAcq()			// For testing acquisition
 {
 	TakeSpectrum(m_mainWnd, L"300");
 }
@@ -117,7 +116,7 @@ void CiHR320SettingsDlg::OnBnClickedButtonDefaultT()
 }
 
 
-void CiHR320SettingsDlg::OnBnClickedButtonValidateT()
+void CiHR320SettingsDlg::OnBnClickedClearListT()
 {
 	m_VSListBox_T.RemoveAll();
 	m_VSListBox_T.m_newT.SetFocus();
@@ -300,11 +299,9 @@ void CiHR320SettingsDlg::OnStartWLSliderMoving(
 	ExperimentParameters temp = experimentState.getExpParams();
 
 	int continuousPos = pNMTPC->dwPos;   // <-- This is the thumb position
-//	int tick = m_sliderStartWL.GetTic(2) - m_sliderStartWL.GetTic(1);
 	int tick = 10;
 	int numberTicks = int((continuousPos + tick / 2) / tick);
 	int snappedPos = numberTicks*tick;
-//	pNMTPC->dwPos = snappedPos;
 	m_sliderStartWL.SetPos(snappedPos);
 	CString newStartWL;
 	newStartWL.Format(L"%d", snappedPos); // convert int → wide string
@@ -406,9 +403,9 @@ void CiHR320SettingsDlg::OnWorkDirChanged()
 
 void CiHR320SettingsDlg::OnBnClickedStart()
 {
-	if (!m_mainWnd->m_isExperimentStarted) {
+	if (!m_mainWnd->m_isExperimentStarted) {		// Check if not yet in experiment
 		if (m_VSListBox_T.GetCount() > 0) {
-			m_VSListBox_T.SortT(FALSE);
+			m_VSListBox_T.SortT(FALSE);				// Sort descending order
 			if (m_VSListBox_T.m_isHT) {
 				m_mainWnd->m_askUser.s_question = L"Are you sure you want add over 300K temperatures?";
 				if (m_mainWnd->m_askUser.DoModal() != IDOK)
@@ -416,7 +413,7 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 			}
 			if (abs(m_VSListBox_T.getLast() - m_mainWnd->m_currT) < abs(m_VSListBox_T.getFirst() - m_mainWnd->m_currT))
 			{
-				m_VSListBox_T.SortT(TRUE);
+				m_VSListBox_T.SortT(TRUE);			// Reverse sorting if not optimal order
 			}
 			experimentState.setExpParams(CollectExperimentParameters());
 			experimentState.experimentProgressIndex = -1;
@@ -424,10 +421,10 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 			m_mainWnd->DisableExpSettDlg();
 		}
 		else {
-			AfxMessageBox(_T("At least one temperature is required to start an experiment!"));
+			AfxMessageBox(_T("At least one temperature is required to start an experiment!"));	// If T list is empty
 			return;
 		}
-		m_mainWnd->m_flowDlg.m_ExpFlowLogs.AddItem(_T("Experiment started..."));
+		m_mainWnd->m_flowDlg.m_ExpFlowLogs.AddItem(_T("Experiment started..."));				// Put log about starting experiment
 	}
 	std::string msg;
 	msg = experimentState.serialiseState();
@@ -437,7 +434,7 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 		m_mainWnd->StopTimer(TIMER_EXP_SENT);
 	}
 	m_mainWnd->DisableExpSettDlg();
-	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);				// prevent system from sleeping
+	SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);				// prevents system from sleeping
 	Sleep(2000);
 	m_mainWnd->SelectTab(2);
 }

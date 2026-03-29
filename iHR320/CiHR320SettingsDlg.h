@@ -6,9 +6,7 @@
 #include "ExperimentState.h"
 #include "AskUser.h"
 
-
-class CiHR320Dlg;
-
+class CiHR320Dlg;			// Forward declaration of main window's class
 
 // CiHR320SettingsDlg dialog
 
@@ -37,7 +35,7 @@ public:
 	CEdit m_Slits;										// Input slits width (in micrometers)
 	CEdit m_maxAT;										// Longest acquisition time (system will not attempt to apply longer ATs
 														// even if signal is low)
-	CExperimentState experimentState;					// Experiment State (The State 8))
+	CExperimentState experimentState;					// Experiment State 
 	ExperimentParameters GetExperimentParameters();
 	void SetExperimentParameters();						// Set expirement parameters from the State (e.g., after a program crash)
 protected:
@@ -45,7 +43,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
 	afx_msg void OnBnClickedButtonDefaultT();
-	afx_msg void OnBnClickedButtonValidateT();
+	afx_msg void OnBnClickedClearListT();
 	afx_msg void OnStartWLSliderMoving(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnNewTChanged();
 	afx_msg void OnNAChanged();
@@ -61,7 +59,7 @@ public:
 	afx_msg void OnBnClickedStart();
 	afx_msg void OnMonoDGChanged();
 	afx_msg void OnBnClickedAcq();
-	CButton m_acquisBtnTemp;
+	CButton m_acquisBtnTemp;							// Button fot testing spectrometer Room T acquisition(temporary)
 
 	afx_msg void OnDGRangeNoChanged(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnSampleCodeChanged();

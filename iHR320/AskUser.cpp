@@ -13,7 +13,6 @@ IMPLEMENT_DYNAMIC(CAskUser, CDialogEx)
 
 CAskUser::CAskUser(CWnd* pParent) : CDialogEx(IDD_ASK_USER, pParent)
 {
-
 }
 
 CAskUser::~CAskUser()
@@ -48,7 +47,6 @@ BOOL CAskUser::OnInitDialog()
 	m_question.SetWindowTextW(s_question);
 	return TRUE;
 }
-
 
 BEGIN_MESSAGE_MAP(CAskUser, CDialogEx)
 END_MESSAGE_MAP()

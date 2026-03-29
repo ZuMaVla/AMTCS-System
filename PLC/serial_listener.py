@@ -32,7 +32,7 @@ def serial_comm_thread(in_q: queue.Queue, out_q: queue.Queue, exp_mode: Experime
     is_serial_listener_running = True
 
     while is_serial_listener_running:
-        # 1. Check for incoming commands and write if not waiting for reply
+        # Check for incoming commands and write if not waiting for reply
         if not waiting_for_reply:
             try:
                 cmd = in_q.get_nowait()
@@ -69,7 +69,7 @@ def serial_comm_thread(in_q: queue.Queue, out_q: queue.Queue, exp_mode: Experime
             except queue.Empty:
                 pass
 
-        # 2. If waiting for reply, read incoming data
+        # If waiting for reply, read incoming data
         if waiting_for_reply:
             if exp_mode == ExperimentMode.SIMULATION:
                 line = state["line"]                                    # In simulation mode, we read from the shared state 

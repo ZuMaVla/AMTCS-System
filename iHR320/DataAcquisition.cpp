@@ -66,7 +66,7 @@ bool SaveData(					// Saving data into file
 	CiHR320Dlg* pUI,
 	CString T) {
 	CString apcStr;				// Count of acquisition parameters implemented for current measurement
-	apcStr.Format(_T("%02d"), pUI->acqParams.paramCount);
+	apcStr.Format(_T("%02d"), pUI->m_acqParams.paramCount);
 	CString filename = path + L"\\" + sampleCode + L"_" + T + L"_" + apcStr + L".xy";
 
 	CFile outputFile;
@@ -81,7 +81,7 @@ bool SaveData(					// Saving data into file
 		outputFile.Write(CT2A(line), line.GetLength());
 		line = _T("\t") + sampleCode + _T("\n");
 		outputFile.Write(CT2A(line), line.GetLength());
-		line.Format(_T("AT: %04d\tslits: %04d\n"), pUI->acqParams.AT, pUI->acqParams.slits);
+		line.Format(_T("AT: %04d\tslits: %04d\n"), pUI->m_acqParams.AT, pUI->m_acqParams.slits);
 		outputFile.Write(CT2A(line), line.GetLength());
 
 
@@ -157,6 +157,9 @@ std::vector<std::vector<long>> RepareData(std::vector<std::vector<long>> data) {
 	return data;
 }
 
+//************************ End of cosmic ray removal helpers ************************\\
+
+
 bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 	ExperimentParameters params = pUI->GetExperimentParameters();
 	bool success = false;		// Flag containing the result of the spectrum acquisition attempt
@@ -166,12 +169,12 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 	std::vector<double> zero, bckg, finalData, fullData, finalX, fullX;
 	std::vector<std::vector<long>> bckgData, totalData;
 
-	if (pUI->acqParams.AT == -1 || pUI->acqParams.slits == -1) {
-		pUI->acqParams.AT = params.maxAT;
-		pUI->acqParams.slits = params.slits;
+	if (pUI->m_acqParams.AT == -1 || pUI->m_acqParams.slits == -1) {
+		pUI->m_acqParams.AT = params.maxAT;
+		pUI->m_acqParams.slits = params.slits;
 	}
-	pUI->SetSlits(pUI->acqParams.slits / 1000.0); 
-	pUI->SetAT(pUI->acqParams.AT / 1000.0);
+	pUI->SetSlits(pUI->m_acqParams.slits / 1000.0); 
+	pUI->SetAT(pUI->m_acqParams.AT / 1000.0);
 
 
 	for (int j = 0; j < 2*params.NA; j++) {		
@@ -187,8 +190,8 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 
 	for (int i = 0; i < params.DGRangeNo; i++) {
 		totalData.clear();
-		pUI->MonoMoveTo(centresWL[i]);
-
+		pUI->MonoMoveTo(centresWL[i]);	
+		Sleep(1000);
 		for (int j = 0; j < params.NA; j++) {
 			pUI->DoAcquisition();								// Open shutter (by default) for actual signal
 			while (!pUI->m_isCCDDataReady) {
@@ -211,15 +214,15 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 	success = SaveData(fullX, fullData, path, sampleCode, pUI, T);				// Saving data disregarding max intensity
 	std::cout << "Max intensity: " << maxIntensity << "\n";
 	if (params.isCRRemoval && maxIntensity > maxCCDI) {			// If cosmic rays removal ON and intensity out of range
-		if (pUI->acqParams.AdjustAcqParam(params.maxAT, params.slits, 1.5*minCCDI/maxIntensity)) success = TakeSpectrum(pUI, T);
+		if (pUI->m_acqParams.AdjustAcqParam(params.maxAT, params.slits, 1.5*minCCDI/maxIntensity)) success = TakeSpectrum(pUI, T);
 	}
 	else if (params.isCRRemoval && maxIntensity < minCCDI) {
-		if (pUI->acqParams.AdjustAcqParam(params.maxAT, params.slits, 0.75*maxCCDI/maxIntensity)) success = TakeSpectrum(pUI, T);
+		if (pUI->m_acqParams.AdjustAcqParam(params.maxAT, params.slits, 0.75*maxCCDI/maxIntensity)) success = TakeSpectrum(pUI, T);
 	}
 	return success;
 }
 
-
+//************************ AcquisitionParameters class ************************\\
 
 AcquisitionParameters::AcquisitionParameters()
 {
@@ -243,8 +246,8 @@ bool AcquisitionParameters::AdjustAcqParam(int maxAT, int maxSlits, double facto
 		else {
 			factor = factor*AT/maxAT;						// Residual factor (decreased proportionally to AT change)
 			AT = maxAT;										// Increase AT as much as possible
-			if (maxSlits / max(slits, minPhS) >= factor) {
-				slits = int(max(slits, minPhS)*factor);		// Increase slits propotional to the residual factor
+			if (maxSlits / max(slits, minPhSlt) >= factor) {
+				slits = int(max(slits, minPhSlt)*factor);		// Increase slits propotional to the residual factor
 			}
 			else {
 				slits = maxSlits;							// Increase slits as much as possible
@@ -252,12 +255,12 @@ bool AcquisitionParameters::AdjustAcqParam(int maxAT, int maxSlits, double facto
 		}
 	}
 	else {
-		if (minPhS / max(slits, minPhS) <= factor) {
-			slits = int(max(slits, minPhS)*factor);			// Decrease slits propotional to factor
-			if (slits < minPhS) slits = extreme_Slits[0];
+		if (minPhSlt / max(slits, minPhSlt) <= factor) {
+			slits = int(max(slits, minPhSlt)*factor);			// Decrease slits propotional to factor
+			if (slits < minPhSlt) slits = extreme_Slits[0];
 		}
 		else {
-			factor = factor*max(slits, minPhS) / minPhS;	// Residual factor (increased proportionally to slits change)
+			factor = factor*max(slits, minPhSlt) / minPhSlt;	// Residual factor (increased proportionally to slits change)
 			slits = extreme_Slits[0];						// Decrease slits as much as possible
 			if (extreme_AT[0] / AT <= factor) {
 				AT = max(50, int(AT*factor));				// Decrease AT propotional to factor

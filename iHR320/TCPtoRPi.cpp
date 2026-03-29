@@ -1,15 +1,10 @@
-﻿
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iostream>
 #include "TCPtoRPi.h"
 #include "DataAcquisition.h"
 #include "iHR320Dlg.h"
-
-
-
-
 
 static MessageQueue g_PLC_in; 
 static MessageQueue g_PLC_out; 
@@ -38,12 +33,11 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 
 	while (g_logicRunning){
 
-		// 1. Wait for next PLC event (blocking) 
-		// event = PLC_out.pop();
+		// Wait for next PLC event (blocking, but not longer than HBRate seconds) 
 		event = {"", ""};
 		PLC_out.popTimed(event, HBRate*1000);
 
-		// 2. Process the event (event interpretation) 
+		// Process the event (event interpretation) 
 
 		if (event.keyword == "PONG") {												// PLC response - alive
 			std::cout << "[PLC] I am alive\n"; 
@@ -75,29 +69,29 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			Sleep(100);
 			std::cout << "[PLC] Exp State: " << event.payload << "\n";
 			pUI->PostMessageToUI(
-				WM_USER_LOG_MESSAGE, _T("EXP_ON"));									// Message to main window to pass exp state
+				WM_USER_LOG_MESSAGE, _T("EXP_ON"));									// Message to main window to deal with received exp state
 		}
 		else if (event.keyword == "ACQUIRE_SPECTRUM") {								// Spectrum acquisition requested				
 			if (pUI->m_isExperimentStarted) {
-				SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, 2);			// turn off monitors
+				SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, 2);		// turn off monitors
 				cmd.keyword = "SEND";
 				cmd.payload = "AFFIRMATIVE";
-				PLC_in.push(cmd); 														// Confirming request
+				PLC_in.push(cmd); 													// Confirming request
 				msg = CString(event.payload.c_str());
-				pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"CT= " + msg);				// Current temperature + T itself (msg)
-				Sleep(10000);															// To let monitors to turn of completely
+				pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"CT= " + msg);			// Current temperature + T itself (msg)
+				Sleep(10000);														// To let monitors to turn of completely
 				if (TakeSpectrum(pUI, msg)) {
 					cmd.payload = "DONE";
-					pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"SAd");					// Spectrum acquired (SAd)
+					pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"SAd");				// Spectrum acquired (SAd)
 				}
 				else { cmd.payload = "ERROR_SPECTRUM"; }
-				PLC_in.push(cmd);														// Confirming success/error
-				SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, -1);		// turn monitors back
+				PLC_in.push(cmd);													// Confirming success/error
+				SendMessage(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, -1);	// turn monitors back
 			}
 			else {
 				cmd.keyword = "SEND";
 				cmd.payload = "ERROR_SPECTRUM";
-				PLC_in.push(cmd); 														// Confirming request
+				PLC_in.push(cmd); 													// Refusing request (reporting error)
 			}
 		}
 		else if (event.keyword == "TC_OK") {										// PLC response - TC alive
@@ -139,12 +133,6 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			msg += event.payload.c_str();											// Converting event to CString
 			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, msg);
 		}
-		else if (event.keyword == "STATUS" && event.payload == "MEASUREMENT") {		// PLC informed about being in the middle of experiment sequence
-			isMeasuring = true;
-			cmd.keyword = "SEND";
-			cmd.payload = "GIVE_ME_DETAILS";										// Request for the current status of experiment 
-			PLC_in.push(cmd);
-		}
 		else if (event.keyword == "EVENT" && event.payload == "__STOP__") {			// User requested abort 
 			cmd.keyword = "SEND";
 			cmd.payload = "OFF";
@@ -156,12 +144,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			PLC_in.push(cmd);
 
 		}
-		else if (event.keyword == "REQUEST" && event.payload == "TC_STATUS") {
-			cmd.keyword = "SEND";
-			cmd.payload = "TC?";
-			PLC_in.push(cmd);
-		}
-		else if (event.keyword == "REQUEST" && event.payload == "EXP_STATUS?") {
+		else if (event.keyword == "REQUEST" && event.payload == "EXP_STATUS?") {	// PLC requested experiment status
 			pUI->m_missedPLCHeartbeatCount = 0;
 			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, _T("PLC_OK"));
 			if (pUI->m_isExperimentStarted) {
@@ -175,18 +158,17 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			PLC_in.push(cmd);
 			std::cout << "PLC has been informed: " + cmd.payload + "\n";
 		}
-		else if (event.keyword == "REQUEST" && event.payload == "EXP_STATE?") {
+		else if (event.keyword == "REQUEST" && event.payload == "EXP_STATE?") {		// PLC requested experiment state
 			CString msg = _T("RECOVER_EXP");
 			pUI->PostMessageToUI(WM_UPDATE_SYSTEM_EVENT, msg);
 		}
-		else if (event.keyword == "CONFIRM_PAUSE_CONTINUE") {
+		else if (event.keyword == "CONFIRM_PAUSE_CONTINUE") {						// PLC confirmed suspend/resume command
 			pUI->StopTimer(TIMER_EXP_PAUSE_CONTINUE);
 		}
-		else if (event.keyword == "CONFIRM_CANCEL") {
+		else if (event.keyword == "CONFIRM_CANCEL") {								// PLC confirmed cancellation of current exp
 			pUI->StopTimer(TIMER_EXP_CANCEL);
 		}
-
-		else if (event.keyword == "CONFIRM_OFF") {
+		else if (event.keyword == "CONFIRM_OFF") {									// PLC confirmed turning off
 			pUI->m_isPLCConfirmedOff = true;
 			cmd.keyword = "OFF";
 			cmd.payload = "";
@@ -194,20 +176,12 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			g_logicRunning = false;
 			pUI->StopTimer(TIMER_PLC_STOP);
 		}
-		else if (event.keyword == "EXPERIMENT_FINISHED") {
+		else if (event.keyword == "EXPERIMENT_FINISHED") {							// PLC informed about the end of experiment
 			std::cout << "Experiment finished\n";
 			CString msg = _T("EXP_END");
 			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, msg);
 		}
-		else if (event.keyword == "YES") {
-			pUI->m_missedPLCHeartbeatCount = 0;
-			if (pUI->m_connectivityDlg.m_CheckBoxPLC.GetCheck()) {
-				cmd.keyword = "SEND";
-				cmd.payload = "ALIVE?";
-				PLC_in.push(cmd);
-			}
-		}
-		else if (event.keyword == "") {
+		else if (event.keyword == "") {												// If no event, sending heartbeat to PLC
 			if (pUI->m_connectivityDlg.m_CheckBoxPLC.GetCheck()) {
 				cmd.keyword = "SEND";
 				cmd.payload = "ALIVE?";
@@ -329,7 +303,8 @@ static void PLCListenerWorker(CiHR320Dlg *pUI, std::string ip_iHR320, int port_i
 			evt.payload = fullMsg.substr(pos + 1);
 		}
 		std::cout << "[TCP] Listener received: " << fullMsg << "\n";
-		if (evt.keyword != "YES" || pUI->m_missedPLCHeartbeatCount > 1) PLC_out.push(evt);
+		if (evt.keyword != "YES") PLC_out.push(evt);	
+		else pUI->m_missedPLCHeartbeatCount = 0;			// Reset missed heartbeat count
 	}
 
 	closesocket(server_fd);

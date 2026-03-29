@@ -8,8 +8,7 @@
 #include "MyVSListBox.h"
 
 
-class CiHR320Dlg;
-
+class CiHR320Dlg;		// Forward declaration of main window's class
 
 // CiHR320ConnectivityDlg dialog
 
@@ -56,17 +55,13 @@ protected:
 	CIPAddressCtrl m_instIP;							// IP on the institutional network
 public:
 	CMyVSListBoxTS m_ConnectionLogs;
-	
 	CButton m_CheckBoxPLC;
 	CComboBox m_CCDSelectCtrl;							// List of CCDs installed in the system	 
 	CComboBox m_MonoSelectCtrl;							// List of monochromators installed in the system
 	CButton m_CheckBoxCCD;
 	CButton m_CheckBoxMono;
-	
-	BOOL m_emulation;									// SDK emulation if true
-	
 	CButton m_CheckBoxTC;								// control for TC status
-														// Button that checks hardware connectivity
-	CMFCButton m_connectBtn;
+	CMFCButton m_connectBtn;							// Button that checks hardware connectivity
+	BOOL m_emulation;									// SDK emulation if true
 	CButton m_emulationMode;
 };

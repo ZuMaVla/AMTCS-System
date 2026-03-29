@@ -4,22 +4,22 @@
 #include "afxcmn.h"
 
 const std::string default_SampleCode = "NT####";
-const std::vector<int> extreme_Ts = {
+const std::vector<int> extreme_Ts = {			// temperatures
 	0, 450
 };
-const std::vector<int> extreme_Slits = {
+const std::vector<int> extreme_Slits = {		// slits width
 	0, 2000
 };
-const std::vector<int> extreme_DGRangeNo = {
+const std::vector<int> extreme_DGRangeNo = {	// diffraction grating
 	1, 5
 };
-const std::vector<int> extreme_NA = {
+const std::vector<int> extreme_NA = {			// number of acquisitions
 	1, 16
 };
-const std::vector<int> extreme_StartWL = {
+const std::vector<int> extreme_StartWL = {		// start wavelength
 	200, 600
 };
-const std::vector<int> extreme_AT = {
+const std::vector<int> extreme_AT = {			// acquisition time
 	50, 5000
 };
 
@@ -39,7 +39,7 @@ const bool default_isCRRemoval = TRUE;
 const int default_Slits = 0;
 
 // General configurations:
-const int minPhS = 10;						// Physically smallest slits
+const int minPhSlt = 10;					// Physically smallest slits
 const int maxCCDI = int(std::pow(2, 14));	// Maximal allowed count from CCD
 const int minCCDI = int(std::pow(2, 11));	// Minimal allowed count from CCD
 const int HBRate = 60;						// Heartbeat rate in seconds

@@ -94,7 +94,6 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_WM_TIMER()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CiHR320Dlg::OnTabSelChange)
 	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
-	ON_MESSAGE(WM_UPDATE_SYSTEM_EVENT, &CiHR320Dlg::OnUpdateSystemEvent)
 	ON_MESSAGE(WM_USER_MONO_LOG_MESSAGE, &CiHR320Dlg::OnMonoLogMessage)
 	ON_MESSAGE(WM_USER_LOG_MESSAGE, &CiHR320Dlg::OnPutLog)
 END_MESSAGE_MAP()
@@ -365,19 +364,6 @@ LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-LRESULT CiHR320Dlg::OnUpdateSystemEvent(WPARAM wParam, LPARAM lParam)
-{
-	CString* pEvent = reinterpret_cast<CString*>(lParam);
-	CString event = *pEvent;
-	if (event == _T("RECOVER_EXP")) {
-		m_connectivityDlg.CheckHardware(true);
-	}
-	else if (event == _T("CONTINUE_EXP")) {
-		m_settingsDlg.OnBnClickedStart();
-	}
-	delete pEvent;   // free the memory after using
-	return 0;
-}
 
 LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 {
@@ -407,7 +393,7 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			m_currT = _tstof(msg.Mid(2));
 			m_connectivityDlg.m_ConnectionLogs.AddItem(log);
 		}
-		else if (msg.Left(9) == _T("TARGET_T=")) {	// Temperature target
+		else if (msg.Left(9) == _T("TARGET_T=")) {	// New temperature target
 			log = _T("[TC] New target set: ") + msg.Mid(9) + _T(" K");
 			m_flowDlg.m_ExpFlowLogs.AddItem(log);
 			log = _T("Current target => ") + msg.Mid(9) + _T(" K");
@@ -464,7 +450,7 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			SelectTab(2);
 			m_flowDlg.m_ExpFlowLogs.AddItem(_T("[UI-APP] Experiment successfully restored and currently paused."));
 		}
-		else if (msg == _T("EXP_END")) {			// Message received at the end of experiment
+		else if (msg == _T("EXP_END")) {				// Message received at the end of experiment
 			log = _T("[PLC] Experiment finished. Turn off equipment or start a new experiment.");
 			m_flowDlg.m_ExpFlowLogs.AddItem(log);
 
@@ -494,7 +480,7 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-BOOL CiHR320Dlg::ConnectAndInitCCD()
+BOOL CiHR320Dlg::ConnectAndInitCCD()					// Based on SDK		
 {
 	HRESULT hr = S_OK;
 
@@ -524,7 +510,7 @@ BOOL CiHR320Dlg::ConnectAndInitCCD()
 	return TRUE;
 }
 
-BOOL CiHR320Dlg::ConnectAndInitMono()
+BOOL CiHR320Dlg::ConnectAndInitMono()					// Based on SDK
 {
 	HRESULT hr = S_OK;
 	if (!m_isMonoInitialised) {
@@ -569,7 +555,7 @@ BOOL CiHR320Dlg::ConnectAndInitMono()
 	return m_isMonoInitialised;
 }
 
-void CiHR320Dlg::SetCCDParams()
+void CiHR320Dlg::SetCCDParams()						// Based on SDK
 {
 	UpdateData();
 	CString text;
@@ -613,7 +599,7 @@ std::array<BOOL, 2> CiHR320Dlg::ConnectMonoAndCCD()
 	return result;
 }
 
-void CiHR320Dlg::LoadMonos()
+void CiHR320Dlg::LoadMonos()						// Based on SDK		
 {
 	USES_CONVERSION;
 
@@ -683,7 +669,7 @@ void CiHR320Dlg::LoadMonos()
 
 }
 
-void CiHR320Dlg::LoadCCDs()
+void CiHR320Dlg::LoadCCDs()						// Based on SDK	
 {
 	USES_CONVERSION;
 
@@ -854,7 +840,7 @@ void CiHR320Dlg::WaitForMono()
 	}
 }
 
-void CiHR320Dlg::GetGratings()
+void CiHR320Dlg::GetGratings()					// Based on SDK
 {
 	double currentGrating;
 	CComVariant allGratings;
@@ -998,7 +984,7 @@ void CiHR320Dlg::ReceivedDeviceUpdate(long updateType, IJYEventInfo * eventInfo)
 {
 	switch (updateType)
 	{
-		case 100: // data
+		case 100: // 100 - updateType corresponding to CCD (after receiving new data) 
 		{
 			CComVariant data, xData;
 			CComPtr<IJYResultsObject> resultObject = NULL;
@@ -1100,7 +1086,7 @@ int CiHR320Dlg::GetExperimentProgressIndex()
 	return m_settingsDlg.experimentState.experimentProgressIndex;
 }
 
-void CiHR320Dlg::AddNewT(int T)
+void CiHR320Dlg::AddNewT(int T)								// Adds extra data point to running experiment				
 {
 	int previousT;
 	if (m_settingsDlg.experimentState.experimentProgressIndex < 0) {
@@ -1119,13 +1105,13 @@ void CiHR320Dlg::AddNewT(int T)
 	if (m_settingsDlg.experimentState.experimentLength == 1) {
 		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
 	}
-	else if (currentT > lastT && previousT > T) {
-		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
-		m_settingsDlg.m_VSListBox_T.SortT(FALSE);
+	else if (currentT > lastT && previousT > T) {			// Temperatures in descending order
+		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);		
+		m_settingsDlg.m_VSListBox_T.SortT(FALSE);			// Sort list with new T in descending order
 	}
-	else if (currentT < lastT && previousT < T) {
+	else if (currentT < lastT && previousT < T) {			// Temperatures in ascending order
 		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
-		m_settingsDlg.m_VSListBox_T.SortT(TRUE);
+		m_settingsDlg.m_VSListBox_T.SortT(TRUE);			// Sort list with new T in ascending order
 	}
 	else {
 		m_flowDlg.m_ExpFlowLogs.AddItem(_T("New temperature (") + strT + _T(" K) is out of allowed range"));
@@ -1142,8 +1128,6 @@ void CiHR320Dlg::AddNewT(int T)
 	else {
 		m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature: (") + strT + _T(" K) cancelled."));
 	}
-
-
 }
 
 void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {

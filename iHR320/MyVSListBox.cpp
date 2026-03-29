@@ -28,7 +28,7 @@ void CMyVSListBox::SortT(BOOL isAscending)
 	int previousT = 0;
 	for (int t : Ts)
 	{
-		if (t != previousT) {
+		if (t != previousT) {								// skip duplicates
 			CString s;
 			s.Format(_T("%d"), t);
 			AddItem(s, t);									// reinserting sorted Ts, HT flag restored if HT
@@ -36,7 +36,6 @@ void CMyVSListBox::SortT(BOOL isAscending)
 		previousT = t;
 	}
 }
-
 
 int CMyVSListBox::AddItem(const CString& strText, DWORD_PTR dwData, int iIndex)
 {
@@ -82,7 +81,7 @@ void CMyVSListBox::RemoveAll()
 	{
 		RemoveItem(i);
 	}
-
+	m_isHT = false;
 }
 
 std::vector<std::string> CMyVSListBox::GetAllItemTs()
@@ -102,7 +101,7 @@ void CMyVSListBox::OnSelectionChanged()
 	CVSListBox::OnSelectionChanged();
 }
 
-BOOL CMyVSListBox::EditItem(int iItem)
+BOOL CMyVSListBox::EditItem(int iItem)						// To avoid manual editing
 {
 	return FALSE;
 }

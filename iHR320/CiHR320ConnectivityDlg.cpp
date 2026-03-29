@@ -20,10 +20,8 @@
 IMPLEMENT_DYNAMIC(CiHR320ConnectivityDlg, CDialogEx)
 
 CiHR320ConnectivityDlg::CiHR320ConnectivityDlg(CWnd* pParent /*=NULL*/)
-	: CDialogEx(IDD_CONNECTIVITY_DLG, pParent)
-	, m_emulation(FALSE)
+	: CDialogEx(IDD_CONNECTIVITY_DLG, pParent), m_emulation(FALSE)
 {
-
 }
 
 CiHR320ConnectivityDlg::~CiHR320ConnectivityDlg()
@@ -47,12 +45,9 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SDK_EMULATION, m_emulationMode);
 }
 
-
 BEGIN_MESSAGE_MAP(CiHR320ConnectivityDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CONNECT_BUTTON, &CiHR320ConnectivityDlg::OnBnClickedConnectButton)
 END_MESSAGE_MAP()
-
-
 
 // CiHR320ConnectivityDlg message handlers
 
@@ -63,13 +58,10 @@ BOOL CiHR320ConnectivityDlg::OnInitDialog()
 
 	ip = GetIPAddress("local");
 	m_localIP.SetAddress(ip[0], ip[1], ip[2], ip[3]);
-
 	ip = GetIPAddress("Tyndall");
 	m_instIP.SetAddress(ip[0], ip[1], ip[2], ip[3]);
-
 	m_ConnectionLogs.EnableBrowseButton(FALSE);
 	m_ConnectionLogs.AddItem(_T("Ready to check connectivity..."));
-	
 	m_emulationMode.ShowWindow(FALSE);
 
 	return TRUE;
@@ -79,7 +71,7 @@ void CiHR320ConnectivityDlg::CheckHardware(bool isExperiment)
 {	
 	m_connectBtn.EnableWindow(FALSE);
 	m_connectBtn.SetWindowTextW(_T("Checking hardware..."));
-	m_mainWnd->m_availableDeviceCount = 0;
+	m_mainWnd->m_availableDeviceCount = 0;			// For connection-> 4 devices
 	m_mainWnd->StartTimer(TIMER_ALL_CHECK, 10);
 
 	if (!(SendTCPMessage(m_mainWnd, GetIPstrFromCtrl(m_localIP), 5051, "REQUEST PLC_STATUS"))) {
@@ -90,11 +82,11 @@ void CiHR320ConnectivityDlg::CheckHardware(bool isExperiment)
 		m_mainWnd->StartTimer(TIMER_ALL_CHECK, 20);
 	}
 
-	if (!isExperiment) {
+	if (!isExperiment) {										// If not experiment
 		std::array<BOOL, 2> l_FlagSDK = m_mainWnd->ConnectMonoAndCCD();
 		std::cout << "[UI-APP] CCD Inited: " << (l_FlagSDK[0] == 1) << "\n";
 		std::cout << "[UI-APP] Mono Inited: " << (l_FlagSDK[1] == 1) << "\n";
-		if (l_FlagSDK[0]) {
+		if (l_FlagSDK[0]) {										// If CCD connected
 			m_CheckBoxCCD.SetCheck(TRUE);
 			m_CheckBoxCCD.SetWindowText(_T("Connected"));
 			m_ConnectionLogs.AddItem(_T("CCD connected"));
@@ -107,7 +99,7 @@ void CiHR320ConnectivityDlg::CheckHardware(bool isExperiment)
 			m_ConnectionLogs.AddItem(_T("CCD not found"));
 		}
 
-		if (l_FlagSDK[1]) {
+		if (l_FlagSDK[1]) {										// If Mono connected
 			m_CheckBoxMono.SetCheck(TRUE);
 			m_CheckBoxMono.SetWindowText(_T("Connected"));
 			m_ConnectionLogs.AddItem(_T("Monochromator connected"));
@@ -154,7 +146,7 @@ void CiHR320ConnectivityDlg::UpdateSystemStatusUI(std::string device) {
 		m_CheckBoxTC.SetCheck(TRUE);
 		m_CheckBoxTC.SetWindowText(_T("Ready"));
 		m_mainWnd->m_availableDeviceCount++;
-		m_ConnectionLogs.Invalidate();
+		m_ConnectionLogs.Invalidate();				// To force redraw dlg (together with next line)
 		m_ConnectionLogs.UpdateWindow();
 		if (m_mainWnd->m_isMonoInitialised) m_mainWnd->WaitForMono();
 	}
@@ -222,7 +214,6 @@ std::array<int, 4> CiHR320ConnectivityDlg::GetIPAddress(std::string type)
 	result[3] = std::stoi(ip_str);
 
 	return result;
-
 }
 
 

@@ -14,7 +14,7 @@ class CiHR320FlowDlg : public CDialogEx
 	DECLARE_DYNAMIC(CiHR320FlowDlg)
 
 public:
-	CiHR320FlowDlg(CWnd* pParent = NULL);   // standard constructor
+	CiHR320FlowDlg(CWnd* pParent = NULL);				// standard constructor
 	virtual ~CiHR320FlowDlg();
 	void SetMainWnd(CiHR320Dlg* main);
 // Dialog Data
@@ -28,22 +28,17 @@ protected:
 	virtual BOOL OnInitDialog();
 	DECLARE_MESSAGE_MAP()
 public:
-	CMyVSListBoxTS m_ExpFlowLogs;
-	CProgressCtrl m_expProgressBar;
-	// Button to request repeating last measured temperature
-	CMFCButton m_repeatPreviousTBtn;
+	CMyVSListBoxTS m_ExpFlowLogs;				// Customised box for experiment logs
+	CProgressCtrl m_expProgressBar;				// Experiment progress bar
+	CMFCButton m_repeatPreviousTBtn;			// Button to request repeating last measured temperature
 	afx_msg void OnBnClickedRepeatT();
-	// Button to pause/continue experiment
-	CMFCButton m_pauseResumeBtn;
+	CMFCButton m_pauseResumeBtn;				// Button to pause/continue experiment
 	afx_msg void OnBnClickedPause();
-	// Buttom to cancel experiment
-	CMFCButton m_cancelExp;
+	CMFCButton m_cancelExp;						// Buttom to cancel experiment
 	afx_msg void OnClickedCancelExp();
-	// Button to add extra temperature data point
-	CMFCButton m_addNewTBtn;
+	CMFCButton m_addNewTBtn;					// Button to add extra temperature data point
 	afx_msg void OnClickedAddNewT();
 	afx_msg void OnKillfocusNewT();
-	CEdit m_newAddT;
-	// Stati text for current T target
-	CStatic m_currTargetT;
+	CEdit m_newAddT;							// Box for new Temperature entry
+	CStatic m_currTargetT;						// Static text for current T target
 };

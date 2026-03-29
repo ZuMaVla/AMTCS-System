@@ -77,7 +77,7 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
 
     while is_TCP_listener_running:
         # ------------------------------------------------------------
-        # 1. Handle commands from the main thread (fire-and-forget)
+        #  Handle commands from the main thread (fire-and-forget)
         # ------------------------------------------------------------
         try:
             cmd = in_q.get_nowait()
@@ -99,7 +99,7 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
             pass
 
         # ------------------------------------------------------------
-        # 2. Accept a client if not connected and receive the data they have to send
+        #  Accept a client if not connected and receive the data they have to send
         # ------------------------------------------------------------
         data = None
         if client is None:

@@ -61,7 +61,6 @@ def main():
     
     
     TIMEOUT = PLCcfg.timeout
- #   isTC = False
     next_T = None
     state_T = {"T_requested": False}
     T_stabilisation_mins = -1

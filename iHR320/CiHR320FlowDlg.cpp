@@ -2,13 +2,11 @@
 //
 
 #include "stdafx.h"
-//#include "iHR320.h"
 #include "CiHR320FlowDlg.h"
 #include "afxdialogex.h"
 #include "Resource.h"
 #include "iHR320Dlg.h"
 #include "TCPtoRPi.h"
-
 
 // CiHR320FlowDlg dialog
 
@@ -17,7 +15,6 @@ IMPLEMENT_DYNAMIC(CiHR320FlowDlg, CDialogEx)
 CiHR320FlowDlg::CiHR320FlowDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_EXPERIMENT_FLOW_DLG, pParent)
 {
-
 }
 
 CiHR320FlowDlg::~CiHR320FlowDlg()
@@ -42,7 +39,6 @@ void CiHR320FlowDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CURRENT_TARGET, m_currTargetT);
 }
 
-
 BEGIN_MESSAGE_MAP(CiHR320FlowDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_REPEAT, &CiHR320FlowDlg::OnBnClickedRepeatT)
 	ON_BN_CLICKED(IDC_PAUSE, &CiHR320FlowDlg::OnBnClickedPause)
@@ -55,19 +51,15 @@ BOOL CiHR320FlowDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 	m_ExpFlowLogs.EnableBrowseButton(FALSE);
-	
-
 	return TRUE;
 }
 
 // CiHR320FlowDlg message handlers
 
-
 void CiHR320FlowDlg::OnBnClickedRepeatT()
 {
 	m_mainWnd->RepeatPreviousT();
 }
-
 
 void CiHR320FlowDlg::OnBnClickedPause()
 {
@@ -75,11 +67,11 @@ void CiHR320FlowDlg::OnBnClickedPause()
 	m_pauseResumeBtn.GetWindowTextW(actionStr);
 	if (actionStr == _T("Pause indefinitely")) {
 		m_ExpFlowLogs.AddItem(_T("User requested to pause experiment."));
-		if (!(SendTCPMessage(m_mainWnd, ip_PLC, port_PLC, "PAUSE"))) {
+		if (!(SendTCPMessage(m_mainWnd, ip_PLC, port_PLC, "PAUSE"))) {			
 			AfxMessageBox(_T("Connection failed"));
 			return;
 		}
-		m_nextUserAction = _T("Continue");
+		m_nextUserAction = _T("Continue");				// For changing name button for "Continue"
 	}
 	else {
 		m_ExpFlowLogs.AddItem(_T("User requested to continue experiment."));
@@ -87,10 +79,9 @@ void CiHR320FlowDlg::OnBnClickedPause()
 			AfxMessageBox(_T("Connection failed"));
 			return;
 		}
-		m_nextUserAction = _T("Pause indefinitely");
+		m_nextUserAction = _T("Pause indefinitely");	// For change name button for "Pause indefinitely"
 	}
 }
-
 
 void CiHR320FlowDlg::OnClickedCancelExp()
 {
@@ -123,12 +114,11 @@ void CiHR320FlowDlg::OnKillfocusNewT()
 
 	int value = _ttoi(text);
 
-	if (value < extreme_Ts[0] || value > extreme_Ts[1])
+	if (value < extreme_Ts[0] || value > extreme_Ts[1])  // Temperature value must be in range
 	{
 		CString msg;
 		msg.Format(_T("Value must be between %d and %d [K]"), extreme_Ts[0], extreme_Ts[1]);
 		AfxMessageBox(msg);
 		m_newAddT.SetFocus();
 	}
-
 }
