@@ -116,6 +116,7 @@ protected:
 	virtual void OnOK();
 	virtual void OnCancel();
 	afx_msg void OnTabSelChange(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg LRESULT OnUpdateSystemEvent(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnPutLog(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnMonoLogMessage(WPARAM wParam, LPARAM lParam);

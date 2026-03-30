@@ -93,6 +93,7 @@ BEGIN_MESSAGE_MAP(CiHR320Dlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_WM_TIMER()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_MAIN, &CiHR320Dlg::OnTabSelChange)
+	ON_MESSAGE(WM_UPDATE_SYSTEM_EVENT, &CiHR320Dlg::OnUpdateSystemEvent)
 	ON_MESSAGE(WM_UPDATE_SYSTEM_STATUS, &CiHR320Dlg::OnUpdateSystemStatus)
 	ON_MESSAGE(WM_USER_MONO_LOG_MESSAGE, &CiHR320Dlg::OnMonoLogMessage)
 	ON_MESSAGE(WM_USER_LOG_MESSAGE, &CiHR320Dlg::OnPutLog)
@@ -364,6 +365,19 @@ LRESULT CiHR320Dlg::OnUpdateSystemStatus(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
+LRESULT CiHR320Dlg::OnUpdateSystemEvent(WPARAM wParam, LPARAM lParam)
+{
+	CString* pEvent = reinterpret_cast<CString*>(lParam);
+	CString event = *pEvent;
+	if (event == _T("RECOVER_EXP")) {
+		m_connectivityDlg.CheckHardware(true);
+	}
+	else if (event == _T("CONTINUE_EXP")) {
+		m_settingsDlg.OnBnClickedStart();
+	}
+	delete pEvent;   // free the memory after using
+	return 0;
+}
 
 LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 {
@@ -1265,7 +1279,7 @@ void CiHR320Dlg::OnTimer(UINT_PTR nIDEvent) {
 				m_connectivityDlg.m_ConnectionLogs.UpdateWindow();
 			}
 			else {
-				CString msg = _T("CONTINUE_EXP");
+				CString msg = _T("CONTINUE_EXP");		// Proceed to experiment when recieved from PLC
 				PostMessageToUI(WM_UPDATE_SYSTEM_EVENT, msg);
 			}
 			if (g_isPLCOnAtStart) {

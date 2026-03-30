@@ -237,40 +237,49 @@ bool AcquisitionParameters::AdjustAcqParam(int maxAT, int maxSlits, double facto
 {
 	std::cout << "Adjustment requested with the following factor: " << factor << "\n";
 
-	if (factor <= 1 && AT == extreme_AT[0] && slits == extreme_Slits[0]) return false;		// Phisically possible minima 
-	if (factor >= 1 && AT == maxAT && slits == maxSlits) return false;						// User defined maxima
-	if (factor > 1) {
-		if (maxAT / AT >= factor) {
-			AT = max(50, int(AT*factor));						
+	if (factor >= 1.0 && AT == maxAT && slits == maxSlits) {	// User defined maxima
+		std::cout << "Further adjustment impossible (due to user defined settings)" << "\n";
+		return false;
+	}
+	if (factor <= 1.0 && AT == extreme_AT[0] &&
+		slits == extreme_Slits[0]) {							// Phisically possible minima
+		std::cout << "Further adjustment impossible (hardware minima reached)" << "\n";
+		return false;
+	}
+	if (factor > 1.0) {
+		if (maxAT*1.0/AT >= factor) {							// Enforce float point operation
+			AT = int(AT*factor);	
+			std::cout << "Adjusting AT only is enough..." << maxAT*1.0/AT << "\n";
 		}
 		else {
-			factor = factor*AT/maxAT;						// Residual factor (decreased proportionally to AT change)
-			AT = maxAT;										// Increase AT as much as possible
-			if (maxSlits / max(slits, minPhSlt) >= factor) {
+			factor = factor*AT/maxAT;							// Residual factor (decreased proportionally to AT change)
+			AT = maxAT;											// Increase AT as much as possible
+			if (maxSlits*1.0/max(slits, minPhSlt) >= factor) {	// Enforce float point operation
 				slits = int(max(slits, minPhSlt)*factor);		// Increase slits propotional to the residual factor
 			}
 			else {
-				slits = maxSlits;							// Increase slits as much as possible
+				slits = maxSlits;								// Increase slits as much as possible
 			}
 		}
 	}
 	else {
-		if (minPhSlt / max(slits, minPhSlt) <= factor) {
+		if (minPhSlt*1.0/max(slits, minPhSlt) <= factor) {		// Enforce float point operation
+			std::cout << "Adjusting slits only is enough... " << minPhSlt*1.0/max(slits, minPhSlt) << "\n";
 			slits = int(max(slits, minPhSlt)*factor);			// Decrease slits propotional to factor
-			if (slits < minPhSlt) slits = extreme_Slits[0];
 		}
 		else {
 			factor = factor*max(slits, minPhSlt) / minPhSlt;	// Residual factor (increased proportionally to slits change)
-			slits = extreme_Slits[0];						// Decrease slits as much as possible
-			if (extreme_AT[0] / AT <= factor) {
-				AT = max(50, int(AT*factor));				// Decrease AT propotional to factor
+			slits = extreme_Slits[0];							// Decrease slits as much as possible
+			if (extreme_AT[0]*1.0/AT <= factor) {				// Enforce float point operation
+				AT = int(AT*factor);							// Decrease AT propotional to factor
 			}
 			else {
-				AT = extreme_AT[0];							// Decrease AT as much as possible
+				AT = extreme_AT[0];								// Decrease AT as much as possible
 			}
 		}
 
 	}
+	std::cout << "New settings: slits - " << slits << " µm, AT - " << AT << " ms\n";
 	paramCount++;
 	return true;
 }

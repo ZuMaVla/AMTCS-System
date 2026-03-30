@@ -288,6 +288,7 @@ void CiHR320SettingsDlg::OnSlitsChanged()
 		return;
 	}
 	m_mainWnd->SetSlits(value/1000.0);		// Convert µm (UI) -> mm (CCD)
+	m_mainWnd->m_acqParams.slits = value;
 	temp.slits = value;
 	experimentState.setExpParams(temp);
 }
@@ -345,6 +346,7 @@ void CiHR320SettingsDlg::OnMaxATChanged()
 		return;
 	}
 	m_mainWnd->SetAT(value/1000.0);
+	m_mainWnd->m_acqParams.AT = value;
 	temp.maxAT = value;
 	experimentState.setExpParams(temp);
 }
@@ -419,6 +421,8 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 			experimentState.experimentProgressIndex = -1;
 			experimentState.experimentLength = experimentState.getExpParams().Ts.size();
 			m_mainWnd->DisableExpSettDlg();
+			m_mainWnd->m_acqParams.slits = experimentState.getExpParams().slits;
+			m_mainWnd->m_acqParams.AT = experimentState.getExpParams().maxAT;
 		}
 		else {
 			AfxMessageBox(_T("At least one temperature is required to start an experiment!"));	// If T list is empty

@@ -82,8 +82,16 @@ BOOL CiHR320App::InitInstance()
 
 	std::string pingCmd = "ping -n 1 -w 1000 " + ip_PLC + " > nul";
 	if (std::system(pingCmd.c_str()) != 0) {
-		std::wcout << L"Error: RPi is offline. Check cables/power." << std::endl;
+		std::wcout << L"Error: RPi seems to be offline. Retrying in 15 s" << std::endl;
+		Sleep(15000);
 	}
+
+	if (std::system(pingCmd.c_str()) != 0) {
+		std::wcout << L"Error: RPi is offline. Check cables/power." << std::endl;
+
+	}
+
+
 	else {
 		if (!isPLCRunning("PLC.py")) {
 			std::wcout << L"PLC is not running; starting it...\n";
