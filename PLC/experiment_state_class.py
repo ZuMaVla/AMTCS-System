@@ -48,15 +48,24 @@ class ExperimentFlow:
     def __init__(self):
         self.cycles: List[ExperimentCycle] = []                                  # empty list 
         
-    def populate(self, num_cycles: int):
+    def populate(self, num_cycles: int, completed_cycle: int):
         self.cycles.clear()                                                      # Clear existing cycles before populating
         for i in range(num_cycles):
-            self.cycles.append(
-                ExperimentCycle(
-                    T=ExperimentStep(StepName.TEMPERATURE, StepStatus.WAITING),
-                    S=ExperimentStep(StepName.SPECTRUM, StepStatus.WAITING)
+            if i > completed_cycle:
+                self.cycles.append(
+                    ExperimentCycle(
+                        T=ExperimentStep(StepName.TEMPERATURE, StepStatus.WAITING),
+                        S=ExperimentStep(StepName.SPECTRUM, StepStatus.WAITING)
+                    )
                 )
-            )
+            else:
+                self.cycles.append(
+                    ExperimentCycle(
+                        T=ExperimentStep(StepName.TEMPERATURE, StepStatus.COMPLETED),
+                        S=ExperimentStep(StepName.SPECTRUM, StepStatus.COMPLETED)
+                    )
+                )
+
 
     def update_step_status_by_experimentProgressIndex(self, cycle_index: int):   # To be used after recovery from iHR320 
         for i in range(cycle_index + 1):        
