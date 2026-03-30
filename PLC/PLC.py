@@ -223,12 +223,14 @@ def main():
                     try:
                         # Update the experiment state from the received JSON string
                         experiment_state.deserialise(experiment_state_string)
-                        experiment_state.experimentFlow.populate(len(experiment_state.experimentParameters.Ts))  # Populate the experiment flow based on the number of temperature steps
+                        # Populate the experiment flow based on the exp length and current progress index
+                        experiment_state.experimentFlow.populate(experiment_state.experimentLength, experiment_state.experimentProgressIndex)
                         print(f"[MAIN] updated experiment state: {asdict(experiment_state.experimentParameters)}")
                         cmd = "SEND"
                         arg = "EXP_CONFIRMED"
                         tcp_in.put((cmd, arg))
                         is_experiment = True
+                        is_paused = False
                     except ValueError as e:
                         # Inform iHR320 app of error
                         cmd = "SEND"
