@@ -393,6 +393,7 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			SetExpProgress();
 			m_isExperimentStarted = TRUE;
 			StopTimer(TIMER_EXP_SENT);
+			SelectTab(2);
 		}
 		else if (msg.Left(3) == _T("EDF")) {		// Experiment details failed
 			log = _T("[PLC] ") + msg.Mid(5);
