@@ -1151,7 +1151,7 @@ void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {
 
 	CString* pMsg = new CString(logMessage);
 	if (!::PostMessage(this->m_hWnd, message, 0, (LPARAM)pMsg))
-		delete pMsg;
+		delete pMsg;			// Delete pointer here if no one picks up the message (to avoid memory leaking)
 }
 
 void CiHR320Dlg::EnableExpSettDlg()

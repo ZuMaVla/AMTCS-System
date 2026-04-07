@@ -1,49 +1,73 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
-<head>
-    <title>AMTCS Project</title>
-    <meta charset="UTF-8">
-    <style>
-        body {
-            font-family: Arial;
-            max-width: 900px;
-            margin: auto;
-            line-height: 1.6;
-        }
-        h1 {
-            color: #2c3e50;
-        }
-    </style>
-</head>
+    <head>
+        <title>AMTCS Project</title>
+        <meta charset="UTF-8">
+        <style>
+            body {
+                font-family: Arial;
+                max-width: 900px;
+                margin: auto;
+                line-height: 1.6;
+            }
+            h1 {
+                color: #2c3e50;
+            }
+        </style>
+    </head>
 
-<body>
+    <body>
 
-<h1>AMTCS</h1>
-<h2>IoT project on<br>
-  Automating Measurements Using a Temperature Controller and Spectrometer:<br>
-  Initially Simulated (client: Tyndall National Institute)
-</h2> 
+        <h1>
+            AMTCS
+            <img src="Docs/logo.png" alt="Logo" style="vertical-align: middle; float: right; margin-right: 4px;">
+        </h1>
 
-<p>
-The AMTCS system is a laboratory automation solution that brings together temperature control and spectroscopic measurements into a single workflow. 
-  Using a C++-based user interface application and an embedded PLC (Python-based logic on a Raspberry Pi 5), 
-  it integrates and coordinates devices from different suppliers, automating temperature ramps, stabilisation at a target temperature, and spectrum acquisition. 
-  This reduces manual intervention, minimises errors, and improves the reliability and repeatability of experiments. 
-  The system has been successfully validated under real laboratory conditions.
-</p>
+        <h2>
+            IoT project on<br>
+            Automating Measurements Using a Temperature Controller and Spectrometer:<br>
+            Initially Simulated (client: Tyndall National Institute)
+        </h2> 
 
-<h2>Key Features</h2>
-<ul>
-    <li>Automated temperature stabilisation</li>
-    <li>Spectrum acquisition</li>
-    <li>Hardware–software integration</li>
-</ul>
+        <p>
+            The AMTCS system is a laboratory automation solution that brings together temperature control and spectroscopic measurements into a single workflow. 
+            Using a C++-based user interface application and an embedded PLC (Python-based logic on a Raspberry Pi 5), 
+            it integrates and coordinates devices from different suppliers, automating temperature ramps, stabilisation at a target temperature, and spectrum acquisition. 
+            This reduces manual intervention, minimises errors, and improves the reliability and repeatability of experiments. 
+            The system has been successfully validated under real laboratory conditions.
+        </p>
 
-<h2>Links</h2>
-<ul>
-    <li><a href="#">Final Report</a></li>
-    <li><a href="#">Presentation</a></li>
-</ul>
+        <h2>Key Features</h2>
+        <ul>
+            <li>Different manufacturers' hardware integration</li>
+            <li>Automated temperature ramp and stabilisation</li>
+            <li>Spectra acquisition</li>
+            <ul>
+                <li>'Cosmic ray'-artefact removal</li>
+                <li>Autoexposure based on live signal intensity</li>
+            </ul>
+         </ul>
+        <h2>Future Features</h2>
+        <ul>
+            <li>API-providing server</li>
+            <li>Browser- and/or mobile app-based remote monitoring</li>
+        </ul>
 
-</body>
+        <h2>Links</h2>
+        <ul>
+            <li><a href="Docs/PROPOSAL.pdf">Proposal</a></li>
+            <li><a href="Docs/FINAL_REPORT.pdf">Final Report</a></li>
+            <li><a href="Docs/FINAL_PRESENTATION.pdf">Presentation</a></li>
+            <li><a href="https://www.youtube.com/watch?v=3rDeC-5Dfjc">Demonstration (video)</a>: </li>
+        </ul>
+        <iframe width="560" height="315"
+                src="https://www.youtube.com/embed/3rDeC-5Dfjc"
+                title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen>
+        </iframe>
+
+    </body>
 </html>
