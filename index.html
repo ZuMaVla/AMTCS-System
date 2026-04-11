@@ -1,73 +1,147 @@
 ﻿<!DOCTYPE html>
 <html>
-    <head>
-        <title>AMTCS Project</title>
-        <meta charset="UTF-8">
-        <style>
-            body {
-                font-family: Arial;
-                max-width: 900px;
-                margin: auto;
-                line-height: 1.6;
-            }
-            h1 {
-                color: #2c3e50;
-            }
-        </style>
-    </head>
 
-    <body>
+<head>
+    <title>AMTCS Project</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+    <style>
+        body {
+            font-family: Arial;
+            max-width: 900px;
+            margin: auto;
+            line-height: 1.6;
+        }
 
-        <h1>
-            AMTCS
-            <img src="Docs/logo.png" alt="Logo" style="vertical-align: middle; float: right; margin-right: 4px;">
-        </h1>
+        h1 {
+            color: #2c3e50;
+        }
+    </style>
+</head>
 
-        <h2>
-            IoT project on<br>
-            Automating Measurements Using a Temperature Controller and Spectrometer:<br>
-            Initially Simulated (client: Tyndall National Institute)
-        </h2> 
+<body>
+    <div class="notification has-background-grey-light has-text-success-dark mt-4">
+        <div class="container">
+            <h1 class="title">
+                AMTCS
+                <img src="Docs/logo.png" alt="Logo" style="vertical-align: middle; float: right; margin-right: 4px;">
+            </h1>
 
-        <p>
-            The AMTCS system is a laboratory automation solution that brings together temperature control and spectroscopic measurements into a single workflow. 
-            Using a C++-based user interface application and an embedded PLC (Python-based logic on a Raspberry Pi 5), 
-            it integrates and coordinates devices from different suppliers, automating temperature ramps, stabilisation at a target temperature, and spectrum acquisition. 
-            This reduces manual intervention, minimises errors, and improves the reliability and repeatability of experiments. 
-            The system has been successfully validated under real laboratory conditions.
-        </p>
+            <h2 class="subtitle">
+                IoT project on<br>
+                Automating Measurements Using a Temperature Controller and Spectrometer:<br>
+                Initially Simulated (client: Tyndall National Institute)
+            </h2>
+        </div>
+    </div>
+    <div class="table-container notification has-background-light">
+        <div class="columns is-vcentered">
+            <div class="column">
+                <div class="content">
+                    <table class="table" style="width:auto; table-layout:auto; white-space:nowrap;">
+                        <thead>
+                            <tr>
+                                <th colspan="2">Student/developer information</th>
+                            </tr>
+                            <tr>
+                                <td>Name:</td>
+                                <td>Marina Zubialevich</td>
+                            </tr>
+                            <tr>
+                                <td>Student ID:</td>
+                                <td>20108904</td>
+                            </tr>
+                            <tr>
+                                <td>Email:</td>
+                                <td>20108904@mail.wit.ie</td>
+                            </tr>
+                            <tr>
+                                <td>Program:</td>
+                                <td>Higher Diploma in Computer Science</td>
+                            </tr>
+                            <tr>
+                                <td>Years:</td>
+                                <td>2024-2026</td>
+                            </tr>
+                            <tr>
+                                <td>SETU Supervisor:</td>
+                                <td>Dr Anita Kealy</td>
+                            </tr>
+                            <tr>
+                                <td>Tyndall Supervisor:</td>
+                                <td>Dr Pietro Pampili</td>
+                            </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="column has-text-centered">
+                <figure class="image is-inline-block">
+                    <img class="is-rounded" src="https://avatars.githubusercontent.com/u/151947394?v=4"
+                        alt="Marina photo">
+                </figure>
+            </div>
+        </div>
+    </div>
+    <div class="notification has-background-grey-lighter">
+        <div class="container">
+            <div class="content">
+                <h2>Description</h2>
+                <p>
+                    The AMTCS system is a laboratory automation solution that brings together temperature control and
+                    spectroscopic measurements into a single workflow.
+                    Using a C++-based user interface application and an embedded PLC (Python-based logic on a Raspberry
+                    Pi 5),
+                    it integrates and coordinates devices from different suppliers, automating temperature ramps,
+                    stabilisation at a target temperature, and spectrum acquisition.
+                    This reduces manual intervention, minimises errors, and improves the reliability and repeatability
+                    of experiments.
+                    The system has been successfully validated under real laboratory conditions.
+                </p>
 
-        <h2>Key Features</h2>
-        <ul>
-            <li>Different manufacturers' hardware integration</li>
-            <li>Automated temperature ramp and stabilisation</li>
-            <li>Spectra acquisition</li>
-            <ul>
-                <li>'Cosmic ray'-artefact removal</li>
-                <li>Autoexposure based on live signal intensity</li>
-            </ul>
-         </ul>
-        <h2>Future Features</h2>
-        <ul>
-            <li>API-providing server</li>
-            <li>Browser- and/or mobile app-based remote monitoring</li>
-        </ul>
+                <h2>Key Features</h2>
+                <ul>
+                    <li>Different manufacturers' hardware integration</li>
+                    <li>Automated temperature ramp and stabilisation</li>
+                    <li>Spectra acquisition</li>
+                    <ul>
+                        <li>'Cosmic ray'-artefact removal</li>
+                        <li>Autoexposure based on live signal intensity</li>
+                    </ul>
+                    <li>Experiment recovery (e.g. after a PLC or UI App crash)</li>
+                </ul>
+                <h2>Future Features</h2>
+                <ul>
+                    <li>Log/Status Server acting as the API provider</li>
+                    <li>Remote monitoring client via browser and/or mobile application</li>
+                </ul>
 
-        <h2>Links</h2>
-        <ul>
-            <li><a href="Docs/PROPOSAL.pdf">Proposal</a></li>
-            <li><a href="Docs/FINAL_REPORT.pdf">Final Report</a></li>
-            <li><a href="Docs/FINAL_PRESENTATION.pdf">Presentation</a></li>
-            <li><a href="https://www.youtube.com/watch?v=3rDeC-5Dfjc">Demonstration (video)</a>: </li>
-        </ul>
-        <iframe width="560" height="315"
-                src="https://www.youtube.com/embed/3rDeC-5Dfjc"
-                title="YouTube video player"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen>
-        </iframe>
+                <h2>Links</h2>
+                <ul>
+                    <li><a href="Docs/PROPOSAL.pdf">Proposal</a></li>
+                    <li><a href="Docs/FINAL_REPORT.pdf">Final Report</a></li>
+                    <li><a href="Docs/FINAL_PRESENTATION.pdf">Presentation</a></li>
+                    <li><a href="https://www.youtube.com/watch?v=3rDeC-5Dfjc">Demonstration (video)</a>: </li>
+                </ul>
+                <figure class="image is-16by9">
+                    <iframe class="has-ratio" width="640" height="360" src="https://www.youtube.com/embed/3rDeC-5Dfjc"
+                        frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen>
+                    </iframe>
+                </figure>
+            </div>
+        </div>
+    </div>
+    <div class="notification has-background-grey-light has-text-success-dark mt-4 mb-4">
+        <footer class="footer p-2 has-background-grey-light has-text-success-dark">
+            <div class="content has-text-centered">
+                <p>
+                    <a href="https://github.com/ZuMaVla" style="text-decoration: none;">ZuMaVla</a>, 2026
+                </p>
+            </div>
+        </footer>
+    </div>
 
-    </body>
+</body>
+
 </html>
