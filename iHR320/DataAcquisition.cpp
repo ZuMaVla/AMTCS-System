@@ -79,7 +79,7 @@ bool SaveData(					// Saving data into file
 		outputFile.Write(CT2A(line), line.GetLength());
 		line = _T("nm\tCounts\n");
 		outputFile.Write(CT2A(line), line.GetLength());
-		line = _T("\t") + sampleCode + _T("\n");
+		line = sampleCode + _T("\t") + T + _T(" K\n");
 		outputFile.Write(CT2A(line), line.GetLength());
 		line.Format(_T("AT: %04d\tslits: %04d\n"), pUI->m_acqParams.AT, pUI->m_acqParams.slits);
 		outputFile.Write(CT2A(line), line.GetLength());
@@ -170,8 +170,8 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 	std::vector<std::vector<long>> bckgData, totalData;
 
 	if (pUI->m_acqParams.AT == -1 || pUI->m_acqParams.slits == -1) {
-		pUI->m_acqParams.AT = params.maxAT;
-		pUI->m_acqParams.slits = params.slits;
+		pUI->m_acqParams.AT = 50;
+		pUI->m_acqParams.slits = 0;
 	}
 	pUI->SetSlits(pUI->m_acqParams.slits / 1000.0); 
 	pUI->SetAT(pUI->m_acqParams.AT / 1000.0);
@@ -279,7 +279,7 @@ bool AcquisitionParameters::AdjustAcqParam(int maxAT, int maxSlits, double facto
 		}
 
 	}
-	std::cout << "New settings: slits - " << slits << " µm, AT - " << AT << " ms\n";
+	std::cout << "New settings: slits - " << slits << " mkm, AT - " << AT << " ms\n";
 	paramCount++;
 	return true;
 }
