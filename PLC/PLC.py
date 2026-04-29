@@ -119,6 +119,9 @@ def main():
                             ser_in.put(("SIMULATE", str(simulated_T_TC)))       # Trigger the temperature simulation
                     else:
                         print(f"[MAIN] Waiting for temperature ")    
+                case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.COMPLETED):
+                    print(f"[MAIN] event: temperature reached")
+                    experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.WAITING
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.WAITING):
                     print(f"[MAIN] Requesting spectrum step")
                     if not spectum_requested:
@@ -352,11 +355,7 @@ def main():
                     except ValueError:
                         print(f"[MAIN] event: received non-numeric temperature value: {msg}")  
                     if T_stabilisation_mins >= 2:  # If the temperature has been stable for 3 consecutive checks (approximately 2 minutes), consider it stabilized
-                        experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED
-                        experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.WAITING
-                        print(f"[MAIN] event: temperature reached")
-                        
-        # Periodic tasks or routing logic here
+                        experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED                     
         time.sleep(TIMEOUT)
 
 

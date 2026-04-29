@@ -62,6 +62,13 @@ bool isPLCRunning(const std::string& scriptName) {
 
 BOOL CiHR320App::InitInstance()
 {
+	HANDLE hMutex = CreateMutex(nullptr, TRUE, L"Global\\iHR320_SingleInstance_Mutex");
+
+	if (hMutex && GetLastError() == ERROR_ALREADY_EXISTS)
+	{
+		return FALSE;
+	}
+
 	// InitCommonControlsEx() is required on Windows XP if an application
 	// manifest specifies use of ComCtl32.dll version 6 or later to enable
 	// visual styles.  Otherwise, any window creation will fail.

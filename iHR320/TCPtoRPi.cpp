@@ -34,7 +34,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 	while (g_logicRunning){
 
 		// Wait for next PLC event (blocking, but not longer than HBRate seconds) 
-		event = {"", ""};
+		event = {"", ""};										// 
 		PLC_out.popTimed(event, HBRate*1000);
 
 		// Process the event (event interpretation) 
