@@ -33,7 +33,7 @@ const int default_MaxAT = 250;
 
 
 const std::vector<std::string> default_Ts = {
-	"10", "20", "30", "40", "50", "60", "80", "100", "120", "150", "180", "220", "260", "300"
+	"11", "20", "30", "40", "50", "60", "80", "100", "120", "140", "160", "180", "200", "220", "240", "260", "280", "300"
 };
 const bool default_isCRRemoval = TRUE;
 const int default_Slits = 0;
