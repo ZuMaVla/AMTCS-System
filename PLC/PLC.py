@@ -4,7 +4,7 @@ import queue
 import time
 from serial_listener import serial_comm_thread
 from tcp_listener import tcp_comm_thread
-from config import ExperimentMode, PLCcfg, experiment_mode, RT
+from config import ExperimentMode, PLCcfg, experiment_mode, RT, temp_req_period
 from experiment_state_class import ExperimentState, ExperimentStep, StepName, StepStatus, InitStep   
 from dataclasses import asdict
 from threading import Timer
@@ -110,7 +110,7 @@ def main():
                     if not state_T["T_requested"]:
                         ser_in.put(("CHECK_TEMPERATURE", ""))
                         state_T["T_requested"] = True
-                        timer_T = Timer(10, reset_T_request, args=(state_T,))
+                        timer_T = Timer(temp_req_period, reset_T_request, args=(state_T,))
                         timer_T.start()
                         print(f"[MAIN] Requesting temperature")
                         if exp_mode == ExperimentMode.SIMULATION:
