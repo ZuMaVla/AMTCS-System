@@ -420,6 +420,7 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 			experimentState.setExpParams(CollectExperimentParameters());
 			experimentState.experimentProgressIndex = -1;
 			experimentState.experimentLength = experimentState.getExpParams().Ts.size();
+			experimentState.isExpSimulated = m_mainWnd->m_simulationMode;
 			m_mainWnd->DisableExpSettDlg();
 			m_mainWnd->m_acqParams.slits = -1;
 			m_mainWnd->m_acqParams.AT = -1;

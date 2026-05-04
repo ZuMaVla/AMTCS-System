@@ -62,6 +62,7 @@ public:
 	CButton m_CheckBoxMono;
 	CButton m_CheckBoxTC;								// control for TC status
 	CMFCButton m_connectBtn;							// Button that checks hardware connectivity
-	BOOL m_emulation;									// SDK emulation if true
+	BOOL m_emulation = FALSE;							// SDK emulation if true
 	CButton m_emulationMode;
+	afx_msg void ToggleSdkEmulation();
 };
