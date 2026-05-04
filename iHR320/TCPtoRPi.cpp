@@ -51,6 +51,12 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 			cmd.payload = "TC?";
 			PLC_in.push(cmd); 														// Request status of TC
 		}
+		else if (event.keyword == "SERVER_ONLINE") {								// PLC confirmed server state (online)				
+			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, _T("SRV_ON"));				// Message to main window
+		}
+		else if (event.keyword == "SERVER_OFFLINE") {								// PLC confirmed server state (offline)				
+			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, _T("SRV_OFF"));				// Message to main window
+		}
 		else if (event.keyword == "EXP_CONFIRMED") {								// PLC confirmed experiment state				
 			msg = _T("Experiment details accepted");
 			pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, _T("EDA: ") + msg);			// Message to main window

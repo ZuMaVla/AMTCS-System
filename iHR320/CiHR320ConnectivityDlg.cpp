@@ -43,6 +43,7 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CONNECT_BUTTON, m_connectBtn);
 	DDX_Check(pDX, IDC_SDK_EMULATION, m_emulation);
 	DDX_Control(pDX, IDC_SDK_EMULATION, m_emulationMode);
+	DDX_Control(pDX, IDC_CHECK_SERVER, m_CheckBoxServer);
 }
 
 BEGIN_MESSAGE_MAP(CiHR320ConnectivityDlg, CDialogEx)
