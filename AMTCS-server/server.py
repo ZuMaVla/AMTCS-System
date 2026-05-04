@@ -188,6 +188,13 @@ def save_logs():
         "status": "Logs saved to folder", 
         "file_path": save_logs_to_folder()
     }
+    
+# PLC requests server status
+@app.post("/status")
+def server_status():
+    return {
+        "status": "OK"
+    }
 
 # Mob app requests to shut down the server
 @app.post("/shutdown", dependencies=[Depends(verify_api_key)])   

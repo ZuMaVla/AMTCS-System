@@ -4,11 +4,12 @@ import queue
 import time
 from serial_listener import serial_comm_thread
 from tcp_listener import tcp_comm_thread
-from config import ExperimentMode, PLCcfg, experiment_mode, RT, temp_req_period
+from config import ExperimentMode, PLCcfg, TCPcfg, experiment_mode, RT, temp_req_period
 from experiment_state_class import ExperimentState, ExperimentStep, StepName, StepStatus, InitStep   
 from dataclasses import asdict
 from threading import Timer
-
+import subprocess
+import os
 
 # ============================================================
 #  Helper functions
@@ -30,12 +31,67 @@ def report_no_exp():
     is_experiment = False
     wait_for_event = True
 
+def launch_independent_server():
+    # 1. Resolve paths
+    plc_dir = os.path.dirname(os.path.abspath(__file__))
+    server_dir = os.path.abspath(os.path.join(plc_dir, "..", "AMTCS-server"))
+    venv_python = os.path.join(server_dir, "venv", "bin", "python3")
+
+    # 2. Check if uvicorn is already running
+    # 'pgrep -f' searches the full command line string
+    try:
+        # We check for "uvicorn" and "server:app" to be specific
+        check_proc = subprocess.run(["pgrep", "-f", "uvicorn.*server:app"], capture_output=True)
+        
+        if check_proc.returncode == 0:
+            print("[PLC] AMTCS Server is already running. Skipping launch.")
+            return
+    except Exception as e:
+        print(f"[PLC] Error checking for existing server: {e}")
+
+    # 3. If not running, launch it
+    print(f"[PLC] Server not detected. Spawning from: {server_dir}")
+    try:
+        subprocess.Popen(
+            [venv_python, "-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"],
+            cwd=server_dir,
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.DEVNULL,
+            start_new_session=True 
+        )
+        print("[PLC] Server successfully detached.")
+    except Exception as e:
+        print(f"[PLC] Error launching server: {e}")
+
+
+import requests
+
+def check_server_health(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/status"
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(url, headers={'accept': 'application/json'}, timeout=2)
+        
+        if response.status_code == 200:
+            print(f"[PLC] Server Health Check: OK ({response.json()})")
+            return True
+        else:
+            print(f"[PLC] Server returned error: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[PLC] Server unreachable: {e}")
+        return False
+
+
 
 # ============================================================
 #  Main Thread (PLC)
 # ============================================================
 
 def main():
+    
+    launch_independent_server()     # start server
+    
     # Experiment mode (simulation or production)
     exp_mode = experiment_mode  # configure this in config.py
 
@@ -150,6 +206,12 @@ def main():
                         is_paused = True
                     is_experiment_suspended = True
                     wait_for_event = False              # Turn of waiting while in initialisation
+                    cmd = "SEND"
+                    if check_server_health():
+                        arg = "SERVER_ONLINE"
+                    else: 
+                        arg = "SERVER_OFFLINE"   
+                    tcp_in.put((cmd, arg))
                 case (("STATUS", "iHR320_ERROR")):
                     if is_experiment:
                         wait_for_event = True 
