@@ -161,65 +161,71 @@ std::vector<std::vector<long>> RepareData(std::vector<std::vector<long>> data) {
 
 
 bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
-	ExperimentParameters params = pUI->GetExperimentParameters();
-	bool success = false;		// Flag containing the result of the spectrum acquisition attempt
-	int NA = params.NA;
-	int DGRangeNo = params.DGRangeNo;
-	std::array<double, 5> centresWL = pUI->GetCentresWL(params.StartWL, params.DGRangeNo);
-	std::vector<double> zero, bckg, finalData, fullData, finalX, fullX;
-	std::vector<std::vector<long>> bckgData, totalData;
-
-	if (pUI->m_acqParams.AT == -1 || pUI->m_acqParams.slits == -1) {
-		pUI->m_acqParams.AT = 50;
-		pUI->m_acqParams.slits = 0;
+	if (pUI->m_simulationMode) {
+		Sleep(5000);
+		return true;
 	}
-	pUI->SetSlits(pUI->m_acqParams.slits / 1000.0); 
-	pUI->SetAT(pUI->m_acqParams.AT / 1000.0);
+	else {
+		ExperimentParameters params = pUI->GetExperimentParameters();
+		bool success = false;		// Flag containing the result of the spectrum acquisition attempt
+		int NA = params.NA;
+		int DGRangeNo = params.DGRangeNo;
+		std::array<double, 5> centresWL = pUI->GetCentresWL(params.StartWL, params.DGRangeNo);
+		std::vector<double> zero, bckg, finalData, fullData, finalX, fullX;
+		std::vector<std::vector<long>> bckgData, totalData;
 
-
-	for (int j = 0; j < 2*params.NA; j++) {		
-		pUI->DoAcquisition(false);								// Shutter closed for bckg measurements
-		while (!pUI->m_isCCDDataReady) {
-			Sleep(100);
+		if (pUI->m_acqParams.AT == -1 || pUI->m_acqParams.slits == -1) {
+			pUI->m_acqParams.AT = 50;
+			pUI->m_acqParams.slits = 0;
 		}
-		bckgData.push_back(CollectData(pUI));					// Stack in 2D vector (bckg)
-	}
-	if (params.isCRRemoval) bckgData = RepareData(bckgData);	// Cosmic ray removal 
-	bckg = CalculateData(bckgData, zero);						// Averaging bckg
+		pUI->SetSlits(pUI->m_acqParams.slits / 1000.0);
+		pUI->SetAT(pUI->m_acqParams.AT / 1000.0);
 
 
-	for (int i = 0; i < params.DGRangeNo; i++) {
-		totalData.clear();
-		pUI->MonoMoveTo(centresWL[i]);	
-		Sleep(1000);
-		for (int j = 0; j < params.NA; j++) {
-			pUI->DoAcquisition();								// Open shutter (by default) for actual signal
+		for (int j = 0; j < 2 * params.NA; j++) {
+			pUI->DoAcquisition(false);								// Shutter closed for bckg measurements
 			while (!pUI->m_isCCDDataReady) {
 				Sleep(100);
 			}
-			totalData.push_back(CollectData(pUI));				//Stack in 2D vector (actual data)
+			bckgData.push_back(CollectData(pUI));					// Stack in 2D vector (bckg)
+		}
+		if (params.isCRRemoval) bckgData = RepareData(bckgData);	// Cosmic ray removal 
+		bckg = CalculateData(bckgData, zero);						// Averaging bckg
+
+
+		for (int i = 0; i < params.DGRangeNo; i++) {
+			totalData.clear();
+			pUI->MonoMoveTo(centresWL[i]);
+			Sleep(1000);
+			for (int j = 0; j < params.NA; j++) {
+				pUI->DoAcquisition();								// Open shutter (by default) for actual signal
+				while (!pUI->m_isCCDDataReady) {
+					Sleep(100);
+				}
+				totalData.push_back(CollectData(pUI));				//Stack in 2D vector (actual data)
+			}
+
+			if (params.isCRRemoval) totalData = RepareData(totalData);				// Cosmic ray removal
+			finalData = CalculateData(totalData, bckg);				// Averaged and bckg-subtracted data for current spectral window
+			finalX = CollectX(pUI);									// Taking wavelengths (one time for the last measurement)
+			fullData.insert(fullData.end(), finalData.begin(), finalData.end());	// Combined Y-data for all spectral windows
+			fullX.insert(fullX.end(), finalX.begin(), finalX.end());				// Combined X-data (WL) -//-
 		}
 
-		if (params.isCRRemoval) totalData = RepareData(totalData);				// Cosmic ray removal
-		finalData = CalculateData(totalData, bckg);				// Averaged and bckg-subtracted data for current spectral window
-		finalX = CollectX(pUI);									// Taking wavelengths (one time for the last measurement)
-		fullData.insert(fullData.end(), finalData.begin(), finalData.end());	// Combined Y-data for all spectral windows
-		fullX.insert(fullX.end(), finalX.begin(), finalX.end());				// Combined X-data (WL) -//-
-	}
+		long maxIntensity = *std::max_element(fullData.begin(), fullData.end());
 
-	long maxIntensity = *std::max_element(fullData.begin(), fullData.end());
-
-	CString path = pUI->GetCurrentDir();
-	CString sampleCode = CString(params.sampleCode.c_str());
-	success = SaveData(fullX, fullData, path, sampleCode, pUI, T);				// Saving data disregarding max intensity
-	std::cout << "Max intensity: " << maxIntensity << "\n";
-	if (params.isCRRemoval && maxIntensity > maxCCDI) {			// If cosmic rays removal ON and intensity out of range
-		if (pUI->m_acqParams.AdjustAcqParam(params.maxAT, params.slits, 1.5*minCCDI/maxIntensity)) success = TakeSpectrum(pUI, T);
+		CString path = pUI->GetCurrentDir();
+		CString sampleCode = CString(params.sampleCode.c_str());
+		success = SaveData(fullX, fullData, path, sampleCode, pUI, T);				// Saving data disregarding max intensity
+		std::cout << "Max intensity: " << maxIntensity << "\n";
+		if (params.isCRRemoval && maxIntensity > maxCCDI) {			// If cosmic rays removal ON and intensity out of range
+			if (pUI->m_acqParams.AdjustAcqParam(params.maxAT, params.slits, 1.5*minCCDI / maxIntensity)) success = TakeSpectrum(pUI, T);
+		}
+		else if (params.isCRRemoval && maxIntensity < minCCDI) {
+			if (pUI->m_acqParams.AdjustAcqParam(params.maxAT, params.slits, 0.75*maxCCDI / maxIntensity)) success = TakeSpectrum(pUI, T);
+		}
+		return success;
 	}
-	else if (params.isCRRemoval && maxIntensity < minCCDI) {
-		if (pUI->m_acqParams.AdjustAcqParam(params.maxAT, params.slits, 0.75*maxCCDI/maxIntensity)) success = TakeSpectrum(pUI, T);
-	}
-	return success;
 }
 
 //************************ AcquisitionParameters class ************************\\

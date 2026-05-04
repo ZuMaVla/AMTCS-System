@@ -151,5 +151,6 @@ public:
 	std::array<BOOL, 2> ConnectMonoAndCCD();
 	HRESULT DoAcquisition(bool shutterOpen = true);
 	void SetCCDParams();
+	bool m_simulationMode = false;
 
 };

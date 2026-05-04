@@ -51,7 +51,7 @@ END_OBJECT_MAP()
 bool isPLCRunning(const std::string& scriptName) {
 	// -f checks the full command line (needed for Python scripts)
 	// > nul (Windows) or > /dev/null (Linux) hides the output
-	std::string checkCmd = "plink -batch -ssh pl-ple@" + ip_PLC + " -pw " + RPiPwd + " \"pgrep -f " + scriptName + "\" > nul";
+	std::string checkCmd = "plink -batch -ssh " + RPiUsr + "@" + ip_PLC + " -pw " + RPiPwd + " \"pgrep -f " + scriptName + "\" > nul";
 	bool result = std::system(checkCmd.c_str()) == 0;		// std::system returns 0 if pgrep finds the process
 	if (result) std::wcout << L"PLC already running...\n";
 
@@ -103,9 +103,10 @@ BOOL CiHR320App::InitInstance()
 		if (!isPLCRunning("PLC.py")) {
 			std::wcout << L"PLC is not running; starting it...\n";
 			// Start PLC
-			const std::string command = "plink -batch -ssh pl-ple@" + ip_PLC + 
+			const std::string command = "plink -batch -ssh " + RPiUsr + "@" + ip_PLC +
 				" -pw " + RPiPwd +
-				" \"nohup python3 '/home/pl-ple/Documents/My Projects/AMTCS-System/PLC/PLC.py' > /dev/null 2>&1 &\"";
+				" \"nohup /usr/bin/python3 '" + RPiPLCPth + "' > /dev/null 2>&1 &\"";
+			std::cout << command;
 			std::system(command.c_str());
 			Sleep(1000);
 		}

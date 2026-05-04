@@ -44,6 +44,8 @@ std::string CExperimentState::serialiseState()
 	jsonState["experimentParameters"] = experimentParameters;
 	jsonState["experimentProgressIndex"] = experimentProgressIndex;
 	jsonState["experimentLength"] = experimentLength;
+	jsonState["isExpSimulated"] = isExpSimulated;
+
 	return jsonState.dump();
 }
 
@@ -52,6 +54,7 @@ void CExperimentState::deserialiseState()
 	experimentParameters = jsonState.at("experimentParameters").get<ExperimentParameters>();
 	experimentProgressIndex = jsonState.at("experimentProgressIndex").get<int>();
 	experimentLength = jsonState.at("experimentLength").get<int>();
+	isExpSimulated = jsonState.at("isExpSimulated").get<bool>();
 }
 
 ExperimentParameters CExperimentState::getExpParams()

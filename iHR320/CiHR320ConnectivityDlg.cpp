@@ -20,7 +20,7 @@
 IMPLEMENT_DYNAMIC(CiHR320ConnectivityDlg, CDialogEx)
 
 CiHR320ConnectivityDlg::CiHR320ConnectivityDlg(CWnd* pParent /*=NULL*/)
-	: CDialogEx(IDD_CONNECTIVITY_DLG, pParent), m_emulation(FALSE)
+	: CDialogEx(IDD_CONNECTIVITY_DLG, pParent)
 {
 }
 
@@ -47,6 +47,7 @@ void CiHR320ConnectivityDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CiHR320ConnectivityDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CONNECT_BUTTON, &CiHR320ConnectivityDlg::OnBnClickedConnectButton)
+	ON_BN_CLICKED(IDC_SDK_EMULATION, &CiHR320ConnectivityDlg::ToggleSdkEmulation)
 END_MESSAGE_MAP()
 
 // CiHR320ConnectivityDlg message handlers
@@ -62,13 +63,14 @@ BOOL CiHR320ConnectivityDlg::OnInitDialog()
 	m_instIP.SetAddress(ip[0], ip[1], ip[2], ip[3]);
 	m_ConnectionLogs.EnableBrowseButton(FALSE);
 	m_ConnectionLogs.AddItem(_T("Ready to check connectivity..."));
-	m_emulationMode.ShowWindow(FALSE);
+	m_emulationMode.ShowWindow(TRUE);
 
 	return TRUE;
 }
 
 void CiHR320ConnectivityDlg::CheckHardware(bool isExperiment)
 {	
+
 	m_connectBtn.EnableWindow(FALSE);
 	m_connectBtn.SetWindowTextW(_T("Checking hardware..."));
 	m_mainWnd->m_availableDeviceCount = 0;			// For connection-> 4 devices
@@ -88,7 +90,8 @@ void CiHR320ConnectivityDlg::CheckHardware(bool isExperiment)
 		m_ConnectionLogs.UpdateWindow();
 	}
 
-	if (!isExperiment) {										// If not experiment
+	if (!isExperiment && !m_mainWnd->m_simulationMode) {		// If not experiment and not simulation mode
+		std::cout << "[UI-APP] simulation mode: " << m_mainWnd->m_simulationMode << "\n";
 		std::array<BOOL, 2> l_FlagSDK = m_mainWnd->ConnectMonoAndCCD();
 		std::cout << "[UI-APP] CCD Inited: " << (l_FlagSDK[0] == 1) << "\n";
 		std::cout << "[UI-APP] Mono Inited: " << (l_FlagSDK[1] == 1) << "\n";
@@ -134,8 +137,15 @@ void CiHR320ConnectivityDlg::CheckHardware(bool isExperiment)
 	}
 	else {
 		m_mainWnd->m_availableDeviceCount += 2;
+		if (m_mainWnd->m_simulationMode) {
+			m_CheckBoxCCD.SetCheck(TRUE);
+			m_CheckBoxCCD.SetWindowText(_T("Emulated"));
+			m_ConnectionLogs.AddItem(_T("***CCD emulated***"));
+			m_CheckBoxMono.SetCheck(TRUE);
+			m_CheckBoxMono.SetWindowText(_T("Emulated"));
+			m_ConnectionLogs.AddItem(_T("***Monochromator emulated***"));
+		}
 	}
-//	m_mainWnd->StartTimer(TIMER_ALL_CHECK, 13);
 }
 
 void CiHR320ConnectivityDlg::OnBnClickedConnectButton()
@@ -238,3 +248,11 @@ std::array<int, 4> CiHR320ConnectivityDlg::GetIPAddress(std::string type)
 }
 
 
+
+
+void CiHR320ConnectivityDlg::ToggleSdkEmulation()
+{
+	// TODO: Add your control notification handler code here
+	m_mainWnd->m_simulationMode = m_emulationMode.GetCheck() == 1;
+	std::cout << m_mainWnd->m_simulationMode << "\n";
+}
