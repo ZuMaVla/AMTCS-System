@@ -331,6 +331,7 @@ def main():
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                     try:
                         spectum_requested = False       # Flag spectrum not requested at the start of a new cycle
+                        T_stabilisation_mins = -1       # Reset T stabilisation
                         received_T = int(float(msg[0:4]))           
                         if next_T == str(received_T):   # Check if the received temperature matches the next_T
                             print(f"[MAIN] event: target accepted: {received_T} K")
