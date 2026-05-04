@@ -436,6 +436,16 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			m_connectivityDlg.m_CheckBoxPLC.SetCheck(TRUE);
 			m_connectivityDlg.m_CheckBoxPLC.SetWindowText(_T("Connected"));
 		}
+		else if (msg == _T("SRV_ON")) {				// Flag Server is online
+			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[server] Status: online"));
+			m_connectivityDlg.m_CheckBoxServer.SetCheck(TRUE);
+			m_connectivityDlg.m_CheckBoxServer.SetWindowText(_T("Online"));
+		}
+		else if (msg == _T("SRV_OFF")) {			// Flag Server is offline
+			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[server] Status: offline"));
+			m_connectivityDlg.m_CheckBoxServer.SetCheck(FALSE);
+			m_connectivityDlg.m_CheckBoxServer.SetWindowText(_T("Offline"));
+		}
 		else if (msg == _T("EXP_NONE")) {			// No running experiment on PLC
 			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[PLC] No active experiment. Ready to accept one."));
 			Sleep(2000);

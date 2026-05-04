@@ -65,4 +65,5 @@ public:
 	BOOL m_emulation = FALSE;							// SDK emulation if true
 	CButton m_emulationMode;
 	afx_msg void ToggleSdkEmulation();
+	CButton m_CheckBoxServer;
 };
