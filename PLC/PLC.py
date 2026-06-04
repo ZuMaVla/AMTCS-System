@@ -53,13 +53,13 @@ def launch_independent_server():
         check_proc = subprocess.run(["pgrep", "-f", "uvicorn.*server:app"], capture_output=True)
         
         if check_proc.returncode == 0:
-            print("[PLC] AMTCS Server is already running. Skipping launch.")
+            print("[MAIN] Remote Control Server (RC-SERVER) is already running. Skipping launch.")
             return
     except Exception as e:
-        print(f"[PLC] Error checking for existing server: {e}")
+        print(f"[MAIN] Error checking for existing Remote Control Server: {e}")
 
     # 3. If not running, launch it
-    print(f"[PLC] Server not detected. Spawning from: {server_dir}")
+    print(f"[MAIN] Remote Control Server (RC-SERVER) not detected. Spawning from: {server_dir}")
     try:
         subprocess.Popen(
             [venv_python, "-m", "uvicorn", "rc_server.server:app", "--host", "0.0.0.0", "--port", "8000"],
@@ -68,9 +68,9 @@ def launch_independent_server():
             stderr=subprocess.DEVNULL,
             start_new_session=True 
         )
-        print("[PLC] Server successfully detached.")
+        print("[MAIN] RC-SERVER successfully detached.")
     except Exception as e:
-        print(f"[PLC] Error launching server: {e}")
+        print(f"[MAIN] Error launching RC-SERVER: {e}")
 
 
 
@@ -82,13 +82,13 @@ def check_server_health(ip=TCPcfg.host, port=8000):
         response = requests.post(url, headers={'accept': 'application/json'}, timeout=2)
         
         if response.status_code == 200:
-            print(f"[PLC] Server Health Check: OK ({response.json()})")
+            print(f"[RC-SERVER] Health status: OK ({response.json()})")
             return True
         else:
-            print(f"[PLC] Server returned error: {response.status_code}")
+            print(f"[RC-SERVER] Returned error: {response.status_code}")
             return False
     except requests.exceptions.RequestException as e:
-        print(f"[PLC] Server unreachable: {e}")
+        print(f"[MAIN] Server unreachable: {e}")
         return False
 
 def inform_server_exp_start(ip=TCPcfg.host, port=8000):
@@ -100,9 +100,22 @@ def inform_server_exp_start(ip=TCPcfg.host, port=8000):
             headers={"client-api-key": API_KEY},
             timeout=3
         )
-        print("Server response:", response.json())
+        print("[RC-SERVER] Response:", response.json())
     except Exception as e:
-        print("Failed to notify server:", e)
+        print("[MAIN] Failed to notify server:", e)
+
+def shutdown_server(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/shutdown"
+    global API_KEY
+    try:
+        response = requests.post(
+            url,
+            headers={"client-api-key": API_KEY},
+            timeout=3
+        )
+        print("[RC-SERVER] Response:", response.json())
+    except Exception as e:
+        print("[MAIN] Failed to turn off rc-server:", e)
 
 # ============================================================
 #  Main Thread (PLC)
@@ -135,7 +148,7 @@ def main():
 
     print("Main event loop running...")
     
-    print(f"[PLC] Loaded API key: {API_KEY}")
+    print(f"[MAIN] Loaded API key: {API_KEY}")
     TIMEOUT = PLCcfg.timeout
     next_T = None
     state_T = {"T_requested": False}
@@ -280,6 +293,7 @@ def main():
                     arg = ""
                     ser_in.put((cmd, arg))
                     tcp_in.put((cmd, arg))
+                    shutdown_server()
                     time.sleep(5)                       # After 5 sec, set while condition false
                     is_main_logic_running = False
                 case (("EXP_STATUS", "NOT_STARTED")):
@@ -331,7 +345,7 @@ def main():
         msg = None
         try:
             msg = ser_out.get_nowait()
-            print(f"[MAIN] SERIAL event: {msg}") 
+            #print(f"[MAIN] SERIAL event: {msg}") 
         except queue.Empty:
             pass
 
@@ -345,7 +359,7 @@ def main():
                         case InitStep.ID:                   # Checking TC model after "IDN?" ASCII command
                             if msg == "Cryocon Model 32, Rev 6.08H":
                                 timer_TC.cancel()
-                                print("TC alive")
+                                print("[MAIN] TC alive")
                                 cmd = "SEND"
                                 arg = "TC_OK"
                                 tcp_in.put((cmd, arg))      # If model confirmed, letting iHR320(C++) know that TC is alive
