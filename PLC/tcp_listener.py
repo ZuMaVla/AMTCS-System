@@ -5,7 +5,7 @@ import subprocess
 import os
 import signal
 from unittest import case
-from config import TCPcfg
+from config_plc import TCPcfg
 from threading import Timer
 
 

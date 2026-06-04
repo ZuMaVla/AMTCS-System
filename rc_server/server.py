@@ -4,7 +4,7 @@ import threading
 from fastapi import FastAPI, Header, HTTPException, Depends
 from pydantic import BaseModel
 import socket
-from config import TCPcfg, PLC_SCRIPT_NAME, PLC_SCRIPT_PATH, PYTHON
+from .config import TCPcfg, PLC_SCRIPT_NAME, PLC_SCRIPT_PATH, PYTHON
 import psutil
 import subprocess
 from enum import Enum
@@ -15,9 +15,11 @@ from datetime import datetime
 #*************************HELPERS**************************#
 
 class ExpStatus(Enum):
+    NOT_STARTED = -1
     UNKNOWN = 0
     RUNNING = 1
     PAUSED = 2
+    FINISHED = 3
     
 class Log(BaseModel):
     timestamp: str
@@ -25,9 +27,11 @@ class Log(BaseModel):
 
 # Load API key from file
 def load_api_key():
-    with open(".api_key", "r") as f:
+    base = os.path.dirname(os.path.realpath(__file__))
+    key_path = os.path.abspath(os.path.join(base, "..", ".api_key"))
+    with open(key_path, "r") as f:
         return f.read().strip()
-
+    
 # TCP communication with PLC (fire-and-forget)
 def notify_plc(message: str):
     try:
@@ -101,19 +105,26 @@ def root():
         "experiment_status": exp_status.value
     }
 
+# PLC reports start of experiment
+@app.post("/experiment_start", dependencies=[Depends(verify_api_key)])
+def experiment_start():
+    global exp_status
+    exp_status = ExpStatus.RUNNING
+    return {"status": "Accepted"}
+
 # PLC reports a log message to be added to the server's log list
 @app.post("/add_log", dependencies=[Depends(verify_api_key)])
 def add_log(log: Log):
     logs.append(log)
     return {"status": "Accepted"}
 
-# Mob app request to update the experiment status, which is forwarded to the PLC
-@app.post("/experiment/status_request/update", dependencies=[Depends(verify_api_key)])
-def update_experiment_status():
-    if notify_plc("EXP_STATUS"):
-        return {"status": "Experiment status update requested from PLC"}
-    else: 
-        return {"error": "PLC is not reachable"}
+# # Mob app request to update the experiment status, which is forwarded to the PLC
+# @app.post("/experiment/status_request/update", dependencies=[Depends(verify_api_key)])
+# def update_experiment_status():
+#     if notify_plc("EXP_STATUS"):
+#         return {"status": "Experiment status update requested from PLC"}
+#     else: 
+#         return {"error": "PLC is not reachable"}
 
 # Mob app requests to pause the experiment, which is forwarded to the PLC
 @app.post("/experiment/status_request/pause", dependencies=[Depends(verify_api_key)])

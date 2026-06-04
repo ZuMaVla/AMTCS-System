@@ -1,15 +1,23 @@
 from re import match
+import sys
 import threading
 import queue
 import time
 from serial_listener import serial_comm_thread
 from tcp_listener import tcp_comm_thread
-from config import ExperimentMode, PLCcfg, TCPcfg, experiment_mode, RT, temp_req_period
+from config_plc import ExperimentMode, PLCcfg, TCPcfg, experiment_mode, RT, temp_req_period
 from experiment_state_class import ExperimentState, ExperimentStep, StepName, StepStatus, InitStep   
 from dataclasses import asdict
 from threading import Timer
 import subprocess
 import os
+# Path to the AMTCS System root folder
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(ROOT)
+import requests
+from rc_server.server import load_api_key
+
+API_KEY = load_api_key()  # Load API key for server communication
 
 # ============================================================
 #  Helper functions
@@ -34,7 +42,8 @@ def report_no_exp():
 def launch_independent_server():
     # 1. Resolve paths
     plc_dir = os.path.dirname(os.path.abspath(__file__))
-    server_dir = os.path.abspath(os.path.join(plc_dir, "..", "AMTCS-server"))
+    root_dir = os.path.abspath(os.path.join(plc_dir, ".."))
+    server_dir = os.path.abspath(os.path.join(root_dir, "rc_server"))
     venv_python = os.path.join(server_dir, "venv", "bin", "python3")
 
     # 2. Check if uvicorn is already running
@@ -53,8 +62,8 @@ def launch_independent_server():
     print(f"[PLC] Server not detected. Spawning from: {server_dir}")
     try:
         subprocess.Popen(
-            [venv_python, "-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"],
-            cwd=server_dir,
+            [venv_python, "-m", "uvicorn", "rc_server.server:app", "--host", "0.0.0.0", "--port", "8000"],
+            cwd=root_dir,
             stdout=subprocess.DEVNULL, 
             stderr=subprocess.DEVNULL,
             start_new_session=True 
@@ -64,7 +73,7 @@ def launch_independent_server():
         print(f"[PLC] Error launching server: {e}")
 
 
-import requests
+
 
 def check_server_health(ip=TCPcfg.host, port=8000):
     url = f"http://{ip}:{port}/status"
@@ -82,7 +91,18 @@ def check_server_health(ip=TCPcfg.host, port=8000):
         print(f"[PLC] Server unreachable: {e}")
         return False
 
-
+def inform_server_exp_start(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment_start"
+    global API_KEY
+    try:
+        response = requests.post(
+            url,
+            headers={"client-api-key": API_KEY},
+            timeout=3
+        )
+        print("Server response:", response.json())
+    except Exception as e:
+        print("Failed to notify server:", e)
 
 # ============================================================
 #  Main Thread (PLC)
@@ -115,7 +135,7 @@ def main():
 
     print("Main event loop running...")
     
-    
+    print(f"[PLC] Loaded API key: {API_KEY}")
     TIMEOUT = PLCcfg.timeout
     next_T = None
     state_T = {"T_requested": False}
@@ -181,7 +201,7 @@ def main():
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.WAITING):
                     print(f"[MAIN] Requesting spectrum step")
                     if not spectum_requested:
-                        tcp_in.put(("SEND", "ACQUIRE_SPECTRUM " + next_T))
+                        tcp_in.put(("SEND", "ACQUIRE_SPECTRUM " + str(next_T)))
                         spectum_requested = True
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.REQUESTED):
                     print(f"[MAIN] Waiting for spectrum being measured")
@@ -294,6 +314,7 @@ def main():
                         cmd = "SEND"
                         arg = "EXP_CONFIRMED"
                         tcp_in.put((cmd, arg))
+                        inform_server_exp_start()  # Notify the server that the experiment has started
                         is_experiment = True
                         is_paused = False
                     except ValueError as e:

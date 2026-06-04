@@ -2,7 +2,7 @@ import queue
 from threading import Timer
 import serial
 import time
-from config import ExperimentMode
+from config_plc import ExperimentMode
 
 
 def simulate_serial(state, serial_line):
