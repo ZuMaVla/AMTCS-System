@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{031d0326-b91b-4381-a874-1b1ed0abcba6}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>config.py</StartupFile>
+    <StartupFile>server.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -14,6 +14,7 @@
     <InterpreterId />
     <InterpreterVersion />
     <Name>server</Name>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -24,6 +25,7 @@
   <ItemGroup>
     <Compile Include="config.py" />
     <Compile Include="server.py" />
+    <Compile Include="__init__.py" />
   </ItemGroup>
   <Import Project="$(PtvsTargetsFile)" Condition="Exists($(PtvsTargetsFile))" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="!Exists($(PtvsTargetsFile))" />

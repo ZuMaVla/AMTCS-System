@@ -24,7 +24,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="config.py" />
+    <Compile Include="config_plc.py" />
     <Compile Include="experiment_state_class.py" />
     <Compile Include="PLC.py" />
     <Compile Include="serial_listener.py" />
