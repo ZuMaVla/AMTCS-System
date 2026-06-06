@@ -1,7 +1,7 @@
 import signal
 import sys
 import threading
-from fastapi import FastAPI, Header, HTTPException, Depends
+from fastapi import FastAPI, Header, HTTPException, Depends, Request
 from pydantic import BaseModel
 import socket
 from .config import TCPcfg, PLC_SCRIPT_NAME, PLC_SCRIPT_PATH, PYTHON
@@ -25,12 +25,20 @@ class Log(BaseModel):
     timestamp: str
     text: str
 
+class ExperimentDetails(BaseModel):
+    status: int
+    length: int
+    progress: int
+
+class StringParam(BaseModel):
+    value: str   
+
 # Load API key from file
-def load_api_key():
-    base = os.path.dirname(os.path.realpath(__file__))
-    key_path = os.path.abspath(os.path.join(base, "..", ".api_key"))
-    with open(key_path, "r") as f:
-        return f.read().strip()
+#def load_api_key():
+#    base = os.path.dirname(os.path.realpath(__file__))
+#    key_path = os.path.abspath(os.path.join(base, "..", ".api_key"))
+#    with open(key_path, "r") as f:
+#        return f.read().strip()
     
 # TCP communication with PLC (fire-and-forget)
 def notify_plc(message: str):
@@ -84,12 +92,14 @@ PLC_PORT = TCPcfg.SEND_PORT
 timeout = TCPcfg.timeout
 
 exp_status = ExpStatus.UNKNOWN
+exp_length = 0
+exp_progress = -1
 
 logs = [] 
 
 app = FastAPI()
 
-API_KEY = load_api_key()
+API_KEY = "PL1234"
 
 
 # Security dependency helper to verify API key in request headers 
@@ -97,26 +107,68 @@ async def verify_api_key(client_api_key: str = Header(None)):
     if client_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
+# PLC sets server access code
+@app.post("/new_access_code", dependencies=[Depends(verify_api_key)])
+def set_access_code(new_access_code: StringParam):
+    global API_KEY
+    API_KEY = new_access_code.value
+    return {"status": "Accepted"}
+
 # List of logs and current experiment status reported to the mobile app to display on the dashboard
 @app.get("/", dependencies=[Depends(verify_api_key)])
 def root():
+    global exp_status, exp_length, exp_progress
     return {
         "logs": logs,
-        "experiment_status": exp_status.value
+        "experiment_status": exp_status.value,
+        "experiment_length": exp_length,
+        "experiment_progress": exp_progress
     }
 
 # PLC reports start of experiment
 @app.post("/experiment_start", dependencies=[Depends(verify_api_key)])
-def experiment_start():
-    global exp_status
-    exp_status = ExpStatus.RUNNING
+def experiment_start(exp_details: ExperimentDetails):
+    global exp_status, exp_length, exp_progress
+    match exp_details.status:
+        case -1: exp_status = ExpStatus.NOT_STARTED
+        case 0: exp_status = ExpStatus.UNKNOWN
+        case 1: exp_status = ExpStatus.RUNNING
+        case 2: exp_status = ExpStatus.PAUSED
+        case 3: exp_status = ExpStatus.FINISHED         
+    exp_length = exp_details.length
+    exp_progress = exp_details.progress
     return {"status": "Accepted"}
 
 # PLC reports a log message to be added to the server's log list
+from fastapi import Request
+
 @app.post("/add_log", dependencies=[Depends(verify_api_key)])
-def add_log(log: Log):
+async def add_log(request: Request):
+    global logs, exp_status, exp_length, exp_progress
+    payload = await request.json()
+    # Extract Log fields
+    log = Log(
+        timestamp=payload["log"]["timestamp"],
+        text=payload["log"]["text"]
+    )
+    # Extract ExperimentDetails fields
+    exp_details = ExperimentDetails(
+        status=payload["exp_details"]["status"],
+        length=payload["exp_details"]["length"],
+        progress=payload["exp_details"]["progress"]
+    )
+    # Update experiment state
+    match exp_details.status:
+        case -1: exp_status = ExpStatus.NOT_STARTED
+        case 0:  exp_status = ExpStatus.UNKNOWN
+        case 1:  exp_status = ExpStatus.RUNNING
+        case 2:  exp_status = ExpStatus.PAUSED
+        case 3:  exp_status = ExpStatus.FINISHED
+    exp_length = exp_details.length
+    exp_progress = exp_details.progress
     logs.append(log)
     return {"status": "Accepted"}
+
 
 # # Mob app request to update the experiment status, which is forwarded to the PLC
 # @app.post("/experiment/status_request/update", dependencies=[Depends(verify_api_key)])
@@ -182,11 +234,13 @@ def cancel_experiment():
 # PLC reports UI cancelled the experiment
 @app.post("/experiment/status_report/cancel", dependencies=[Depends(verify_api_key)])
 def experiment_cancelled():
-    global exp_status
+    global exp_status, exp_length, exp_progress
     exp_status = ExpStatus.UNKNOWN
+    exp_length = 0
+    exp_progress = -1
     return {"status": "Accepted"}    
     
-# Mob app requests to restart PLC    
+# Mob app/PLC requests to restart PLC    
 @app.post("/plc/restart", dependencies=[Depends(verify_api_key)])   # for future release
 def plc_restart():
     restart_plc()

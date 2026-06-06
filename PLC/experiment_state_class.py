@@ -89,6 +89,7 @@ class ExperimentState:
         self.experimentFlow = ExperimentFlow()
         self.experimentProgressIndex = -1
         self.experimentLength = len(self.experimentParameters.Ts)
+        self.rcServerAccessCode = "PL1234"
         self.isExpSimulated = False
 
     def serialise(self) -> str:
@@ -98,6 +99,7 @@ class ExperimentState:
             "experimentParameters": asdict(self.experimentParameters),
             "experimentProgressIndex": self.experimentProgressIndex,
             "experimentLength": self.experimentLength,
+            "rcServerAccessCode": self.rcServerAccessCode,
             "isExpSimulated": self.isExpSimulated,
         }
         return json.dumps(state_dict)
@@ -119,6 +121,9 @@ class ExperimentState:
             
             # Retrieve the experiment length
             self.experimentLength = data.get("experimentLength", 0)
+
+            # Retrieve the server access code
+            self.rcServerAccessCode = data.get("rcServerAccessCode", "PL1234")
             
             # Retrieve the experiment length
             self.isExpSimulated = data.get("isExpSimulated", False)
