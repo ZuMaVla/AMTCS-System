@@ -3,6 +3,7 @@ import sys
 import threading
 import queue
 import time
+from datetime import datetime, timezone
 from serial_listener import serial_comm_thread
 from tcp_listener import tcp_comm_thread
 from config_plc import ExperimentMode, PLCcfg, TCPcfg, experiment_mode, RT, temp_req_period
@@ -11,13 +12,20 @@ from dataclasses import asdict
 from threading import Timer
 import subprocess
 import os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from rc_server.server import ExpStatus, Log, ExperimentDetails 
+
 # Path to the AMTCS System root folder
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(ROOT)
 import requests
-from rc_server.server import load_api_key
 
-API_KEY = load_api_key()  # Load API key for server communication
+API_KEY = "PL1234"  # Load API key for server communication
+# Experiment state
+experiment_state = None  # Create a placeholder for an ExperimentState class
+
 
 # ============================================================
 #  Helper functions
@@ -91,13 +99,53 @@ def check_server_health(ip=TCPcfg.host, port=8000):
         print(f"[MAIN] Server unreachable: {e}")
         return False
 
-def inform_server_exp_start(ip=TCPcfg.host, port=8000):
-    url = f"http://{ip}:{port}/experiment_start"
+def reset_server_access_code(ip=TCPcfg.host, port=8000, new_access_code="PL1234"):
+    url = f"http://{ip}:{port}/new_access_code"
     global API_KEY
     try:
         response = requests.post(
             url,
             headers={"client-api-key": API_KEY},
+            json={"value": new_access_code},
+            timeout=3
+        )
+        print("[RC-SERVER] Response:", response.json())
+        if response.json().get("status") == "Accepted":
+            API_KEY = new_access_code
+    except Exception as e:
+        print("[MAIN] Failed to notify server:", e)
+
+def inform_server_exp_start(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment_start"
+    global API_KEY, experiment_state
+    try:
+        response = requests.post(
+            url,
+            headers={"client-api-key": API_KEY},
+            json={
+                "status": ExpStatus.RUNNING.value,
+                "length": experiment_state.experimentLength,
+                "progress": experiment_state.experimentProgressIndex
+                },
+            timeout=3
+        )
+        print("[RC-SERVER] Response:", response.json())
+    except Exception as e:
+        print("[MAIN] Failed to notify server:", e)
+
+def send_log_to_server(log: Log, exp_details: ExperimentDetails, ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/add_log"
+    global API_KEY
+    payload = {
+        "log": log.model_dump(),
+        "exp_details": exp_details.model_dump()
+    }
+    print(payload)
+    try:
+        response = requests.post(
+            url,
+            headers={"client-api-key": API_KEY},
+            json=payload,
             timeout=3
         )
         print("[RC-SERVER] Response:", response.json())
@@ -122,6 +170,7 @@ def shutdown_server(ip=TCPcfg.host, port=8000):
 # ============================================================
 
 def main():
+    global experiment_state
     
     launch_independent_server()     # start server
     
@@ -220,7 +269,17 @@ def main():
                     print(f"[MAIN] Waiting for spectrum being measured")
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.COMPLETED):
                     print(f"[MAIN] Spectrum acquired, moving to next cycle")
-                    experiment_state.experimentProgressIndex += 1   
+                    experiment_state.experimentProgressIndex += 1  
+                    log = Log(
+                        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                        text = "Spectrum measured for T = " + next_T + " K"
+                    )
+                    exp_details = ExperimentDetails(
+                        status = ExpStatus.RUNNING.value,
+                        length = experiment_state.experimentLength,
+                        progress = experiment_state.experimentProgressIndex
+                    )
+                    send_log_to_server(log, exp_details)
                     continue 
             time.sleep(TIMEOUT)
 
@@ -328,6 +387,8 @@ def main():
                         cmd = "SEND"
                         arg = "EXP_CONFIRMED"
                         tcp_in.put((cmd, arg))
+                        if experiment_state.rcServerAccessCode != API_KEY:
+                            reset_server_access_code(new_access_code = experiment_state.rcServerAccessCode)   # applying new access code
                         inform_server_exp_start()  # Notify the server that the experiment has started
                         is_experiment = True
                         is_paused = False
