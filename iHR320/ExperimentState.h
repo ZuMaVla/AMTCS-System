@@ -38,6 +38,7 @@ public:
 	void importJSONString(const std::string & jsonString);
 	int experimentProgressIndex = -1;
 	int experimentLength = experimentParameters.Ts.size();
+	std::string rcServerAccessCode = "PL1234";
 	bool isExpSimulated = false;
 
 	std::string serialiseState();							// State -> JSON (to be send to PLC)
@@ -52,6 +53,7 @@ protected:
 		experimentParameters,
 		experimentProgressIndex,
 		experimentLength,
+		rcServerAccessCode,
 		isExpSimulated
 	)
 };

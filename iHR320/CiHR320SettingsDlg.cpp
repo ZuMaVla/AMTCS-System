@@ -58,6 +58,7 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SAVE_FOLDER, m_workDir);
 	DDX_Control(pDX, IDC_SAMPLE_CODE, m_sampleCode);
 	DDX_Control(pDX, IDC_START, m_startExpBtn);
+	DDX_Control(pDX, IDC_RC_SERVER_ACCESS_CODE, m_rcSACode);
 }
 
 
@@ -151,9 +152,13 @@ ExperimentParameters CiHR320SettingsDlg::CollectExperimentParameters()
 	ExperimentParameters expParams;								// Experiment parameters container to be populated from UI
 	CString text;
 
-	// 1. Retrieve Sample Code
+	// 0. Retrieve Sample Code
 	m_sampleCode.GetWindowTextW(text);
 	expParams.sampleCode = std::string(CT2A(text, CP_UTF8));
+
+	// 1. Specify remote control server access code
+	m_rcSACode.GetWindowTextW(text);
+	experimentState.rcServerAccessCode = std::string(CT2A(text, CP_UTF8));
 
 	// 2. Retrieve current temperature list
 	expParams.Ts = m_VSListBox_T.GetAllItemTs();
@@ -190,9 +195,13 @@ void CiHR320SettingsDlg::SetExperimentParameters()
 {
 	ExperimentParameters expParams = experimentState.getExpParams();
 
-	// 1. Specify sample code
+	// 0. Specify sample code
 	CString text(expParams.sampleCode.c_str());
 	m_sampleCode.SetWindowTextW(text);
+
+	// 1. Specify remote control server access code
+	text = experimentState.rcServerAccessCode.c_str();
+	m_rcSACode.SetWindowTextW(text);
 
 	// 2. Set temperature list
 	m_VSListBox_T.RemoveAll();
