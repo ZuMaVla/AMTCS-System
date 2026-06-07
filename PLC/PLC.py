@@ -80,9 +80,6 @@ def launch_independent_server():
     except Exception as e:
         print(f"[MAIN] Error launching RC-SERVER: {e}")
 
-
-
-
 def check_server_health(ip=TCPcfg.host, port=8000):
     url = f"http://{ip}:{port}/status"
     try:
@@ -496,6 +493,16 @@ def main():
                             cmd = "SEND"
                             arg = "TARGET_T= " + str(received_T)
                             tcp_in.put((cmd, arg))      # Inform iHR320 about new T target
+                            log = Log(
+                                timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                                text = "New target has been set: T = " + next_T + " K"
+                            )
+                            exp_details = ExperimentDetails(
+                                status = ExpStatus.RUNNING.value,
+                                length = experiment_state.experimentLength,
+                                progress = experiment_state.experimentProgressIndex
+                            )
+                            send_log_to_server(log, exp_details)
                             experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.REQUESTED
                     except ValueError:
                         print(f"[MAIN] event: received non-numeric temperature value: {msg}")
@@ -514,6 +521,16 @@ def main():
                     except ValueError:
                         print(f"[MAIN] event: received non-numeric temperature value: {msg}")  
                     if T_stabilisation_mins >= 2:  # If the temperature has been stable for 3 consecutive checks (approximately 2 minutes), consider it stabilized
+                        log = Log(
+                            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                            text = "The target has been reached: T = " + next_T + " K"
+                        )
+                        exp_details = ExperimentDetails(
+                            status = ExpStatus.RUNNING.value,
+                            length = experiment_state.experimentLength,
+                            progress = experiment_state.experimentProgressIndex
+                        )
+                        send_log_to_server(log, exp_details)                        
                         experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED                     
         time.sleep(TIMEOUT)
 
