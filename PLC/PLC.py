@@ -148,6 +148,25 @@ def send_log_to_server(log: Log, exp_details: ExperimentDetails, ip=TCPcfg.host,
         print("[RC-SERVER] Response:", response.json())
     except Exception as e:
         print("[MAIN] Failed to notify server:", e)
+        
+def inform_server_exp_paused(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment/status_report/pause"
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(
+            url, 
+            headers={"client-api-key": API_KEY}, 
+            timeout=2
+        )        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Experiment is paused; log status: ({response.json()})")
+            return True
+        else:
+            print(f"[RC-SERVER] Experiment is paused; server error code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
 
 def shutdown_server(ip=TCPcfg.host, port=8000):
     url = f"http://{ip}:{port}/shutdown"
@@ -337,6 +356,7 @@ def main():
                     experiment_state.experimentProgressIndex = experiment_state.experimentLength
                 case (("IHR320", "USER_PAUSE")):
                     print("[MAIN] event: Experiment has been paused by user...")
+                    inform_server_exp_paused()
                     wait_for_event = True
                     is_paused = True
                 case (("IHR320", "USER_CONTINUE")):

@@ -9,7 +9,8 @@ import psutil
 import subprocess
 from enum import Enum
 import os
-from datetime import datetime
+from datetime import datetime, timezone
+
 
 
 #*************************HELPERS**************************#
@@ -140,7 +141,7 @@ def experiment_start(exp_details: ExperimentDetails):
     return {"status": "Accepted"}
 
 # PLC reports a log message to be added to the server's log list
-from fastapi import Request
+
 
 @app.post("/add_log", dependencies=[Depends(verify_api_key)])
 async def add_log(request: Request):
@@ -194,7 +195,12 @@ def pause_experiment():
 # PLC reports UI paused the experiment    
 @app.post("/experiment/status_report/pause", dependencies=[Depends(verify_api_key)])
 def experiment_paused():
-    global exp_status
+    global exp_status, logs
+    log = Log(
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        text = "Experiment is paused by user"
+    ) 
+    logs.append(log)
     exp_status = ExpStatus.PAUSED
     return {"status": "Accepted"}
 
