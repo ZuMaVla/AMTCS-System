@@ -220,7 +220,12 @@ def resume_experiment():
 # PLC reports UI started/resumed the experiment    
 @app.post("/experiment/status_report/running", dependencies=[Depends(verify_api_key)])
 def experiment_running():
-    global exp_status
+    global exp_status, logs
+    log = Log(
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        text = "Experiment is resumed by user"
+    ) 
+    logs.append(log)
     exp_status = ExpStatus.RUNNING
     return {"status": "Accepted"}
 
@@ -240,7 +245,12 @@ def cancel_experiment():
 # PLC reports UI cancelled the experiment
 @app.post("/experiment/status_report/cancel", dependencies=[Depends(verify_api_key)])
 def experiment_cancelled():
-    global exp_status, exp_length, exp_progress
+    global exp_status, exp_length, exp_progress, logs
+    log = Log(
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        text = "Experiment is cancelled by user"
+    ) 
+    logs.append(log)
     exp_status = ExpStatus.UNKNOWN
     exp_length = 0
     exp_progress = -1

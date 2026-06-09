@@ -159,10 +159,48 @@ def inform_server_exp_paused(ip=TCPcfg.host, port=8000):
             timeout=2
         )        
         if response.status_code == 200:
-            print(f"[RC-SERVER] Experiment is paused; log status: ({response.json()})")
+            print(f"[RC-SERVER] Experiment is paused; log status: ({response.json()["status"]})")
             return True
         else:
             print(f"[RC-SERVER] Experiment is paused; server error code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
+
+def inform_server_exp_resumed(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment/status_report/running"
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(
+            url, 
+            headers={"client-api-key": API_KEY}, 
+            timeout=2
+        )        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Experiment is resumed; log status: ({response.json()["status"]})")
+            return True
+        else:
+            print(f"[RC-SERVER] Experiment is resumed; server error code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
+
+def inform_server_exp_cancelled(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment/status_report/cancel"
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(
+            url, 
+            headers={"client-api-key": API_KEY}, 
+            timeout=2
+        )        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Experiment is cancelled; log status: ({response.json()["status"]})")
+            return True
+        else:
+            print(f"[RC-SERVER] Experiment is cancelled; server error code: {response.status_code}")
             return False
     except requests.exceptions.RequestException as e:
         print(f"[MAIN] Server unreachable: {e}")
@@ -352,6 +390,7 @@ def main():
                         tcp_in.put((cmd, arg))
                 case (("IHR320", "USER_CANCEL")):
                     print("[MAIN] event: Experiment has been cancelled by user...") 
+                    inform_server_exp_cancelled()
                     # Artificially ending experiment
                     experiment_state.experimentProgressIndex = experiment_state.experimentLength
                 case (("IHR320", "USER_PAUSE")):
@@ -361,6 +400,7 @@ def main():
                     is_paused = True
                 case (("IHR320", "USER_CONTINUE")):
                     print("[MAIN] event: Experiment has been resumed by user...")
+                    inform_server_exp_resumed()
                     wait_for_event = False
                     is_paused = False
                 case (("IHR320", "REQUESTED_OFF")):
