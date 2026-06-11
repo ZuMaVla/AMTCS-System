@@ -167,10 +167,10 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                     case "CONTINUE":
                         out_q.put(("IHR320", "USER_CONTINUE"))
                         in_q.put(("SEND", "CONFIRM_PAUSE_CONTINUE"))
-                    case "ADD":
-                        out_q.put(("ADD T", msg.split()[1]))                            # pass additional temperature to the PLC
-                    case "REMOVE":
-                        out_q.put(("REMOVE T", msg.split()[1]))                         # pass temperature to remove to the PLC
+                    case "NEW_T":
+                        out_q.put(("NEW_T", payload))                                   # pass additional temperature to the PLC
+                    case "REPEAT_T":
+                        out_q.put(("REPEAT_T", ""))                                     # repeat previous step with the same temperature
                     case _:
                         print(f"[TCP] Unknown message: {msg}")
 
