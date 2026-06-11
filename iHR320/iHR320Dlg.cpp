@@ -1127,8 +1127,15 @@ void CiHR320Dlg::AddNewT(int T)								// Adds extra data point to running exper
 
 	ExperimentParameters newParams = GetExperimentParameters();
 
+	m_askUser.s_question.Format(_T("Are you sure you want to add an over %d K temperature?"), HT);
 	if (m_settingsDlg.experimentState.experimentLength == 1) {
-		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
+		if (T <= HT || m_askUser.DoModal() == IDOK) {
+			m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
+		}
+		else {
+			m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature: (") + strT + _T(" K) cancelled."));
+			return;
+		}
 	}
 	else if (currentT > lastT && previousT > T) {			// Temperatures in descending order
 		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);		
@@ -1142,17 +1149,14 @@ void CiHR320Dlg::AddNewT(int T)								// Adds extra data point to running exper
 		m_flowDlg.m_ExpFlowLogs.AddItem(_T("New temperature (") + strT + _T(" K) is out of allowed range"));
 		return;
 	}
-	m_askUser.s_question.Format(_T("Are you sure you want to add an over %d K temperature?"), HT);
-	if (T <= HT || m_askUser.DoModal() == IDOK) {
-		newParams.Ts = m_settingsDlg.m_VSListBox_T.GetAllItemTs();
-		m_settingsDlg.experimentState.setExpParams(newParams);
-		m_settingsDlg.experimentState.experimentLength++;
-		m_settingsDlg.OnBnClickedStart();
-		m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature (") + strT + _T(" K) requested."));
-	}
-	else {
-		m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature: (") + strT + _T(" K) cancelled."));
-	}
+	if (m_settingsDlg.experimentState.experimentLength == m_settingsDlg.m_VSListBox_T.GetCount()) { return; }
+	SendTCPMessage(this, ip_PLC, port_PLC, "NEW_T " + std::to_string(T));
+	newParams.Ts = m_settingsDlg.m_VSListBox_T.GetAllItemTs();
+	m_settingsDlg.experimentState.experimentLength = m_settingsDlg.m_VSListBox_T.GetCount();
+	m_settingsDlg.experimentState.setExpParams(newParams);
+	m_settingsDlg.OnBnClickedStart();
+	m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature (") + strT + _T(" K) requested."));
+		
 }
 
 void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {
@@ -1211,6 +1215,7 @@ void CiHR320Dlg::SetExpProgress()
 void CiHR320Dlg::RepeatPreviousT()
 {
 	if (m_settingsDlg.experimentState.experimentProgressIndex > -1) {
+		SendTCPMessage(this, ip_PLC, port_PLC, "REPEAT_T");
 		m_settingsDlg.experimentState.experimentProgressIndex--;
 		EnableDlg(&m_flowDlg, FALSE);
 		m_settingsDlg.OnBnClickedStart();
