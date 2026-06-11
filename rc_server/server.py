@@ -25,6 +25,9 @@ class ExpStatus(Enum):
 class Log(BaseModel):
     timestamp: str
     text: str
+    
+class Task(BaseModel):
+    task: str
 
 class ExperimentDetails(BaseModel):
     status: int
@@ -96,7 +99,8 @@ exp_status = ExpStatus.UNKNOWN
 exp_length = 0
 exp_progress = -1
 
-logs = [] 
+logs = []
+task = None 
 
 app = FastAPI()
 
@@ -138,11 +142,14 @@ def experiment_start(exp_details: ExperimentDetails):
         case 3: exp_status = ExpStatus.FINISHED         
     exp_length = exp_details.length
     exp_progress = exp_details.progress
+    log = Log(
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        text = "Experiment has been (re)started."
+    ) 
+    logs.append(log)
     return {"status": "Accepted"}
 
 # PLC reports a log message to be added to the server's log list
-
-
 @app.post("/add_log", dependencies=[Depends(verify_api_key)])
 async def add_log(request: Request):
     global logs, exp_status, exp_length, exp_progress
@@ -170,27 +177,12 @@ async def add_log(request: Request):
     logs.append(log)
     return {"status": "Accepted"}
 
-
-# # Mob app request to update the experiment status, which is forwarded to the PLC
-# @app.post("/experiment/status_request/update", dependencies=[Depends(verify_api_key)])
-# def update_experiment_status():
-#     if notify_plc("EXP_STATUS"):
-#         return {"status": "Experiment status update requested from PLC"}
-#     else: 
-#         return {"error": "PLC is not reachable"}
-
-# Mob app requests to pause the experiment, which is forwarded to the PLC
+# Mob app requests to pause the experiment
 @app.post("/experiment/status_request/pause", dependencies=[Depends(verify_api_key)])
 def pause_experiment():
-    global exp_status
-    if notify_plc("EXP_SUSPEND"):
-        exp_status = ExpStatus.PAUSED
-        return {
-            "status": "PLC notified of experiment to be paused",
-            "experiment_status": exp_status.value
-        }
-    else: 
-        return {"error": "PLC is not reachable"}
+    global exp_status, task
+    task = Task(task="__PAUSE__")
+    return { "status": "Suspending experiment has been requested." }
     
 # PLC reports UI paused the experiment    
 @app.post("/experiment/status_report/pause", dependencies=[Depends(verify_api_key)])
@@ -204,18 +196,12 @@ def experiment_paused():
     exp_status = ExpStatus.PAUSED
     return {"status": "Accepted"}
 
-# Mob app requests to resume the experiment, which is forwarded to the PLC
+# Mob app requests to resume the experiment
 @app.post("/experiment/status_request/resume", dependencies=[Depends(verify_api_key)])
 def resume_experiment():
-    global exp_status
-    if notify_plc("EXP_RESUME"):
-        exp_status = ExpStatus.RUNNING
-        return {
-            "status": "PLC notified of experiment to be resumed",
-            "experiment_status": exp_status.value
-        }
-    else: 
-        return {"error": "PLC is not reachable"}
+    global exp_status, task
+    task = Task(task="__RESUME__")
+    return { "status": "Resuming experiment has been requested." }
 
 # PLC reports UI started/resumed the experiment    
 @app.post("/experiment/status_report/running", dependencies=[Depends(verify_api_key)])
@@ -229,18 +215,20 @@ def experiment_running():
     exp_status = ExpStatus.RUNNING
     return {"status": "Accepted"}
 
-# Mob app requests to cancel the experiment, which is forwarded to the PLC
+# Mob app requests to cancel the experiment
 @app.post("/experiment/status_request/cancel", dependencies=[Depends(verify_api_key)])
 def cancel_experiment():
-    global exp_status
-    if notify_plc("EXP_CANCEL"): 
-        exp_status = ExpStatus.UNKNOWN
-        return {
-            "status": "PLC notified of experiment to be cancelled",
-            "experiment_status": exp_status.value
-        }
-    else: 
-        return {"error": "PLC is not reachable"}
+    global exp_status, task
+    task = Task(task="__CANCEL__")
+    return { "status": "Cancellation of experiment has been requested" }
+
+# PLC requests current task from the server (pause/resume/cancel), which is set by the mobile app/browser app
+@app.get("/current_task", dependencies=[Depends(verify_api_key)])
+def get_current_task():
+    global task
+    current_task = task.task if task else None
+    task = None                            # Clear the task after it's been reported to the PLC
+    return { "task": current_task }
 
 # PLC reports UI cancelled the experiment
 @app.post("/experiment/status_report/cancel", dependencies=[Depends(verify_api_key)])
@@ -248,7 +236,7 @@ def experiment_cancelled():
     global exp_status, exp_length, exp_progress, logs
     log = Log(
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        text = "Experiment is cancelled by user"
+        text = "Experiment has been cancelled by user."
     ) 
     logs.append(log)
     exp_status = ExpStatus.UNKNOWN
@@ -273,9 +261,7 @@ def save_logs():
 # PLC requests server status
 @app.post("/status")
 def server_status():
-    return {
-        "status": "OK"
-    }
+    return { "status": "OK" }
 
 # Mob app requests to shut down the server
 @app.post("/shutdown", dependencies=[Depends(verify_api_key)])   

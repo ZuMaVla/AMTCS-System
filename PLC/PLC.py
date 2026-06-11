@@ -159,7 +159,7 @@ def inform_server_exp_paused(ip=TCPcfg.host, port=8000):
             timeout=2
         )        
         if response.status_code == 200:
-            print(f"[RC-SERVER] Experiment is paused; log status: ({response.json()["status"]})")
+            print(f"[RC-SERVER] Experiment is paused; log status: ({response.json()['status']})")
             return True
         else:
             print(f"[RC-SERVER] Experiment is paused; server error code: {response.status_code}")
@@ -178,7 +178,7 @@ def inform_server_exp_resumed(ip=TCPcfg.host, port=8000):
             timeout=2
         )        
         if response.status_code == 200:
-            print(f"[RC-SERVER] Experiment is resumed; log status: ({response.json()["status"]})")
+            print(f"[RC-SERVER] Experiment is resumed; log status: ({response.json()['status']})")
             return True
         else:
             print(f"[RC-SERVER] Experiment is resumed; server error code: {response.status_code}")
@@ -197,7 +197,7 @@ def inform_server_exp_cancelled(ip=TCPcfg.host, port=8000):
             timeout=2
         )        
         if response.status_code == 200:
-            print(f"[RC-SERVER] Experiment is cancelled; log status: ({response.json()["status"]})")
+            print(f"[RC-SERVER] Experiment is cancelled; log status: ({response.json()['status']})")
             return True
         else:
             print(f"[RC-SERVER] Experiment is cancelled; server error code: {response.status_code}")
@@ -205,6 +205,25 @@ def inform_server_exp_cancelled(ip=TCPcfg.host, port=8000):
     except requests.exceptions.RequestException as e:
         print(f"[MAIN] Server unreachable: {e}")
         return False
+    
+def get_current_task():
+    url = f"http://{TCPcfg.host}:{8000}/current_task"
+    try:
+        response = requests.get(
+            url,
+            headers={"client-api-key": API_KEY},
+            timeout=3
+        )
+        if response.status_code == 200:
+            task = response.json().get("task")
+            print(f"[RC-SERVER] Current task: {task}")
+            return task
+        else:
+            print(f"[RC-SERVER] Failed to get current task, server error code: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"[MAIN] Failed to get current task from server: {e}")
+        return None    
 
 def shutdown_server(ip=TCPcfg.host, port=8000):
     url = f"http://{ip}:{port}/shutdown"
@@ -454,6 +473,20 @@ def main():
                         cmd = "SEND"
                         arg = "EXP_ERROR " + str(e)
                         tcp_in.put((cmd, arg))
+                case (("NEW_T", payload)):
+                    print(f"[MAIN] event: New temperature added to experiment: {payload} K.") 
+                    log = Log(
+                        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                        text = f"New temperature added to experiment: {payload} K."
+                    )
+                    send_log_to_server(log, exp_details)
+                case (("REPEAT_T", "")):
+                    print(f"[MAIN] event: User requested repeating previous temperature step.") 
+                    log = Log(
+                        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                        text = f"User requested repeating previous temperature step."
+                    )
+                    send_log_to_server(log, exp_details)
 
 
         except queue.Empty:
@@ -591,7 +624,25 @@ def main():
                             progress = experiment_state.experimentProgressIndex
                         )
                         send_log_to_server(log, exp_details)                        
-                        experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED                     
+                        experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED   
+        
+        # handle server events
+        server_task = get_current_task()
+        if server_task:
+            match server_task:
+                case "__PAUSE__":
+                    print("[MAIN] event: received PAUSE command from server")
+                    tcp_out.put(("IHR320", "USER_PAUSE"))   # Acting as if the user requested the pause on the UI App
+                    tcp_in.put(("SEND", "CONFIRM_PAUSE_CONTINUE"))
+                case "__RESUME__":
+                    print("[MAIN] event: received RESUME command from server")
+                    tcp_out.put(("IHR320", "USER_RESUME"))  # Acting as if the user requested the resume on the UI App
+                    tcp_in.put(("SEND", "CONFIRM_PAUSE_CONTINUE"))
+                case "__CANCEL__":
+                    print("[MAIN] event: received CANCEL command from server")
+                    tcp_out.put(("IHR320", "USER_CANCEL"))  # Acting as if the user requested the cancel on the UI App
+                    tcp_in.put(("SEND", "CONFIRM_CANCEL"))
+
         time.sleep(TIMEOUT)
 
 
