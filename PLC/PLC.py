@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timezone
 from serial_listener import serial_comm_thread
 from tcp_listener import tcp_comm_thread
+from rc_server_interface import rc_server_poller
 from config_plc import ExperimentMode, PLCcfg, TCPcfg, experiment_mode, RT, temp_req_period
 from experiment_state_class import ExperimentState, ExperimentStep, StepName, StepStatus, InitStep   
 from dataclasses import asdict
@@ -261,12 +262,22 @@ def main():
     ser_in = queue.Queue()      # commands → Serial 
     ser_out = queue.Queue()     # events ← Serial 
 
+    class RCServerStopFlag:
+        def __init__(self):
+            self.value = False
+
+    #rc_server_stop = RCServerStopFlag()
+    stop_flag = RCServerStopFlag()
+
+
     # Start communication threads
     t_tcp = threading.Thread(target=tcp_comm_thread, args=(tcp_in, tcp_out), daemon=True)
     t_ser = threading.Thread(target=serial_comm_thread, args=(ser_in, ser_out, exp_mode), daemon=True)
-
+    t_server = threading.Thread(target=rc_server_poller, args=(tcp_in, tcp_out, stop_flag, get_current_task), daemon=True)
+    
     t_tcp.start()
     t_ser.start()
+    t_server.start()
 
     print("Main event loop running...")
     
@@ -429,6 +440,7 @@ def main():
                     ser_in.put((cmd, arg))
                     tcp_in.put((cmd, arg))
                     shutdown_server()
+                    rc_server_stop.value = True
                     time.sleep(5)                       # After 5 sec, set while condition false
                     is_main_logic_running = False
                 case (("EXP_STATUS", "NOT_STARTED")):
@@ -626,23 +638,6 @@ def main():
                         send_log_to_server(log, exp_details)                        
                         experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED   
         
-        # handle server events
-        server_task = get_current_task()
-        if server_task:
-            match server_task:
-                case "__PAUSE__":
-                    print("[MAIN] event: received PAUSE command from server")
-                    tcp_out.put(("IHR320", "USER_PAUSE"))   # Acting as if the user requested the pause on the UI App
-                    tcp_in.put(("SEND", "CONFIRM_PAUSE_CONTINUE"))
-                case "__RESUME__":
-                    print("[MAIN] event: received RESUME command from server")
-                    tcp_out.put(("IHR320", "USER_RESUME"))  # Acting as if the user requested the resume on the UI App
-                    tcp_in.put(("SEND", "CONFIRM_PAUSE_CONTINUE"))
-                case "__CANCEL__":
-                    print("[MAIN] event: received CANCEL command from server")
-                    tcp_out.put(("IHR320", "USER_CANCEL"))  # Acting as if the user requested the cancel on the UI App
-                    tcp_in.put(("SEND", "CONFIRM_CANCEL"))
-
         time.sleep(TIMEOUT)
 
 
