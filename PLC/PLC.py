@@ -85,7 +85,7 @@ def check_server_health(ip=TCPcfg.host, port=8000):
     url = f"http://{ip}:{port}/status"
     try:
         # We use a short timeout so the PLC doesn't hang if the server is down
-        response = requests.post(url, headers={'accept': 'application/json'}, timeout=2)
+        response = requests.get(url, headers={'accept': 'application/json'}, timeout=2)
         
         if response.status_code == 200:
             print(f"[RC-SERVER] Health status: OK ({response.json()})")
