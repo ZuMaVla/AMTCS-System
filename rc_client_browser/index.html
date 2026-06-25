@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>AMTCS Remote Control</title>
+
+    <!-- Bulma CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"
+    />
+
+    <style>
+      .control-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .pause-btn {
+        font-size: 1.5rem;
+      }
+
+      .cancel-btn {
+        font-size: 1.5rem;
+        background-color: #ff3860;
+        color: white;
+      }
+      /* Make the log area fill the screen nicely */
+      #log-box {
+        height: 60vh;
+        overflow-y: auto;
+        background: #f5f5f5;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+
+  <body class="p-5">
+    <!-- TOP PANEL -->
+    <section class="box">
+      <div class="columns is-vcentered">
+        <!-- Access Code -->
+        <div class="column is-4">
+          <label class="label">Experiment Access Code</label>
+          <input
+            id="access-code"
+            class="input"
+            type="text"
+            placeholder="Enter code"
+          />
+        </div>
+
+        <!-- Connect Button -->
+        <div class="column is-3">
+          <button id="connect-btn" class="button is-link is-fullwidth">
+            Connect to Server
+          </button>
+        </div>
+
+        <!-- Server Status -->
+        <div class="column is-2">
+          <p class="heading">Server Status</p>
+          <p id="server-status" class="has-text-weight-semibold">
+            Disconnected
+          </p>
+        </div>
+
+        <!-- Experiment Status -->
+        <div class="column is-2">
+          <p class="heading">Experiment Status</p>
+          <p id="experiment-status" class="has-text-weight-semibold">Unknown</p>
+        </div>
+        <div class="column is-2">
+          <button id="update-info-btn" class="button is-info is-fullwidth">
+            Update Info
+          </button>
+        </div>
+      </div>
+    </section>
+    
+    <!-- EXPERIMENT CONTROL -->
+    <section class="box mt-5">
+      <h2 class="title is-4">Experiment Control</h2>
+
+      <div class="control-buttons">
+        <button id="pause-btn" class="button is-warning pause-btn">⏸</button>
+        <button id="cancel-btn" class="button cancel-btn">■</button>
+      </div>
+    </section>
+
+    <!-- MAIN LOG VIEWER -->
+    <section class="box">
+      <h2 class="title is-4">Experiment Logs</h2>
+
+      <div id="log-box">
+        <!-- Logs will appear here -->
+        <p class="has-text-grey">No logs yet...</p>
+      </div>
+    </section>
+
+
+    <script type="module" src="dashboard.js"></script>
+  </body>
+</html>
