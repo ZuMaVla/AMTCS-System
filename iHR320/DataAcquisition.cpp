@@ -97,6 +97,31 @@ bool SaveData(					// Saving data into file
 	return false;
 }
 
+double MaxExcludingWLRange(
+	const std::vector<double>& fullData,
+	const std::vector<double>& fullX,
+	double WLtoExcludeStart,
+	double WLtoExcludeEnd)
+{
+	double maxVal = -std::numeric_limits<double>::infinity();
+
+	size_t N = min(fullData.size(), fullX.size());
+
+	for (size_t i = 0; i < N; ++i)
+	{
+		double wl = fullX[i];
+
+		// Skip wavelengths inside the exclusion window
+		if (wl >= WLtoExcludeStart && wl <= WLtoExcludeEnd)
+			continue;
+
+		maxVal = max(maxVal, fullData[i]);
+	}
+
+	return maxVal;
+}
+
+
 //************************ Cosmic ray removal helpers ************************\\
 
 double SkippedAvg(const std::vector<long> &data1D, int skippedIndex = -1) { // Returns average excluding skippedIndex element
@@ -212,7 +237,7 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 			fullX.insert(fullX.end(), finalX.begin(), finalX.end());				// Combined X-data (WL) -//-
 		}
 
-		long maxIntensity = *std::max_element(fullData.begin(), fullData.end());
+		long maxIntensity = MaxExcludingWLRange(fullData, fullX, 422.0, 427.0);
 
 		CString path = pUI->GetCurrentDir();
 		CString sampleCode = CString(params.sampleCode.c_str());
