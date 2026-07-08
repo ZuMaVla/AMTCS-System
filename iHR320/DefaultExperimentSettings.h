@@ -30,6 +30,8 @@ const int default_StartWL = 340;
 const int default_DGRangeNo = 3;
 const int default_NA = 4;
 const int default_MaxAT = 250;
+const int default_LEFrom = 0;				// Laser exclusion (wavelength range)
+const int default_LETo = 0;
 
 
 const std::vector<std::string> default_Ts = {
