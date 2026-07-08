@@ -237,7 +237,7 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 			fullX.insert(fullX.end(), finalX.begin(), finalX.end());				// Combined X-data (WL) -//-
 		}
 
-		long maxIntensity = MaxExcludingWLRange(fullData, fullX, 422.0, 427.0);
+		long maxIntensity = MaxExcludingWLRange(fullData, fullX, params.LEFrom, params.LETo);
 
 		CString path = pUI->GetCurrentDir();
 		CString sampleCode = CString(params.sampleCode.c_str());
