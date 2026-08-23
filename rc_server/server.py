@@ -2,6 +2,7 @@ import signal
 import sys
 import threading
 from fastapi import FastAPI, Header, HTTPException, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import socket
 from .config import TCPcfg, PLC_SCRIPT_NAME, PLC_SCRIPT_PATH, PYTHON
@@ -103,6 +104,15 @@ logs = []
 task = None 
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 API_KEY = "PL1234"
 
@@ -259,7 +269,7 @@ def save_logs():
     }
     
 # PLC requests server status
-@app.post("/status")
+@app.get("/status")
 def server_status():
     return { "status": "OK" }
 

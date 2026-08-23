@@ -66,4 +66,9 @@ public:
 	CButton m_startExpBtn;
 	// Access code for remote control server
 	CEdit m_rcSACode;
+	
+	CEdit m_LEFrom;										// Laser exclusion wavelength range start
+	afx_msg void OnLEFromChanged();
+	CEdit m_LETo;										// Laser exclusion wavelength range end
+	afx_msg void OnLEToChanged();
 };

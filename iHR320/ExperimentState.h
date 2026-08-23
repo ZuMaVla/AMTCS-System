@@ -13,6 +13,8 @@ struct ExperimentParameters {
 	int NA = default_NA;
 	int slits = default_Slits;
 	int maxAT = default_MaxAT;
+	int LEFrom = default_LEFrom;
+	int LETo = default_LETo;
 	bool isCRRemoval = default_isCRRemoval;
 };
 
@@ -26,6 +28,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
 	NA, 
 	slits,
 	maxAT,
+	LEFrom,
+	LETo,
 	isCRRemoval
 )
 
