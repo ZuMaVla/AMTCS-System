@@ -150,6 +150,25 @@ def send_log_to_server(log: Log, exp_details: ExperimentDetails, ip=TCPcfg.host,
     except Exception as e:
         print("[MAIN] Failed to notify server:", e)
         
+def inform_server_exp_not_started(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment/status_report/not_started"
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(
+            url, 
+            headers={"client-api-key": API_KEY}, 
+            timeout=2
+        )        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Experiment is not started; log status: ({response.json()['status']})")
+            return True
+        else:
+            print(f"[RC-SERVER] Experiment is not started; server error code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
+        
 def inform_server_exp_paused(ip=TCPcfg.host, port=8000):
     url = f"http://{ip}:{port}/experiment/status_report/pause"
     try:
@@ -202,6 +221,25 @@ def inform_server_exp_cancelled(ip=TCPcfg.host, port=8000):
             return True
         else:
             print(f"[RC-SERVER] Experiment is cancelled; server error code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
+
+def inform_server_exp_finished(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment/status_report/finished"
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(
+            url, 
+            headers={"client-api-key": API_KEY}, 
+            timeout=2
+        )        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Experiment is finished; log status: ({response.json()['status']})")
+            return True
+        else:
+            print(f"[RC-SERVER] Experiment is finished; server error code: {response.status_code}")
             return False
     except requests.exceptions.RequestException as e:
         print(f"[MAIN] Server unreachable: {e}")
@@ -314,6 +352,7 @@ def main():
                 print(f"[MAIN] All cycles completed. Resetting PLC.")
                 print(f"[MAIN] No more steps to process")
                 tcp_in.put(("SEND", "EXPERIMENT_FINISHED"))
+                inform_server_exp_finished()
 
             if not is_experiment_suspended:
                 PLC_mode = experiment_state.experimentFlow.PLC_mode(completed_cycle)
@@ -448,6 +487,7 @@ def main():
                     timer_exp_status.cancel()
                     is_experiment = False
                     wait_for_event = True
+                    inform_server_exp_not_started()  # Notify the server that the experiment has not yet been started
                 case (("EXP_STATUS", "RUNNING")):
                     print("[MAIN] event: Experiment already running... Requesting experiment state")
                     timer_exp_status.cancel()

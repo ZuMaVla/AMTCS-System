@@ -193,6 +193,17 @@ def pause_experiment():
     global exp_status, task
     task = Task(task="__PAUSE__")
     return { "status": "Suspending experiment has been requested." }
+
+@app.post("/experiment/status_report/not_started", dependencies=[Depends(verify_api_key)])
+def experiment_not_started():
+    global exp_status, logs
+    log = Log(
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        text = "Experiment is ready to be started."
+    ) 
+    logs.append(log)
+    exp_status = ExpStatus.NOT_STARTED
+    return {"status": "Accepted"}
     
 # PLC reports UI paused the experiment    
 @app.post("/experiment/status_report/pause", dependencies=[Depends(verify_api_key)])
@@ -223,6 +234,18 @@ def experiment_running():
     ) 
     logs.append(log)
     exp_status = ExpStatus.RUNNING
+    return {"status": "Accepted"}
+
+# PLC reports that the experiment is finished    
+@app.post("/experiment/status_report/finished", dependencies=[Depends(verify_api_key)])
+def experiment_finished():
+    global exp_status, logs
+    log = Log(
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        text = "Experiment is finished"
+    ) 
+    logs.append(log)
+    exp_status = ExpStatus.FINISHED
     return {"status": "Accepted"}
 
 # Mob app requests to cancel the experiment

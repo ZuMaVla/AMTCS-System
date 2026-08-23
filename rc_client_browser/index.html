@@ -36,15 +36,21 @@
         font-family: monospace;
         white-space: pre-wrap;
       }
+
+      /* Top panel: align items to bottom and allow wrapping to prevent overflow */
+      .top-panel-columns {
+        align-items: flex-end;
+        flex-wrap: wrap;
+      }
     </style>
   </head>
 
   <body class="p-5">
     <!-- TOP PANEL -->
     <section class="box">
-      <div class="columns is-vcentered">
+      <div class="columns top-panel-columns">
         <!-- Access Code -->
-        <div class="column is-4">
+        <div class="column is-2">
           <label class="label">Experiment Access Code</label>
           <input
             id="access-code"
@@ -74,7 +80,7 @@
           <p class="heading">Experiment Status</p>
           <p id="experiment-status" class="has-text-weight-semibold">Unknown</p>
         </div>
-        <div class="column is-2">
+        <div class="column is-1">
           <button id="update-info-btn" class="button is-info is-fullwidth">
             Update Info
           </button>
