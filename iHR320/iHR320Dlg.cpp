@@ -317,6 +317,9 @@ void CiHR320Dlg::SelectTab(int index)
 {
 	m_tab.SetCurSel(index);
 	OnTabSelChange(nullptr, nullptr);
+	if (index == 1) {
+		SendTCPMessage(this, ip_PLC, port_PLC, "EXP_STATUS NOT_STARTED");
+	}
 }
 
 std::string CiHR320Dlg::GetLocalIP() {
