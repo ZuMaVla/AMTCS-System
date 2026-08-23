@@ -37,9 +37,11 @@
         white-space: pre-wrap;
       }
 
-      /* Top panel: align items to bottom and allow wrapping to prevent overflow */
+      /* Top panel: spread items from the start to the end of the row */
       .top-panel-columns {
+        display: flex;
         align-items: flex-end;
+        justify-content: space-between;
         flex-wrap: wrap;
       }
     </style>
@@ -61,7 +63,7 @@
         </div>
 
         <!-- Connect Button -->
-        <div class="column is-3">
+        <div class="column is-2">
           <button id="connect-btn" class="button is-link is-fullwidth">
             Connect to Server
           </button>
@@ -80,7 +82,7 @@
           <p class="heading">Experiment Status</p>
           <p id="experiment-status" class="has-text-weight-semibold">Unknown</p>
         </div>
-        <div class="column is-1">
+        <div class="column is-3">
           <button id="update-info-btn" class="button is-info is-fullwidth">
             Update Info
           </button>
