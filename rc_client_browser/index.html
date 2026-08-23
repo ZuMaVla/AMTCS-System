@@ -36,15 +36,23 @@
         font-family: monospace;
         white-space: pre-wrap;
       }
+
+      /* Top panel: spread items from the start to the end of the row */
+      .top-panel-columns {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
     </style>
   </head>
 
   <body class="p-5">
     <!-- TOP PANEL -->
     <section class="box">
-      <div class="columns is-vcentered">
+      <div class="columns top-panel-columns">
         <!-- Access Code -->
-        <div class="column is-4">
+        <div class="column is-2">
           <label class="label">Experiment Access Code</label>
           <input
             id="access-code"
@@ -55,7 +63,7 @@
         </div>
 
         <!-- Connect Button -->
-        <div class="column is-3">
+        <div class="column is-2">
           <button id="connect-btn" class="button is-link is-fullwidth">
             Connect to Server
           </button>
@@ -74,7 +82,7 @@
           <p class="heading">Experiment Status</p>
           <p id="experiment-status" class="has-text-weight-semibold">Unknown</p>
         </div>
-        <div class="column is-2">
+        <div class="column is-3">
           <button id="update-info-btn" class="button is-info is-fullwidth">
             Update Info
           </button>
