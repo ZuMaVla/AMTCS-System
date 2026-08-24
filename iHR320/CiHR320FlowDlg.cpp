@@ -71,7 +71,6 @@ void CiHR320FlowDlg::OnBnClickedPause()
 			AfxMessageBox(_T("Connection failed"));
 			return;
 		}
-		m_nextUserAction = _T("Continue");				// For changing name button for "Continue"
 	}
 	else {
 		m_ExpFlowLogs.AddItem(_T("User requested to continue experiment."));
@@ -79,7 +78,6 @@ void CiHR320FlowDlg::OnBnClickedPause()
 			AfxMessageBox(_T("Connection failed"));
 			return;
 		}
-		m_nextUserAction = _T("Pause indefinitely");	// For change name button for "Pause indefinitely"
 	}
 }
 

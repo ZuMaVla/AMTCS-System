@@ -21,7 +21,7 @@ public:
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_EXPERIMENT_FLOW_DLG };
 #endif
-	CString m_nextUserAction = _T("Continue");
+	CString m_nextUserAction = _T("Pause indefinitely");
 protected:
 	CiHR320Dlg* m_mainWnd;
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support

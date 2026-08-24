@@ -1259,17 +1259,19 @@ void CiHR320Dlg::StartTimer(UINT_PTR nIDEvent, int _sec) {
 
 void CiHR320Dlg::StopTimer(UINT_PTR nIDEvent) {
 	if (nIDEvent == TIMER_EXP_PAUSE_CONTINUE) {
-		m_flowDlg.m_pauseResumeBtn.SetWindowTextW(m_flowDlg.m_nextUserAction);
 		if (m_flowDlg.m_nextUserAction == _T("Continue")) {
-			m_flowDlg.m_cancelExp.EnableWindow(FALSE);
-			m_flowDlg.m_repeatPreviousTBtn.EnableWindow(FALSE);
-			m_flowDlg.m_addNewTBtn.EnableWindow(FALSE);
-		}
-		else {
+			m_flowDlg.m_nextUserAction = _T("Pause indefinitely");		// For changing name button for "Pause"
 			m_flowDlg.m_cancelExp.EnableWindow(TRUE);
 			m_flowDlg.m_repeatPreviousTBtn.EnableWindow(TRUE);
 			m_flowDlg.m_addNewTBtn.EnableWindow(TRUE);
 		}
+		else {
+			m_flowDlg.m_nextUserAction = _T("Continue");				// For changing name button for "Continue"
+			m_flowDlg.m_cancelExp.EnableWindow(FALSE);
+			m_flowDlg.m_repeatPreviousTBtn.EnableWindow(FALSE);
+			m_flowDlg.m_addNewTBtn.EnableWindow(FALSE);
+		}
+		m_flowDlg.m_pauseResumeBtn.SetWindowTextW(m_flowDlg.m_nextUserAction);
 	}
 	KillTimer(nIDEvent);
 }
