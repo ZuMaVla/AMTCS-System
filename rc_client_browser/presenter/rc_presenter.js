@@ -78,4 +78,63 @@ export class RemoteControlPresenter {
       console.error("Failed to update experiment info:", err);
     }
   }
+
+  async pauseExperiment() {
+    let currentStatus = -1; // Default to "Not started"
+    try {
+      const response = await fetch(`${this.baseUrl}/`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "client-api-key": this.view.getAccessCode(),
+        },
+      });
+      const data = await response.json();
+
+      // Retrieve the current experiment status from the server response
+      currentStatus = data.experiment_status;
+
+      this.view.updateExperimentStatus(currentStatus);
+    } catch (err) {
+      console.error("Failed to change experiment status:", err);
+    }
+
+    switch (currentStatus) {
+      case 1: // RUNNING → send PAUSE request
+        try {
+          const response = await fetch(`${this.baseUrl}/experiment/status_request/pause`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "client-api-key": this.view.getAccessCode(),
+            },
+          });
+          const data = await response.json();
+          console.log("[CLIENT] Experiment paused:", data);
+        } catch (err) {
+          console.error("Failed to pause experiment:", err);
+        }
+        this.view.disableButton("pause-btn");
+        break;
+      case 2: // PAUSED → send RESUME request
+        try {
+          const response = await fetch(`${this.baseUrl}/experiment/status_request/resume`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "client-api-key": this.view.getAccessCode(),
+            },
+          });
+          const data = await response.json();
+          console.log("[CLIENT] Experiment resumed:", data);
+        } catch (err) {
+          console.error("Failed to resume experiment:", err);
+        }
+        this.view.disableButton("pause-btn");
+        break;
+      default:
+        console.warn("Experiment is not in a state that can be paused or resumed.");
+    }
+
+  }
 }
