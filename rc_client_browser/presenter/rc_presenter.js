@@ -3,6 +3,16 @@ export class RemoteControlPresenter {
     this.model = model;
     this.view = view;
     this.baseUrl = "http://192.168.50.1:8000";
+    this.autoUpdate = false; // Flag to control automatic updates
+    // Start the global timer once
+    setInterval(() => {
+        if (this.autoUpdate) {
+            this.updateExperimentInfo();
+        }
+    }, 5000);
+    this.view.disableButton("update-info-btn"); // Disable the update button on initialization
+    this.view.disableButton("pause-btn"); // Disable the pause button on initialization
+    this.view.disableButton("cancel-btn"); // Disable the cancel button on initialization
   }
 
   async checkServerHealth() {
@@ -68,6 +78,17 @@ export class RemoteControlPresenter {
         (log) => `[${log.timestamp}] ${log.text}`,
       );
 
+      if (data.experiment_status === 1 || data.experiment_status === 2) {
+        // If the experiment is running or paused, start auto-updating logs
+        if (!this.autoUpdate) {
+          this.autoUpdate = true;
+        }
+      }
+      else if (data.experiment_status === -1) {
+        // If the experiment is not started, stop auto-updating logs
+        this.autoUpdate = false;
+      }
+
       // Presenter prepares the full list
       const fullList = [...this.model.logs];
 
@@ -76,6 +97,11 @@ export class RemoteControlPresenter {
       this.view.updateExperimentStatus(this.model.experimentStatus);
     } catch (err) {
       console.error("Failed to update experiment info:", err);
+      this.view.enableAccessCodeInput(true); // Re-enable access code input on error
+      this.autoUpdate = false; // Stop auto-updating on error
+      this.view.enableButton("update-info-btn"); // Re-enable the update button on error
+      this.view.disableButton("pause-btn"); // Disable the pause button on error
+      this.view.disableButton("cancel-btn"); // Disable the cancel button on error
     }
   }
 
