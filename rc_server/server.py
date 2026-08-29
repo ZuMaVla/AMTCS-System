@@ -201,6 +201,7 @@ def experiment_not_started():
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         text = "Experiment is ready to be started."
     ) 
+    logs = []  # Clear logs when experiment is not started
     logs.append(log)
     exp_status = ExpStatus.NOT_STARTED
     return {"status": "Accepted"}
