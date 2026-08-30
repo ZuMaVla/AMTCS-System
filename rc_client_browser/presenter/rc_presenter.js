@@ -87,6 +87,8 @@ export class RemoteControlPresenter {
       else if (data.experiment_status === -1) {
         // If the experiment is not started, stop auto-updating logs
         this.autoUpdate = false;
+        this.model.experiment_length = 0;
+        this.model.experiment_progress = -1;
       }
 
       // Presenter prepares the full list
@@ -95,7 +97,11 @@ export class RemoteControlPresenter {
       // Update view
       this.view.renderLogs(fullList);
       this.view.updateExperimentStatus(this.model.experimentStatus);
-      this.view.updateExperimentProgress((this.model.experimentProgress + 1)/this.model.experimentLength * 100);
+      if (this.model.experimentLength > 0) {
+        this.view.updateExperimentProgress(((this.model.experimentProgress + 1) / this.model.experimentLength) * 100);
+      } else {
+        this.view.updateExperimentProgress(0);
+      }
     } catch (err) {
       console.error("Failed to update experiment info:", err);
       this.view.enableAccessCodeInput(true); // Re-enable access code input on error
