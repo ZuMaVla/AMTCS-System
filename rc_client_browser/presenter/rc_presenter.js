@@ -95,6 +95,7 @@ export class RemoteControlPresenter {
       // Update view
       this.view.renderLogs(fullList);
       this.view.updateExperimentStatus(this.model.experimentStatus);
+      this.view.updateExperimentProgress((this.model.experimentProgress + 1)/this.model.experimentLength * 100);
     } catch (err) {
       console.error("Failed to update experiment info:", err);
       this.view.enableAccessCodeInput(true); // Re-enable access code input on error

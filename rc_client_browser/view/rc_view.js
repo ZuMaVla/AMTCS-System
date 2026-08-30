@@ -88,6 +88,11 @@ export class RemoteControlView {
         }
     }
 
+    updateExperimentProgress(progress) {
+        const progressBar = document.getElementById("exp-progress");
+        progressBar.value = progress;
+        progressBar.textContent = `${progress}%`;
+    }
 
     renderLogs(logList) {
         const box = document.getElementById("log-box");
