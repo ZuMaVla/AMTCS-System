@@ -161,6 +161,25 @@ export class RemoteControlPresenter {
       default:
         console.warn("Experiment is not in a state that can be paused or resumed.");
     }
+  }
 
+  async cancelExperiment() {
+    if (this.view.confirmCancelExperiment()) {
+      console.log("User attempted to cancel experiment.");
+      try {
+        const response = await fetch(`${this.baseUrl}/experiment/status_request/cancel`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "client-api-key": this.view.getAccessCode(),
+          },
+        });
+        const data = await response.json();
+        console.log("[CLIENT] Experiment cancelled:", data);
+      } catch (err) {
+        console.error("Failed to cancel experiment:", err);
+      }
+      this.view.disableButton("cancel-btn");
+    }
   }
 }

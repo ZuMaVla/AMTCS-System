@@ -95,31 +95,46 @@ export class RemoteControlView {
 
         for (const line of logList) {
             const p = document.createElement("p");
-            p.textContent = line;
 
-            // Spectrum measured → green
-            if (line.includes("Spectrum measured")) {
-                p.classList.add("has-text-success", "has-text-weight-semibold");
+            // Split by fixed length
+            const timestamp = line.slice(0, 22);
+            const logMessage = line.slice(22);
+
+            // Timestamp span (always standard)
+            const tsSpan = document.createElement("span");
+            tsSpan.textContent = timestamp;
+            tsSpan.classList.add("has-text-grey-dark");
+
+            // Message span (Bulma styling)
+            const msgSpan = document.createElement("span");
+            msgSpan.textContent = logMessage;
+
+            if (logMessage.includes("Spectrum measured")) {
+                msgSpan.classList.add("has-text-success", "has-text-weight-semibold");
+            }
+            else if (logMessage.includes("New target has been set")) {
+                msgSpan.classList.add("has-text-weight-bold", "has-text-grey-dark");
+            }
+            else if (logMessage.includes("Experiment is paused")) {
+                msgSpan.classList.add("has-text-danger", "is-italic");
+            }
+            else if (logMessage.includes("Experiment is resumed")) {
+                msgSpan.classList.add("has-text-info", "is-italic");
+            }
+            else {
+                msgSpan.classList.add("has-text-grey-dark");
             }
 
-            // New target set → bold
-            else if (line.includes("New target has been set")) {
-                p.classList.add("has-text-weight-bold");
-            }
-
-            // Optional: paused → red italic
-            else if (line.includes("Experiment is paused")) {
-                p.classList.add("has-text-danger", "is-italic");
-            }
-
-            // Optional: resumed → blue italic
-            else if (line.includes("Experiment is resumed")) {
-                p.classList.add("has-text-info", "is-italic");
-            }
-
+            p.appendChild(tsSpan);
+            p.appendChild(msgSpan);
             box.appendChild(p);
         }
 
         box.scrollTop = box.scrollHeight;
     }
+
+    confirmCancelExperiment() {
+        return window.confirm("Are you sure you want to cancel the experiment?");
+    }
+
 }
