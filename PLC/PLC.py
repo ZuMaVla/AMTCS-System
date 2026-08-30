@@ -398,7 +398,7 @@ def main():
                         text = "Spectrum measured for T = " + next_T + " K"
                     )
                     exp_details = ExperimentDetails(
-                        status = ExpStatus.RUNNING.value,
+                        status = ExpStatus.PAUSED.value if is_paused else ExpStatus.RUNNING.value,
                         length = experiment_state.experimentLength,
                         progress = experiment_state.experimentProgressIndex
                     )
