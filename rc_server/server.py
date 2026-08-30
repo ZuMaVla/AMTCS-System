@@ -196,7 +196,7 @@ def pause_experiment():
 
 @app.post("/experiment/status_report/not_started", dependencies=[Depends(verify_api_key)])
 def experiment_not_started():
-    global exp_status, logs
+    global exp_status, exp_length, exp_progress, logs
     log = Log(
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         text = "Experiment is ready to be started."
@@ -204,6 +204,8 @@ def experiment_not_started():
     logs = []  # Clear logs when experiment is not started
     logs.append(log)
     exp_status = ExpStatus.NOT_STARTED
+    exp_length = 0
+    exp_progress = -1
     return {"status": "Accepted"}
     
 # PLC reports UI paused the experiment    
