@@ -111,6 +111,25 @@ BOOL CiHR320App::InitInstance()
 			Sleep(1000);
 		}
 		else g_isPLCOnAtStart = true;
+
+		std::cout << std::endl;
+
+		// Set port forwarding
+		std::string pfCmd =
+			"netsh interface portproxy add v4tov4 "
+			"listenaddress=0.0.0.0 listenport=80 "
+			"connectaddress=" + ip_PLC + " connectport=8000 ";
+		std::cout << pfCmd;
+		std::system(pfCmd.c_str());
+		std::cout << std::endl;
+
+		// Add firewall rule for http access to PC
+		std::string fwCmd =
+			"netsh advfirewall firewall add rule "
+			"name=\"Portproxy 80\" "
+			"dir=in action=allow protocol=TCP localport=80 ";
+		std::cout << fwCmd;
+		std::system(fwCmd.c_str());
 	}
 
 	// Initialize OLE libraries
@@ -211,6 +230,21 @@ int CiHR320App::ExitInstance()
 		m_bATLInited = FALSE;
 	}
 
+	// Undo port forwarding
+	std::cout << std::endl;
+	std::string undoPF =
+		"netsh interface portproxy delete v4tov4 "
+		"listenaddress=0.0.0.0 listenport=80";
+	std::system(undoPF.c_str());
+
+	// Undo firewall rule
+	std::cout << std::endl;
+	std::string undoFW =
+		"netsh advfirewall firewall delete rule "
+		"name=\"Portproxy 80\" ";
+	std::system(undoFW.c_str());
+
+	Sleep(2000);
 	return CWinApp::ExitInstance();
 }
 
