@@ -2,7 +2,7 @@ export class RemoteControlPresenter {
   constructor(model, view) {
     this.model = model;
     this.view = view;
-    this.baseUrl = "http://192.168.50.1:8000";
+    this.baseUrl = "http://PL-PLE";
     this.autoUpdate = false; // Flag to control automatic updates
     // Start the global timer once
     setInterval(() => {
@@ -13,6 +13,13 @@ export class RemoteControlPresenter {
     this.view.disableButton("update-info-btn"); // Disable the update button on initialization
     this.view.disableButton("pause-btn"); // Disable the pause button on initialization
     this.view.disableButton("cancel-btn"); // Disable the cancel button on initialization
+  }
+
+  onIpFieldCommitted(ip) {
+    if (ip) {
+      this.baseUrl = `http://${ip}`;
+      console.log("Base URL updated to:", this.baseUrl);
+    }
   }
 
   async checkServerHealth() {
@@ -105,8 +112,10 @@ export class RemoteControlPresenter {
     } catch (err) {
       console.error("Failed to update experiment info:", err);
       this.view.enableAccessCodeInput(true); // Re-enable access code input on error
+      this.view.enableButton("server-ip"); // Re-enable server IP input on error
+      this.view.enableButton("connect-btn"); // Re-enable connect button on error
       this.autoUpdate = false; // Stop auto-updating on error
-      this.view.enableButton("update-info-btn"); // Re-enable the update button on error
+      this.view.disableButton("update-info-btn"); // Disable the update button on error
       this.view.disableButton("pause-btn"); // Disable the pause button on error
       this.view.disableButton("cancel-btn"); // Disable the cancel button on error
     }

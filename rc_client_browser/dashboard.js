@@ -6,6 +6,15 @@ import { RemoteControlPresenter } from "./presenter/rc_presenter.js";
 const model = new ExperimentState();
 const view = new RemoteControlView();
 const presenter = new RemoteControlPresenter(model, view);
+const ipField = document.getElementById("server-ip");
+
+ipField.addEventListener("change", () => {
+    const value = ipField.value.trim();
+    console.log("IP/name finalized:", value);
+
+    presenter.onIpFieldCommitted(value);
+});
+
 
 // Wire UI events to Presenter
 document.getElementById("update-info-btn").addEventListener("click", () => {

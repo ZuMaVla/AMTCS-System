@@ -16,8 +16,12 @@ export class RemoteControlView {
         document.getElementById("server-status").textContent = status;
         if (status === "Connected") {
             this.enableButton("update-info-btn");
+            this.disableButton("server-ip");
+            this.disableButton("connect-btn");
         } else {
             this.disableButton("update-info-btn");
+            this.enableButton("server-ip");
+            this.enableButton("connect-btn");
         }
     }
 
