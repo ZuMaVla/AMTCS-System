@@ -118,6 +118,10 @@ export class RemoteControlPresenter {
       this.view.disableButton("update-info-btn"); // Disable the update button on error
       this.view.disableButton("pause-btn"); // Disable the pause button on error
       this.view.disableButton("cancel-btn"); // Disable the cancel button on error
+      this.model.experimentStatus =  0; // Set experiment status to unknown on error
+      this.view.updateExperimentStatus(this.model.experimentStatus);
+      this.model.serverStatus = "Error"; // Set server status to error on error
+      this.view.updateServerStatus(this.model.serverStatus);
     }
   }
 
