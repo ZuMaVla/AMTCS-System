@@ -964,11 +964,20 @@ void CiHR320Dlg::GetSlits()
 
 void CiHR320Dlg::SetSlits(double newSlits)
 {
-	if (m_settingsDlg.m_Slits.IsWindowEnabled())
+	std::cout << "SetSlits called: " << newSlits
+		<< " mm, enabled = "
+		<< (m_settingsDlg.m_Slits.IsWindowEnabled() || m_isExperimentStarted)
+		<< "\n";
+	// User can change it OR experiment automation is allowed to change it
+	if (m_settingsDlg.m_Slits.IsWindowEnabled() || m_isExperimentStarted)
 	{
+		std::cout << "Calling MovetoSlitWidth...\n";
 		m_jyMono->MovetoSlitWidth(Front_Entrance, newSlits);
 	}
-
+	else
+	{
+		std::cout << "Slits control is DISABLED - command NOT sent!\n";
+	}
 }
 
 void CiHR320Dlg::SetMirror()
