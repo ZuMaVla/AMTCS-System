@@ -68,7 +68,7 @@ public:
 	CEdit m_rcSACode;
 	
 	CEdit m_LEFrom;										// Laser exclusion wavelength range start
-	afx_msg void OnLEFromChanged();
+	afx_msg void OnLEFromChanged();						// Laser exclusion wavelength range start
 	CEdit m_LETo;										// Laser exclusion wavelength range end
-	afx_msg void OnLEToChanged();
+	afx_msg void OnLEToChanged();						// Laser exclusion wavelength range end
 };
