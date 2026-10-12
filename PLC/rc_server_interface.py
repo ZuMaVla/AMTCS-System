@@ -1,7 +1,5 @@
 import queue
 import time
-#from PLC import get_current_task
-#from PLC import RCServerStopFlag
 
 def rc_server_poller(tcp_in: queue.Queue, tcp_out: queue.Queue, stop_flag, get_current_task):
     print("[RC-SERVER Interface] : started")

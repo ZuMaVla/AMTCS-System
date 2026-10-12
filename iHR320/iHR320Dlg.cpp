@@ -785,9 +785,9 @@ void CiHR320Dlg::RestartPLC()
 	m_connectivityDlg.m_CheckBoxPLC.SetCheck(FALSE);
 	m_connectivityDlg.m_CheckBoxPLC.SetWindowText(_T("Offline"));
 	std::wcout << L"PLC is not responding; restarting it...\n";
-	const std::string command = "plink -batch -ssh pl-ple@" + ip_PLC +
+	const std::string command = "plink -batch -ssh " + RPiUsr + "@" + ip_PLC +
 		" -pw " + RPiPwd +
-		" \"nohup python3 '/home/pl-ple/Documents/My Projects/AMTCS-System/PLC/PLC.py' > /dev/null 2>&1 &\"";
+		" \"nohup /usr/bin/python3 '" + RPiPLCPth + "' > /dev/null 2>&1 &\"";
 	std::system(command.c_str());
 	Sleep(1000);
 
@@ -964,11 +964,20 @@ void CiHR320Dlg::GetSlits()
 
 void CiHR320Dlg::SetSlits(double newSlits)
 {
-	if (m_settingsDlg.m_Slits.IsWindowEnabled())
+	std::cout << "SetSlits called: " << newSlits
+		<< " mm, enabled = "
+		<< (m_settingsDlg.m_Slits.IsWindowEnabled() || m_isExperimentStarted)
+		<< "\n";
+	// User can change it OR experiment automation is allowed to change it
+	if (m_settingsDlg.m_Slits.IsWindowEnabled() || m_isExperimentStarted)
 	{
+		std::cout << "Calling MovetoSlitWidth...\n";
 		m_jyMono->MovetoSlitWidth(Front_Entrance, newSlits);
 	}
-
+	else
+	{
+		std::cout << "Slits control is DISABLED - command NOT sent!\n";
+	}
 }
 
 void CiHR320Dlg::SetMirror()
@@ -1313,6 +1322,7 @@ void CiHR320Dlg::OnTimer(UINT_PTR nIDEvent) {
 				else {
 					m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Experiment state requested. Waiting for PLC response..."));
 				}
+				g_isPLCOnAtStart = false;
 			}
 			else {
 				Sleep(2000);

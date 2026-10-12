@@ -13,6 +13,8 @@ class ExperimentParameters:
     DGRangeNo: int = 0
     NA: int = 0
     slits: int = 0
+    LEFrom: int = 0
+    LETo: int = 0
     maxAT: int = 0
     isCRRemoval: bool = False
 
