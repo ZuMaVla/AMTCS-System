@@ -67,12 +67,12 @@ def start_plc():
     )
         
 # Restart PLC by running the script (for future release)
-def restart_plc():
-    for proc in psutil.process_iter(['pid', 'cmdline']):
-        cmd = proc.info['cmdline']
-        if cmd and PLC_SCRIPT_NAME in cmd:
-            proc.kill()                                             # Kill existing PLC.py processes
-    start_plc()                                                     # ...then start a fresh instance
+# def restart_plc():
+#     for proc in psutil.process_iter(['pid', 'cmdline']):
+#         cmd = proc.info['cmdline']
+#         if cmd and PLC_SCRIPT_NAME in cmd:
+#             proc.kill()                                             # Kill existing PLC.py processes
+#     start_plc()                                                     # ...then start a fresh instance
 
 
 # Save logs to a timestamped folder and return the file path (for future release)
