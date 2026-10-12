@@ -42,6 +42,6 @@ const int default_Slits = 0;
 
 // General configurations:
 const int minPhSlt = 10;					// Physically smallest slits
-const int maxCCDI = int(std::pow(2, 14));	// Maximal allowed count from CCD
+const int maxCCDI = int(std::pow(2, 14));	// Maximal allowed count from CCD, 
 const int minCCDI = int(std::pow(2, 11));	// Minimal allowed count from CCD
 const int HBRate = 60;						// Heartbeat rate in seconds

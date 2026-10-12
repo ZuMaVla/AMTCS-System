@@ -77,7 +77,7 @@ bool SaveData(					// Saving data into file
 		// Header
 		line = _T("Wavelength\t\\i(I)\\-(PL)\n");
 		outputFile.Write(CT2A(line), line.GetLength());
-		line = _T("nm\tCounts\n");
+		line = _T("nm\tcps\n");
 		outputFile.Write(CT2A(line), line.GetLength());
 		line = sampleCode + _T("\t") + T + _T(" K\n");
 		outputFile.Write(CT2A(line), line.GetLength());
@@ -87,7 +87,11 @@ bool SaveData(					// Saving data into file
 
 		// Data rows
 		for (size_t i = 0; i < fullData.size(); i++) {
-			line.Format(L"%.4f\t%.4f\n", fullX[i], fullData[i]);
+			line.Format(
+				L"%.4f\t%.4f\n",
+				fullX[i],
+				fullData[i]*extreme_AT[0]/pUI->m_acqParams.AT*minPhSlt/max(pUI->m_acqParams.slits, minPhSlt)
+			);
 			outputFile.Write(CT2A(line), line.GetLength());
 		}
 		outputFile.Close();
@@ -308,8 +312,10 @@ bool AcquisitionParameters::AdjustAcqParam(int maxAT, int maxSlits, double facto
 				AT = extreme_AT[0];								// Decrease AT as much as possible
 			}
 		}
-
 	}
+
+	if (slits <= 1.3*minPhSlt) { slits = extreme_Slits[0]; }	// Do not go too close to slits' physical limit, go straight to it instead
+
 	std::cout << "New settings: slits - " << slits << " mkm, AT - " << AT << " ms\n";
 	paramCount++;
 	return true;
