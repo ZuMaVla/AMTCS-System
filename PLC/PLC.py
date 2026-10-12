@@ -303,15 +303,16 @@ def main():
     class RCServerStopFlag:
         def __init__(self):
             self.value = False
+        def stop(self):
+            self.value = True    
 
-    #rc_server_stop = RCServerStopFlag()
-    stop_flag = RCServerStopFlag()
+    rc_SI_stop_flag = RCServerStopFlag()
 
 
     # Start communication threads
     t_tcp = threading.Thread(target=tcp_comm_thread, args=(tcp_in, tcp_out), daemon=True)
     t_ser = threading.Thread(target=serial_comm_thread, args=(ser_in, ser_out, exp_mode), daemon=True)
-    t_server = threading.Thread(target=rc_server_poller, args=(tcp_in, tcp_out, stop_flag, get_current_task), daemon=True)
+    t_server = threading.Thread(target=rc_server_poller, args=(tcp_in, tcp_out, rc_SI_stop_flag, get_current_task), daemon=True)
     
     t_tcp.start()
     t_ser.start()
@@ -416,7 +417,7 @@ def main():
             print(f"[MAIN] TCP event: {keyword}: {payload}")
             match (keyword, payload):
                 case (("iHR320", "PING")):
-                    print(f"[MAIN] event: fresh instance of iHR320 is detected")
+                    print(f"[MAIN] event: (fresh) instance of iHR320 is detected")
                     if is_experiment:
                         is_paused = True
                     is_experiment_suspended = True
@@ -445,7 +446,7 @@ def main():
                     arg = "REQUEST EXP_STATUS?"
                     tcp_in.put((cmd, arg))
                     timer_exp_status = Timer(10, report_no_exp)
-                    timer_exp_status.start()            # After 10 sec, report TC status "not responsive"
+                    timer_exp_status.start()            # After 10 sec, report experiment status "no experiment"
                 case (("IHR320", "EXP_STATE?")):
                     print("[MAIN] event: Experiment state requested by UI App...") 
                     if is_experiment:
@@ -478,8 +479,8 @@ def main():
                     arg = ""
                     ser_in.put((cmd, arg))
                     tcp_in.put((cmd, arg))
+                    rc_SI_stop_flag.stop()              # Signal the rc_server_poller thread to stop
                     shutdown_server()
-                    rc_server_stop.value = True
                     time.sleep(5)                       # After 5 sec, set while condition false
                     is_main_logic_running = False
                 case (("EXP_STATUS", "NOT_STARTED")):
@@ -487,7 +488,7 @@ def main():
                     timer_exp_status.cancel()
                     is_experiment = False
                     wait_for_event = True
-                    inform_server_exp_not_started()  # Notify the server that the experiment has not yet been started
+                    inform_server_exp_not_started()     # Notify the server that the experiment has not yet been started
                 case (("EXP_STATUS", "RUNNING")):
                     print("[MAIN] event: Experiment already running... Requesting experiment state")
                     timer_exp_status.cancel()
