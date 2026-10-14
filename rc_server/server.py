@@ -76,15 +76,15 @@ def start_plc():
 
 
 # Save logs to a timestamped folder and return the file path (for future release)
-def save_logs_to_folder():
-    folder_timestamp = datetime.now().strftime("%Y%m%d %H:%M")      # Build timestamped folder 
-    folder_path = f"./__logs__/{folder_timestamp}"
-    os.makedirs(folder_path, exist_ok=True)                         # Create directory if it doesn't exist
-    file_path = f"{folder_path}/logs.txt"                           # Full path to logs.txt
-    with open(file_path, "w", encoding="utf-8") as f:
-        for log in logs:
-            f.write(f"{log.timestamp}: {log.text}\n")               # Write logs line by line in logs.txt
-    return file_path
+# def save_logs_to_folder():
+#     folder_timestamp = datetime.now().strftime("%Y%m%d %H:%M")      # Build timestamped folder 
+#     folder_path = f"./__logs__/{folder_timestamp}"
+#     os.makedirs(folder_path, exist_ok=True)                         # Create directory if it doesn't exist
+#     file_path = f"{folder_path}/logs.txt"                           # Full path to logs.txt
+#     with open(file_path, "w", encoding="utf-8") as f:
+#         for log in logs:
+#             f.write(f"{log.timestamp}: {log.text}\n")               # Write logs line by line in logs.txt
+#     return file_path
 
 # Shut down server
 def shutdown_server():
@@ -220,6 +220,30 @@ def experiment_paused():
     exp_status = ExpStatus.PAUSED
     return {"status": "Accepted"}
 
+# PLC reports UI paused the experiment    
+@app.post("/experiment/status_report/auto_pause", dependencies=[Depends(verify_api_key)])
+def experiment_auto_paused():
+    global exp_status, logs
+    log = Log(
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        text = "Experiment is paused due to a UI app restart"
+    ) 
+    logs.append(log)
+    exp_status = ExpStatus.PAUSED
+    return {"status": "Accepted"}
+
+# PLC reports UI not responsive and experiment is paused automatically    
+@app.post("/experiment/status_report/error_pause", dependencies=[Depends(verify_api_key)])
+def experiment_error_paused():
+    global exp_status, logs
+    log = Log(
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        text = "Experiment is paused due to a UI app not responding for too long"
+    ) 
+    logs.append(log)
+    exp_status = ExpStatus.PAUSED
+    return {"status": "Accepted"}
+
 # Mob app requests to resume the experiment
 @app.post("/experiment/status_request/resume", dependencies=[Depends(verify_api_key)])
 def resume_experiment():
@@ -281,18 +305,18 @@ def experiment_cancelled():
     return {"status": "Accepted"}    
     
 # Mob app/PLC requests to restart PLC    
-@app.post("/plc/restart", dependencies=[Depends(verify_api_key)])   # for future release
-def plc_restart():
-    restart_plc()
-    return {"status": "PLC has been restarted; check status in a few minutes"}
+# @app.post("/plc/restart", dependencies=[Depends(verify_api_key)])   # for future release
+# def plc_restart():
+#     restart_plc()
+#     return {"status": "PLC has been restarted; check status in a few minutes"}
 
-# PLC requests to save logs to a timestamped folder and return the file path
-@app.post("/save_logs", dependencies=[Depends(verify_api_key)])
-def save_logs():
-    return {
-        "status": "Logs saved to folder", 
-        "file_path": save_logs_to_folder()
-    }
+# PLC requests to save logs to a timestamped folder and return the file path # for future release
+# @app.post("/save_logs", dependencies=[Depends(verify_api_key)])
+# def save_logs():
+#     return {
+#         "status": "Logs saved to folder", 
+#         "file_path": save_logs_to_folder()
+#     }
     
 # PLC requests server status
 @app.get("/status")
