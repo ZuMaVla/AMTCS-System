@@ -169,8 +169,13 @@ def inform_server_exp_not_started(ip=TCPcfg.host, port=8000):
         print(f"[MAIN] Server unreachable: {e}")
         return False
         
-def inform_server_exp_paused(ip=TCPcfg.host, port=8000):
-    url = f"http://{ip}:{port}/experiment/status_report/pause"
+def inform_server_exp_paused(ip=TCPcfg.host, port=8000, source="user"):
+    if source == "auto":
+        url = f"http://{ip}:{port}/experiment/status_report/auto_pause"
+    elif source == "error":
+        url = f"http://{ip}:{port}/experiment/status_report/error_pause"
+    else:
+        url = f"http://{ip}:{port}/experiment/status_report/pause"
     try:
         # We use a short timeout so the PLC doesn't hang if the server is down
         response = requests.post(
@@ -283,6 +288,7 @@ def shutdown_server(ip=TCPcfg.host, port=8000):
 
 def main():
     global experiment_state
+    global API_KEY
     
     launch_independent_server()     # start server
     
@@ -326,6 +332,7 @@ def main():
     state_T = {"T_requested": False}
     T_stabilisation_mins = -1
     PLC_mode = None
+    PLC_recovery = False
     simulated_T_TC = 300
     preExpStatus = InitStep.ID
     is_main_logic_running = True
@@ -337,7 +344,7 @@ def main():
 
     tcp_out.put(("REQUEST", "EXP_STATUS"))                  # Task to itself: Request the experiment status
 
-    # Main event loop
+    # Main event loop #######################################################################################
     while is_main_logic_running:
 
         if is_experiment:
@@ -355,7 +362,7 @@ def main():
                 tcp_in.put(("SEND", "EXPERIMENT_FINISHED"))
                 inform_server_exp_finished()
 
-            if not is_experiment_suspended:
+            if not is_experiment_suspended and not is_paused:
                 PLC_mode = experiment_state.experimentFlow.PLC_mode(completed_cycle)
             else:
                 PLC_mode = None
@@ -420,6 +427,8 @@ def main():
                     print(f"[MAIN] event: (fresh) instance of iHR320 is detected")
                     if is_experiment:
                         is_paused = True
+                        inform_server_exp_paused(source="auto")
+                        experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.WAITING
                     is_experiment_suspended = True
                     wait_for_event = False              # Turn of waiting while in initialisation
                     cmd = "SEND"
@@ -432,6 +441,7 @@ def main():
                     if is_experiment:
                         wait_for_event = True 
                         is_paused = True
+                        inform_server_exp_paused(source="error")
                     print(f"[MAIN] event: UI App stayed silent for too long. Check it.")
                 case (("IHR320", "TC_STATUS")):
                     print("[MAIN] event: TC status requested...")
@@ -491,6 +501,7 @@ def main():
                     inform_server_exp_not_started()     # Notify the server that the experiment has not yet been started
                 case (("EXP_STATUS", "RUNNING")):
                     print("[MAIN] event: Experiment already running... Requesting experiment state")
+                    PLC_recovery = True
                     timer_exp_status.cancel()
                     cmd = "SEND"
                     arg = "REQUEST EXP_STATE?"
@@ -516,8 +527,12 @@ def main():
                         cmd = "SEND"
                         arg = "EXP_CONFIRMED"
                         tcp_in.put((cmd, arg))
-                        if experiment_state.rcServerAccessCode != API_KEY:
-                            reset_server_access_code(new_access_code = experiment_state.rcServerAccessCode)   # applying new access code
+                        if PLC_recovery:
+                            API_KEY = experiment_state.rcServerAccessCode  # Update the API key for server communication
+                            PLC_recovery = False
+                        else:
+                            if experiment_state.rcServerAccessCode != API_KEY:
+                                reset_server_access_code(new_access_code = experiment_state.rcServerAccessCode)   # applying new access code
                         inform_server_exp_start()  # Notify the server that the experiment has started
                         is_experiment = True
                         is_paused = False
@@ -571,6 +586,7 @@ def main():
                                 cmd = "CHECK_TEMPERATURE"
                                 arg = ""
                                 ser_in.put((cmd, arg))      # Requesting current temperature
+                                msg = None
                             else:
                                 report_TC_off(tcp_in,)       # Letting user know that TC is off
                         case InitStep.CURRENT_T:            # Checking current T 
@@ -587,6 +603,7 @@ def main():
 
                                 timer_T = Timer(2, ser_in.put, args=(("CHECK_TARGET", ""),))
                                 timer_T.start()             # After 2 sec, request current target T
+                                msg = None
                             except ValueError:
                                 cmd = "CHECK_TEMPERATURE"
                                 arg = ""
@@ -595,6 +612,7 @@ def main():
                         case InitStep.SETPT_T:
                             try: 
                                 target_T = int(float(msg[0:4]))
+                                msg = None
                                 print(f"[MAIN] event: received target temperature: {received_T} K")
                                 if (abs(target_T - received_T) < 1):
                                     cmd = "CONTROL_ON"
@@ -627,13 +645,15 @@ def main():
                                 ser_in.put((cmd, arg))
                                 timer_T = Timer(2, ser_in.put, args=(("CONTROL?", ""),))
                                 timer_T.start()             # After 2 sec, request status of control
+                            msg = None    
 
 #-----------------------Experiment flow-----------------------------------------------------------------------------------
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                     try:
                         spectum_requested = False       # Flag spectrum not requested at the start of a new cycle
                         T_stabilisation_mins = -1       # Reset T stabilisation
-                        received_T = int(float(msg[0:4]))           
+                        received_T = int(float(msg[0:4]))   
+                        msg = None        
                         if next_T == str(received_T):   # Check if the received temperature matches the next_T
                             print(f"[MAIN] event: target accepted: {received_T} K")
                             cmd = "SEND"
@@ -655,6 +675,7 @@ def main():
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.REQUESTED):
                     try: 
                         received_T = float(msg[0:5])
+                        msg = None
                         print(f"[MAIN] event: received temperature: {received_T} K")
                         if next_T:
                             next_T_value = int(next_T)
