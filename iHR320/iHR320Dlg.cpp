@@ -474,6 +474,7 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			EnableExpFlowDlg();
 			SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);				// prevent system from sleeping
 			m_flowDlg.m_pauseResumeBtn.SetWindowTextW(_T("Continue"));
+			m_flowDlg.m_nextUserAction = _T("Continue");
 			Sleep(2000);
 			SelectTab(2);
 			m_flowDlg.m_ExpFlowLogs.AddItem(_T("[UI-APP] Experiment successfully restored and currently paused."));
