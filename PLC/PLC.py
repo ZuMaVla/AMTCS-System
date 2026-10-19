@@ -28,6 +28,8 @@ API_KEY = "PL1234"  # Load API key for server communication
 experiment_state = None  # Create a placeholder for an ExperimentState class
 
 
+
+
 # ============================================================
 #  Helper functions
 # ============================================================
@@ -171,11 +173,11 @@ def inform_server_exp_not_started(ip=TCPcfg.host, port=8000):
         
 def inform_server_exp_paused(ip=TCPcfg.host, port=8000, source="user"):
     if source == "auto":
-        url = f"http://{ip}:{port}/experiment/status_report/auto_pause"
+        url = f"http://{ip}:{port}/experiment/status_report/auto_pause"     # Automatic pause due to iHR320 being restarted
     elif source == "error":
-        url = f"http://{ip}:{port}/experiment/status_report/error_pause"
+        url = f"http://{ip}:{port}/experiment/status_report/error_pause"    # Pause due to iHR320 being unresponsive
     else:
-        url = f"http://{ip}:{port}/experiment/status_report/pause"
+        url = f"http://{ip}:{port}/experiment/status_report/pause"          # Pause due to user request
     try:
         # We use a short timeout so the PLC doesn't hang if the server is down
         response = requests.post(
@@ -193,8 +195,11 @@ def inform_server_exp_paused(ip=TCPcfg.host, port=8000, source="user"):
         print(f"[MAIN] Server unreachable: {e}")
         return False
 
-def inform_server_exp_resumed(ip=TCPcfg.host, port=8000):
-    url = f"http://{ip}:{port}/experiment/status_report/running"
+def inform_server_exp_resumed(ip=TCPcfg.host, port=8000, source="user"):
+    if source == "auto":
+        url = f"http://{ip}:{port}/experiment/status_report/running_auto"   # Automatic resume due to iHR320 being back alive
+    else:
+        url = f"http://{ip}:{port}/experiment/status_report/running"        # Resume due to user request
     try:
         # We use a short timeout so the PLC doesn't hang if the server is down
         response = requests.post(
@@ -340,6 +345,7 @@ def main():
     is_experiment = False
     is_experiment_suspended = False
     is_paused = False
+    UI_app_off = False
     spectum_requested = False
 
     tcp_out.put(("REQUEST", "EXP_STATUS"))                  # Task to itself: Request the experiment status
@@ -441,8 +447,26 @@ def main():
                     if is_experiment:
                         wait_for_event = True 
                         is_paused = True
+                        UI_app_off = True
                         inform_server_exp_paused(source="error")
                     print(f"[MAIN] event: UI App stayed silent for too long. Check it.")
+                case (("iHR320", "ALIVE")):
+                    if UI_app_off:
+                        UI_app_off = False
+                        log = Log(
+                            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                            text = "UI App is (back) alive"
+                        )
+                        exp_details = ExperimentDetails(
+                            status = ExpStatus.PAUSED.value if is_paused else ExpStatus.RUNNING.value,
+                            length = experiment_state.experimentLength,
+                            progress = experiment_state.experimentProgressIndex
+                        )
+                        send_log_to_server(log, exp_details)
+                        print(f"[MAIN] event: UI App is (back) alive")
+                        if is_experiment and is_paused:
+                            is_paused = False
+                            inform_server_exp_resumed(source="auto")
                 case (("IHR320", "TC_STATUS")):
                     print("[MAIN] event: TC status requested...")
                     cmd = "TC_STATUS"

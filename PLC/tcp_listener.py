@@ -134,6 +134,7 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                         in_q.put(("SEND", "PONG"))
                     case "ALIVE?":
                         in_q.put(("SEND", "YES"))
+                        out_q.put(("iHR320", "ALIVE"))
                         if timer_UI:
                             timer_UI.cancel()
                         print(f"[TCP] event: UI App is OK.")
