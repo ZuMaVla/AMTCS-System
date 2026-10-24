@@ -134,6 +134,7 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                         in_q.put(("SEND", "PONG"))
                     case "ALIVE?":
                         in_q.put(("SEND", "YES"))
+                        out_q.put(("iHR320", "ALIVE"))
                         if timer_UI:
                             timer_UI.cancel()
                         print(f"[TCP] event: UI App is OK.")
@@ -156,7 +157,7 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                     case "EXP_STATUS":   
                         out_q.put(("EXP_STATUS", payload))                              # pass current experiment status to the PLC
                     case "DONE":
-                        out_q.put(("REPORT", "SPECTRUM_ACQUIRED"))                      # Spectrum has been acquired
+                        out_q.put(("SPECTRUM_ACQUIRED", payload))                       # Spectrum has been acquired
                     case "AFFIRMATIVE":
                         out_q.put(("AFFIRMATIVE", "SPECTRUM_REQUESTED"))                # Spectrum request has been received 
                     case "ERROR_SPECTRUM":

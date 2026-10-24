@@ -246,6 +246,7 @@ bool TakeSpectrum(CiHR320Dlg* pUI, CString T) {
 		CString path = pUI->GetCurrentDir();
 		CString sampleCode = CString(params.sampleCode.c_str());
 		success = SaveData(fullX, fullData, path, sampleCode, pUI, T);				// Saving data disregarding max intensity
+		pUI->maxSpectrumIntensity = maxIntensity;
 		std::cout << "Max intensity: " << maxIntensity << "\n";
 		if (params.isCRRemoval && maxIntensity > maxCCDI) {			// If cosmic rays removal ON and intensity out of range
 			if (pUI->m_acqParams.AdjustAcqParam(params.maxAT, params.slits, 1.5*minCCDI / maxIntensity)) success = TakeSpectrum(pUI, T);

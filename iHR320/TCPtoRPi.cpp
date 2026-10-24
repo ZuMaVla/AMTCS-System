@@ -87,7 +87,7 @@ static void MainLogicWorker(CiHR320Dlg *pUI, MessageQueue &PLC_out, MessageQueue
 				pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"CT= " + msg);			// Current temperature + T itself (msg)
 				Sleep(10000);														// To let monitors to turn of completely
 				if (TakeSpectrum(pUI, msg)) {
-					cmd.payload = "DONE";
+					cmd.payload = "DONE " + std::to_string(pUI->maxSpectrumIntensity);
 					pUI->PostMessageToUI(WM_USER_LOG_MESSAGE, L"SAd");				// Spectrum acquired (SAd)
 				}
 				else { cmd.payload = "ERROR_SPECTRUM"; }

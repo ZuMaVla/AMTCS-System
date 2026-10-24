@@ -82,6 +82,7 @@ public:
 	bool m_isPLCConfirmedOff = false;
 	bool m_isMonoInitialised;
 	double m_currT = 294.0;
+	int maxSpectrumIntensity = 0;
 
 	void StartTimer(UINT_PTR nIDEvent, int _sec);
 	void StopTimer(UINT_PTR nIDEvent);
