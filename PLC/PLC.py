@@ -335,7 +335,7 @@ def main():
     TIMEOUT = PLCcfg.timeout
     next_T = None
     state_T = {"T_requested": False}
-    T_stabilisation_mins = -1
+    T_stabilisation_count = -1
     PLC_mode = None
     PLC_recovery = False
     simulated_T_TC = 300
@@ -376,7 +376,10 @@ def main():
             match PLC_mode:
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                     if next_T:
-                        ser_in.put(("GO_TO_TEMPERATURE", next_T))
+                        if (int(next_T) <= 12):
+                            ser_in.put(("GO_TO_TEMPERATURE", "0"))  # If next T is below or equal to 12 K, set target to 0 K (in practice to the base temperature)
+                        else:
+                            ser_in.put(("GO_TO_TEMPERATURE", next_T))
                         state_T["T_requested"] = False
                         print(f"[MAIN] Requesting next temperature {next_T} K")
                         time.sleep(5)
@@ -407,16 +410,6 @@ def main():
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.COMPLETED):
                     print(f"[MAIN] Spectrum acquired, moving to next cycle")
                     experiment_state.experimentProgressIndex += 1  
-                    log = Log(
-                        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-                        text = "Spectrum measured for T = " + next_T + " K"
-                    )
-                    exp_details = ExperimentDetails(
-                        status = ExpStatus.PAUSED.value if is_paused else ExpStatus.RUNNING.value,
-                        length = experiment_state.experimentLength,
-                        progress = experiment_state.experimentProgressIndex
-                    )
-                    send_log_to_server(log, exp_details)
                     continue 
             time.sleep(TIMEOUT)
 
@@ -537,9 +530,19 @@ def main():
                     experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.WAITING
                     print(f"[MAIN] event: spectrum request failed. Check UI App.")
                     is_paused = True
-                case (("REPORT", "SPECTRUM_ACQUIRED")):
+                case (("SPECTRUM_ACQUIRED", payload)):
                     experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.COMPLETED
-                    print(f"[MAIN] event: spectrum acquired")    
+                    print(f"[MAIN] event: spectrum acquired; max signal: {payload} count(s)") 
+                    log = Log(
+                        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                        text = f"Spectrum measured for T = {next_T} K; max signal: {payload} count(s)"
+                    )
+                    exp_details = ExperimentDetails(
+                        status = ExpStatus.PAUSED.value if is_paused else ExpStatus.RUNNING.value,
+                        length = experiment_state.experimentLength,
+                        progress = experiment_state.experimentProgressIndex
+                    )
+                    send_log_to_server(log, exp_details)   
                 case (("INITIALISATION", str() as experiment_state_string)): 
                     print(f"[MAIN] event: initialisation with state {experiment_state_string}") 
                     try:
@@ -675,17 +678,18 @@ def main():
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                     try:
                         spectum_requested = False       # Flag spectrum not requested at the start of a new cycle
-                        T_stabilisation_mins = -1       # Reset T stabilisation
+                        T_stabilisation_count = -1       # Reset T stabilisation
                         received_T = int(float(msg[0:4]))   
                         msg = None        
-                        if next_T == str(received_T):   # Check if the received temperature matches the next_T
+                        if ((next_T == str(received_T)) or   # Check if the received temperature matches the next_T
+                            ((int(next_T) <= 12) and (received_T == 0))):    # Check if confirmed target is 0 if next T is below or equal to 12 K
                             print(f"[MAIN] event: target accepted: {received_T} K")
                             cmd = "SEND"
                             arg = "TARGET_T= " + str(received_T)
                             tcp_in.put((cmd, arg))      # Inform iHR320 about new T target
                             log = Log(
                                 timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-                                text = "New target has been set: T = " + next_T + " K"
+                                text = f"New target has been set: T = {next_T} K"
                             )
                             exp_details = ExperimentDetails(
                                 status = ExpStatus.RUNNING.value,
@@ -705,16 +709,18 @@ def main():
                             next_T_value = int(next_T)
                         else:
                             next_T_value = int(experiment_state.experimentParameters.Ts[-1])  # Default to the last temperature if next_T is None
-                        if abs(next_T_value - received_T) < 0.5:  # Check if the received temperature is within 0.5 K of the next_T
-                            T_stabilisation_mins += 1
+                        if ((abs(next_T_value - received_T) <= 0.5) or          # Check if the received temperature is within 0.5 K of the next_T
+                            ((next_T_value <= 12) and (received_T <= 12)) or    # Check if the received T is low enough to be considered stable (below 12 K)
+                            ((next_T_value >= 300) and (abs(next_T_value - received_T + 0.25) <= 0.75))):    # Increase tolerance for T >= 300 K 
+                            T_stabilisation_count += 1
                         else:
-                            T_stabilisation_mins = -1  # Reset stabilisation counter if temperature is not within tolerance
+                            T_stabilisation_count = -1  # Reset stabilisation counter if temperature is not within tolerance
                     except ValueError:
                         print(f"[MAIN] event: received non-numeric temperature value: {msg}")  
-                    if T_stabilisation_mins >= 2:  # If the temperature has been stable for 3 consecutive checks (approximately 2 minutes), consider it stabilized
+                    if T_stabilisation_count >= 2:  # If the temperature has been stable for 3 consecutive checks (approximately 2 minutes), consider it stabilized
                         log = Log(
                             timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-                            text = "The target has been reached: T = " + next_T + " K"
+                            text = f"The target has been reached: T = {next_T} K"
                         )
                         exp_details = ExperimentDetails(
                             status = ExpStatus.RUNNING.value,
