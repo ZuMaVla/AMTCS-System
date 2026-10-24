@@ -175,6 +175,10 @@ async def add_log(request: Request):
         length=payload["exp_details"]["length"],
         progress=payload["exp_details"]["progress"]
     )
+    
+    if exp_details.length <= 0:
+        exp_details.status = 0      # If experiment length is zero or negative, set status to UNKNOWN
+    
     # Update experiment state
     match exp_details.status:
         case -1: exp_status = ExpStatus.NOT_STARTED
@@ -258,6 +262,18 @@ def experiment_running():
     log = Log(
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         text = "Experiment is resumed by user"
+    ) 
+    logs.append(log)
+    exp_status = ExpStatus.RUNNING
+    return {"status": "Accepted"}
+
+# PLC reports resuming the experiment    
+@app.post("/experiment/status_report/running_auto", dependencies=[Depends(verify_api_key)])
+def experiment_running_auto():
+    global exp_status, logs
+    log = Log(
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        text = "Experiment is resumed by PLC automatically after UI app is back alive"
     ) 
     logs.append(log)
     exp_status = ExpStatus.RUNNING
