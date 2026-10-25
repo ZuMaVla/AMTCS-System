@@ -5,7 +5,7 @@ import subprocess
 import os
 import signal
 from unittest import case
-from config import TCPcfg
+from config_plc import TCPcfg
 from threading import Timer
 
 
@@ -134,6 +134,7 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                         in_q.put(("SEND", "PONG"))
                     case "ALIVE?":
                         in_q.put(("SEND", "YES"))
+                        out_q.put(("iHR320", "ALIVE"))
                         if timer_UI:
                             timer_UI.cancel()
                         print(f"[TCP] event: UI App is OK.")
@@ -156,7 +157,7 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                     case "EXP_STATUS":   
                         out_q.put(("EXP_STATUS", payload))                              # pass current experiment status to the PLC
                     case "DONE":
-                        out_q.put(("REPORT", "SPECTRUM_ACQUIRED"))                      # Spectrum has been acquired
+                        out_q.put(("SPECTRUM_ACQUIRED", payload))                       # Spectrum has been acquired
                     case "AFFIRMATIVE":
                         out_q.put(("AFFIRMATIVE", "SPECTRUM_REQUESTED"))                # Spectrum request has been received 
                     case "ERROR_SPECTRUM":
@@ -167,10 +168,10 @@ def tcp_comm_thread(in_q: queue.Queue, out_q: queue.Queue):
                     case "CONTINUE":
                         out_q.put(("IHR320", "USER_CONTINUE"))
                         in_q.put(("SEND", "CONFIRM_PAUSE_CONTINUE"))
-                    case "ADD":
-                        out_q.put(("ADD T", msg.split()[1]))                            # pass additional temperature to the PLC
-                    case "REMOVE":
-                        out_q.put(("REMOVE T", msg.split()[1]))                         # pass temperature to remove to the PLC
+                    case "NEW_T":
+                        out_q.put(("NEW_T", payload))                                   # pass additional temperature to the PLC
+                    case "REPEAT_T":
+                        out_q.put(("REPEAT_T", ""))                                     # repeat previous step with the same temperature
                     case _:
                         print(f"[TCP] Unknown message: {msg}")
 

@@ -31,3 +31,5 @@ venv/
 # Security
 Security.h
 workDir.txt
+.vscode/
+nul

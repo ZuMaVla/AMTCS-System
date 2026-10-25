@@ -1,13 +1,33 @@
 from re import match
+import sys
 import threading
 import queue
 import time
+from datetime import datetime, timezone
 from serial_listener import serial_comm_thread
 from tcp_listener import tcp_comm_thread
-from config import ExperimentMode, PLCcfg, experiment_mode, RT
+from rc_server_interface import rc_server_poller
+from config_plc import ExperimentMode, PLCcfg, TCPcfg, experiment_mode, RT, temp_req_period
 from experiment_state_class import ExperimentState, ExperimentStep, StepName, StepStatus, InitStep   
 from dataclasses import asdict
 from threading import Timer
+import subprocess
+import os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from rc_server.server import ExpStatus, Log, ExperimentDetails 
+
+# Path to the AMTCS System root folder
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(ROOT)
+import requests
+
+API_KEY = "PL1234"  # Load API key for server communication
+# Experiment state
+experiment_state = None  # Create a placeholder for an ExperimentState class
+
+
 
 
 # ============================================================
@@ -30,12 +50,253 @@ def report_no_exp():
     is_experiment = False
     wait_for_event = True
 
+def launch_independent_server():
+    # 1. Resolve paths
+    plc_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.abspath(os.path.join(plc_dir, ".."))
+    server_dir = os.path.abspath(os.path.join(root_dir, "rc_server"))
+    venv_python = os.path.join(server_dir, "venv", "bin", "python3")
+
+    # 2. Check if uvicorn is already running
+    # 'pgrep -f' searches the full command line string
+    try:
+        # We check for "uvicorn" and "server:app" to be specific
+        check_proc = subprocess.run(["pgrep", "-f", "uvicorn.*server:app"], capture_output=True)
+        
+        if check_proc.returncode == 0:
+            print("[MAIN] Remote Control Server (RC-SERVER) is already running. Skipping launch.")
+            return
+    except Exception as e:
+        print(f"[MAIN] Error checking for existing Remote Control Server: {e}")
+
+    # 3. If not running, launch it
+    print(f"[MAIN] Remote Control Server (RC-SERVER) not detected. Spawning from: {server_dir}")
+    try:
+        subprocess.Popen(
+            [venv_python, "-m", "uvicorn", "rc_server.server:app", "--host", "0.0.0.0", "--port", "8000"],
+            cwd=root_dir,
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.DEVNULL,
+            start_new_session=True 
+        )
+        print("[MAIN] RC-SERVER successfully detached.")
+    except Exception as e:
+        print(f"[MAIN] Error launching RC-SERVER: {e}")
+
+def check_server_health(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/status"
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.get(url, headers={'accept': 'application/json'}, timeout=2)
+        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Health status: OK ({response.json()})")
+            return True
+        else:
+            print(f"[RC-SERVER] Returned error: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
+
+def reset_server_access_code(ip=TCPcfg.host, port=8000, new_access_code="PL1234"):
+    url = f"http://{ip}:{port}/new_access_code"
+    global API_KEY
+    try:
+        response = requests.post(
+            url,
+            headers={"client-api-key": API_KEY},
+            json={"value": new_access_code},
+            timeout=3
+        )
+        print("[RC-SERVER] Response:", response.json())
+        if response.json().get("status") == "Accepted":
+            API_KEY = new_access_code
+    except Exception as e:
+        print("[MAIN] Failed to notify server:", e)
+
+def inform_server_exp_start(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment_start"
+    global API_KEY, experiment_state
+    try:
+        response = requests.post(
+            url,
+            headers={"client-api-key": API_KEY},
+            json={
+                "status": ExpStatus.RUNNING.value,
+                "length": experiment_state.experimentLength,
+                "progress": experiment_state.experimentProgressIndex
+                },
+            timeout=3
+        )
+        print("[RC-SERVER] Response:", response.json())
+    except Exception as e:
+        print("[MAIN] Failed to notify server:", e)
+
+def send_log_to_server(log: Log, exp_details: ExperimentDetails, ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/add_log"
+    global API_KEY
+    payload = {
+        "log": log.model_dump(),
+        "exp_details": exp_details.model_dump()
+    }
+    print(payload)
+    try:
+        response = requests.post(
+            url,
+            headers={"client-api-key": API_KEY},
+            json=payload,
+            timeout=3
+        )
+        print("[RC-SERVER] Response:", response.json())
+    except Exception as e:
+        print("[MAIN] Failed to notify server:", e)
+        
+def inform_server_exp_not_started(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment/status_report/not_started"
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(
+            url, 
+            headers={"client-api-key": API_KEY}, 
+            timeout=2
+        )        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Experiment is not started; log status: ({response.json()['status']})")
+            return True
+        else:
+            print(f"[RC-SERVER] Experiment is not started; server error code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
+        
+def inform_server_exp_paused(ip=TCPcfg.host, port=8000, source="user"):
+    if source == "auto":
+        url = f"http://{ip}:{port}/experiment/status_report/auto_pause"     # Automatic pause due to iHR320 being restarted
+    elif source == "error":
+        url = f"http://{ip}:{port}/experiment/status_report/error_pause"    # Pause due to iHR320 being unresponsive
+    else:
+        url = f"http://{ip}:{port}/experiment/status_report/pause"          # Pause due to user request
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(
+            url, 
+            headers={"client-api-key": API_KEY}, 
+            timeout=2
+        )        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Experiment is paused; log status: ({response.json()['status']})")
+            return True
+        else:
+            print(f"[RC-SERVER] Experiment is paused; server error code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
+
+def inform_server_exp_resumed(ip=TCPcfg.host, port=8000, source="user"):
+    if source == "auto":
+        url = f"http://{ip}:{port}/experiment/status_report/running_auto"   # Automatic resume due to iHR320 being back alive
+    else:
+        url = f"http://{ip}:{port}/experiment/status_report/running"        # Resume due to user request
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(
+            url, 
+            headers={"client-api-key": API_KEY}, 
+            timeout=2
+        )        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Experiment is resumed; log status: ({response.json()['status']})")
+            return True
+        else:
+            print(f"[RC-SERVER] Experiment is resumed; server error code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
+
+def inform_server_exp_cancelled(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment/status_report/cancel"
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(
+            url, 
+            headers={"client-api-key": API_KEY}, 
+            timeout=2
+        )        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Experiment is cancelled; log status: ({response.json()['status']})")
+            return True
+        else:
+            print(f"[RC-SERVER] Experiment is cancelled; server error code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
+
+def inform_server_exp_finished(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/experiment/status_report/finished"
+    try:
+        # We use a short timeout so the PLC doesn't hang if the server is down
+        response = requests.post(
+            url, 
+            headers={"client-api-key": API_KEY}, 
+            timeout=2
+        )        
+        if response.status_code == 200:
+            print(f"[RC-SERVER] Experiment is finished; log status: ({response.json()['status']})")
+            return True
+        else:
+            print(f"[RC-SERVER] Experiment is finished; server error code: {response.status_code}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"[MAIN] Server unreachable: {e}")
+        return False
+    
+def get_current_task():
+    url = f"http://{TCPcfg.host}:{8000}/current_task"
+    try:
+        response = requests.get(
+            url,
+            headers={"client-api-key": API_KEY},
+            timeout=3
+        )
+        if response.status_code == 200:
+            task = response.json().get("task")
+            print(f"[RC-SERVER] Current task: {task}")
+            return task
+        else:
+            print(f"[RC-SERVER] Failed to get current task, server error code: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"[MAIN] Failed to get current task from server: {e}")
+        return None    
+
+def shutdown_server(ip=TCPcfg.host, port=8000):
+    url = f"http://{ip}:{port}/shutdown"
+    global API_KEY
+    try:
+        response = requests.post(
+            url,
+            headers={"client-api-key": API_KEY},
+            timeout=3
+        )
+        print("[RC-SERVER] Response:", response.json())
+    except Exception as e:
+        print("[MAIN] Failed to turn off rc-server:", e)
 
 # ============================================================
 #  Main Thread (PLC)
 # ============================================================
 
 def main():
+    global experiment_state
+    global API_KEY
+    
+    launch_independent_server()     # start server
+    
     # Experiment mode (simulation or production)
     exp_mode = experiment_mode  # configure this in config.py
 
@@ -50,21 +311,33 @@ def main():
     ser_in = queue.Queue()      # commands → Serial 
     ser_out = queue.Queue()     # events ← Serial 
 
+    class RCServerStopFlag:
+        def __init__(self):
+            self.value = False
+        def stop(self):
+            self.value = True    
+
+    rc_SI_stop_flag = RCServerStopFlag()
+
+
     # Start communication threads
     t_tcp = threading.Thread(target=tcp_comm_thread, args=(tcp_in, tcp_out), daemon=True)
     t_ser = threading.Thread(target=serial_comm_thread, args=(ser_in, ser_out, exp_mode), daemon=True)
-
+    t_server = threading.Thread(target=rc_server_poller, args=(tcp_in, tcp_out, rc_SI_stop_flag, get_current_task), daemon=True)
+    
     t_tcp.start()
     t_ser.start()
+    t_server.start()
 
     print("Main event loop running...")
     
-    
+    print(f"[MAIN] Loaded API key: {API_KEY}")
     TIMEOUT = PLCcfg.timeout
     next_T = None
     state_T = {"T_requested": False}
-    T_stabilisation_mins = -1
+    T_stabilisation_count = -1
     PLC_mode = None
+    PLC_recovery = False
     simulated_T_TC = 300
     preExpStatus = InitStep.ID
     is_main_logic_running = True
@@ -72,11 +345,12 @@ def main():
     is_experiment = False
     is_experiment_suspended = False
     is_paused = False
+    UI_app_off = False
     spectum_requested = False
 
     tcp_out.put(("REQUEST", "EXP_STATUS"))                  # Task to itself: Request the experiment status
 
-    # Main event loop
+    # Main event loop #######################################################################################
     while is_main_logic_running:
 
         if is_experiment:
@@ -92,8 +366,9 @@ def main():
                 print(f"[MAIN] All cycles completed. Resetting PLC.")
                 print(f"[MAIN] No more steps to process")
                 tcp_in.put(("SEND", "EXPERIMENT_FINISHED"))
+                inform_server_exp_finished()
 
-            if not is_experiment_suspended:
+            if not is_experiment_suspended and not is_paused:
                 PLC_mode = experiment_state.experimentFlow.PLC_mode(completed_cycle)
             else:
                 PLC_mode = None
@@ -101,7 +376,10 @@ def main():
             match PLC_mode:
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                     if next_T:
-                        ser_in.put(("GO_TO_TEMPERATURE", next_T))
+                        if (int(next_T) <= 12):
+                            ser_in.put(("GO_TO_TEMPERATURE", "0"))  # If next T is below or equal to 12 K, set target to 0 K (in practice to the base temperature)
+                        else:
+                            ser_in.put(("GO_TO_TEMPERATURE", next_T))
                         state_T["T_requested"] = False
                         print(f"[MAIN] Requesting next temperature {next_T} K")
                         time.sleep(5)
@@ -110,7 +388,7 @@ def main():
                     if not state_T["T_requested"]:
                         ser_in.put(("CHECK_TEMPERATURE", ""))
                         state_T["T_requested"] = True
-                        timer_T = Timer(10, reset_T_request, args=(state_T,))
+                        timer_T = Timer(temp_req_period, reset_T_request, args=(state_T,))
                         timer_T.start()
                         print(f"[MAIN] Requesting temperature")
                         if exp_mode == ExperimentMode.SIMULATION:
@@ -125,13 +403,13 @@ def main():
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.WAITING):
                     print(f"[MAIN] Requesting spectrum step")
                     if not spectum_requested:
-                        tcp_in.put(("SEND", "ACQUIRE_SPECTRUM " + next_T))
+                        tcp_in.put(("SEND", "ACQUIRE_SPECTRUM " + str(next_T)))
                         spectum_requested = True
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.REQUESTED):
                     print(f"[MAIN] Waiting for spectrum being measured")
                 case ExperimentStep(action=StepName.SPECTRUM, status=StepStatus.COMPLETED):
                     print(f"[MAIN] Spectrum acquired, moving to next cycle")
-                    experiment_state.experimentProgressIndex += 1   
+                    experiment_state.experimentProgressIndex += 1  
                     continue 
             time.sleep(TIMEOUT)
 
@@ -145,16 +423,43 @@ def main():
             print(f"[MAIN] TCP event: {keyword}: {payload}")
             match (keyword, payload):
                 case (("iHR320", "PING")):
-                    print(f"[MAIN] event: fresh instance of iHR320 is detected")
+                    print(f"[MAIN] event: (fresh) instance of iHR320 is detected")
                     if is_experiment:
                         is_paused = True
+                        inform_server_exp_paused(source="auto")
+                        experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.WAITING
                     is_experiment_suspended = True
                     wait_for_event = False              # Turn of waiting while in initialisation
+                    cmd = "SEND"
+                    if check_server_health():
+                        arg = "SERVER_ONLINE"
+                    else: 
+                        arg = "SERVER_OFFLINE"   
+                    tcp_in.put((cmd, arg))
                 case (("STATUS", "iHR320_ERROR")):
                     if is_experiment:
                         wait_for_event = True 
                         is_paused = True
+                        UI_app_off = True
+                        inform_server_exp_paused(source="error")
                     print(f"[MAIN] event: UI App stayed silent for too long. Check it.")
+                case (("iHR320", "ALIVE")):
+                    if UI_app_off:
+                        UI_app_off = False
+                        log = Log(
+                            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                            text = "UI App is (back) alive"
+                        )
+                        exp_details = ExperimentDetails(
+                            status = ExpStatus.PAUSED.value if is_paused else ExpStatus.RUNNING.value,
+                            length = experiment_state.experimentLength,
+                            progress = experiment_state.experimentProgressIndex
+                        )
+                        send_log_to_server(log, exp_details)
+                        print(f"[MAIN] event: UI App is (back) alive")
+                        if is_experiment and is_paused:
+                            is_paused = False
+                            inform_server_exp_resumed(source="auto")
                 case (("IHR320", "TC_STATUS")):
                     print("[MAIN] event: TC status requested...")
                     cmd = "TC_STATUS"
@@ -168,7 +473,7 @@ def main():
                     arg = "REQUEST EXP_STATUS?"
                     tcp_in.put((cmd, arg))
                     timer_exp_status = Timer(10, report_no_exp)
-                    timer_exp_status.start()            # After 10 sec, report TC status "not responsive"
+                    timer_exp_status.start()            # After 10 sec, report experiment status "no experiment"
                 case (("IHR320", "EXP_STATE?")):
                     print("[MAIN] event: Experiment state requested by UI App...") 
                     if is_experiment:
@@ -182,14 +487,17 @@ def main():
                         tcp_in.put((cmd, arg))
                 case (("IHR320", "USER_CANCEL")):
                     print("[MAIN] event: Experiment has been cancelled by user...") 
+                    inform_server_exp_cancelled()
                     # Artificially ending experiment
                     experiment_state.experimentProgressIndex = experiment_state.experimentLength
                 case (("IHR320", "USER_PAUSE")):
                     print("[MAIN] event: Experiment has been paused by user...")
+                    inform_server_exp_paused()
                     wait_for_event = True
                     is_paused = True
                 case (("IHR320", "USER_CONTINUE")):
                     print("[MAIN] event: Experiment has been resumed by user...")
+                    inform_server_exp_resumed()
                     wait_for_event = False
                     is_paused = False
                 case (("IHR320", "REQUESTED_OFF")):
@@ -198,6 +506,8 @@ def main():
                     arg = ""
                     ser_in.put((cmd, arg))
                     tcp_in.put((cmd, arg))
+                    rc_SI_stop_flag.stop()              # Signal the rc_server_poller thread to stop
+                    shutdown_server()
                     time.sleep(5)                       # After 5 sec, set while condition false
                     is_main_logic_running = False
                 case (("EXP_STATUS", "NOT_STARTED")):
@@ -205,8 +515,10 @@ def main():
                     timer_exp_status.cancel()
                     is_experiment = False
                     wait_for_event = True
+                    inform_server_exp_not_started()     # Notify the server that the experiment has not yet been started
                 case (("EXP_STATUS", "RUNNING")):
                     print("[MAIN] event: Experiment already running... Requesting experiment state")
+                    PLC_recovery = True
                     timer_exp_status.cancel()
                     cmd = "SEND"
                     arg = "REQUEST EXP_STATE?"
@@ -218,9 +530,19 @@ def main():
                     experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.WAITING
                     print(f"[MAIN] event: spectrum request failed. Check UI App.")
                     is_paused = True
-                case (("REPORT", "SPECTRUM_ACQUIRED")):
+                case (("SPECTRUM_ACQUIRED", payload)):
                     experiment_state.experimentFlow.cycles[completed_cycle + 1].S.status = StepStatus.COMPLETED
-                    print(f"[MAIN] event: spectrum acquired")    
+                    print(f"[MAIN] event: spectrum acquired; max signal: {payload} count(s)") 
+                    log = Log(
+                        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                        text = f"Spectrum measured for T = {next_T} K; max signal: {payload} count(s)"
+                    )
+                    exp_details = ExperimentDetails(
+                        status = ExpStatus.PAUSED.value if is_paused else ExpStatus.RUNNING.value,
+                        length = experiment_state.experimentLength,
+                        progress = experiment_state.experimentProgressIndex
+                    )
+                    send_log_to_server(log, exp_details)   
                 case (("INITIALISATION", str() as experiment_state_string)): 
                     print(f"[MAIN] event: initialisation with state {experiment_state_string}") 
                     try:
@@ -232,6 +554,13 @@ def main():
                         cmd = "SEND"
                         arg = "EXP_CONFIRMED"
                         tcp_in.put((cmd, arg))
+                        if PLC_recovery:
+                            API_KEY = experiment_state.rcServerAccessCode  # Update the API key for server communication
+                            PLC_recovery = False
+                        else:
+                            if experiment_state.rcServerAccessCode != API_KEY:
+                                reset_server_access_code(new_access_code = experiment_state.rcServerAccessCode)   # applying new access code
+                        inform_server_exp_start()  # Notify the server that the experiment has started
                         is_experiment = True
                         is_paused = False
                     except ValueError as e:
@@ -239,6 +568,20 @@ def main():
                         cmd = "SEND"
                         arg = "EXP_ERROR " + str(e)
                         tcp_in.put((cmd, arg))
+                case (("NEW_T", payload)):
+                    print(f"[MAIN] event: New temperature added to experiment: {payload} K.") 
+                    log = Log(
+                        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                        text = f"New temperature added to experiment: {payload} K."
+                    )
+                    send_log_to_server(log, exp_details)
+                case (("REPEAT_T", "")):
+                    print(f"[MAIN] event: User requested repeating previous temperature step.") 
+                    log = Log(
+                        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                        text = f"User requested repeating previous temperature step."
+                    )
+                    send_log_to_server(log, exp_details)
 
 
         except queue.Empty:
@@ -248,7 +591,7 @@ def main():
         msg = None
         try:
             msg = ser_out.get_nowait()
-            print(f"[MAIN] SERIAL event: {msg}") 
+            #print(f"[MAIN] SERIAL event: {msg}") 
         except queue.Empty:
             pass
 
@@ -262,7 +605,7 @@ def main():
                         case InitStep.ID:                   # Checking TC model after "IDN?" ASCII command
                             if msg == "Cryocon Model 32, Rev 6.08H":
                                 timer_TC.cancel()
-                                print("TC alive")
+                                print("[MAIN] TC alive")
                                 cmd = "SEND"
                                 arg = "TC_OK"
                                 tcp_in.put((cmd, arg))      # If model confirmed, letting iHR320(C++) know that TC is alive
@@ -270,6 +613,7 @@ def main():
                                 cmd = "CHECK_TEMPERATURE"
                                 arg = ""
                                 ser_in.put((cmd, arg))      # Requesting current temperature
+                                msg = None
                             else:
                                 report_TC_off(tcp_in,)       # Letting user know that TC is off
                         case InitStep.CURRENT_T:            # Checking current T 
@@ -286,6 +630,7 @@ def main():
 
                                 timer_T = Timer(2, ser_in.put, args=(("CHECK_TARGET", ""),))
                                 timer_T.start()             # After 2 sec, request current target T
+                                msg = None
                             except ValueError:
                                 cmd = "CHECK_TEMPERATURE"
                                 arg = ""
@@ -294,6 +639,7 @@ def main():
                         case InitStep.SETPT_T:
                             try: 
                                 target_T = int(float(msg[0:4]))
+                                msg = None
                                 print(f"[MAIN] event: received target temperature: {received_T} K")
                                 if (abs(target_T - received_T) < 1):
                                     cmd = "CONTROL_ON"
@@ -326,36 +672,64 @@ def main():
                                 ser_in.put((cmd, arg))
                                 timer_T = Timer(2, ser_in.put, args=(("CONTROL?", ""),))
                                 timer_T.start()             # After 2 sec, request status of control
+                            msg = None    
 
 #-----------------------Experiment flow-----------------------------------------------------------------------------------
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.WAITING):
                     try:
                         spectum_requested = False       # Flag spectrum not requested at the start of a new cycle
-                        received_T = int(float(msg[0:4]))           
-                        if next_T == str(received_T):   # Check if the received temperature matches the next_T
+                        T_stabilisation_count = -1       # Reset T stabilisation
+                        received_T = int(float(msg[0:4]))   
+                        msg = None        
+                        if ((next_T == str(received_T)) or   # Check if the received temperature matches the next_T
+                            ((int(next_T) <= 12) and (received_T == 0))):    # Check if confirmed target is 0 if next T is below or equal to 12 K
                             print(f"[MAIN] event: target accepted: {received_T} K")
                             cmd = "SEND"
                             arg = "TARGET_T= " + str(received_T)
                             tcp_in.put((cmd, arg))      # Inform iHR320 about new T target
+                            log = Log(
+                                timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                                text = f"New target has been set: T = {next_T} K"
+                            )
+                            exp_details = ExperimentDetails(
+                                status = ExpStatus.RUNNING.value,
+                                length = experiment_state.experimentLength,
+                                progress = experiment_state.experimentProgressIndex
+                            )
+                            send_log_to_server(log, exp_details)
                             experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.REQUESTED
                     except ValueError:
                         print(f"[MAIN] event: received non-numeric temperature value: {msg}")
                 case ExperimentStep(action=StepName.TEMPERATURE, status=StepStatus.REQUESTED):
                     try: 
                         received_T = float(msg[0:5])
+                        msg = None
                         print(f"[MAIN] event: received temperature: {received_T} K")
                         if next_T:
                             next_T_value = int(next_T)
                         else:
                             next_T_value = int(experiment_state.experimentParameters.Ts[-1])  # Default to the last temperature if next_T is None
-                        if abs(next_T_value - received_T) < 0.5:  # Check if the received temperature is within 0.5 K of the next_T
-                            T_stabilisation_mins += 1
+                        if ((abs(next_T_value - received_T) <= 0.5) or          # Check if the received temperature is within 0.5 K of the next_T
+                            ((next_T_value <= 12) and (received_T <= 12)) or    # Check if the received T is low enough to be considered stable (below 12 K)
+                            ((next_T_value >= 300) and (abs(next_T_value - received_T + 0.25) <= 0.75))):    # Increase tolerance for T >= 300 K 
+                            T_stabilisation_count += 1
                         else:
-                            T_stabilisation_mins = -1  # Reset stabilisation counter if temperature is not within tolerance
+                            T_stabilisation_count = -1  # Reset stabilisation counter if temperature is not within tolerance
                     except ValueError:
                         print(f"[MAIN] event: received non-numeric temperature value: {msg}")  
-                    if T_stabilisation_mins >= 2:  # If the temperature has been stable for 3 consecutive checks (approximately 2 minutes), consider it stabilized
-                        experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED                     
+                    if T_stabilisation_count >= 2:  # If the temperature has been stable for 3 consecutive checks (approximately 2 minutes), consider it stabilized
+                        log = Log(
+                            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                            text = f"The target has been reached: T = {next_T} K"
+                        )
+                        exp_details = ExperimentDetails(
+                            status = ExpStatus.RUNNING.value,
+                            length = experiment_state.experimentLength,
+                            progress = experiment_state.experimentProgressIndex
+                        )
+                        send_log_to_server(log, exp_details)                        
+                        experiment_state.experimentFlow.cycles[completed_cycle + 1].T.status = StepStatus.COMPLETED   
+        
         time.sleep(TIMEOUT)
 
 

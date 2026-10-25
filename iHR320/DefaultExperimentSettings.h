@@ -30,16 +30,18 @@ const int default_StartWL = 340;
 const int default_DGRangeNo = 3;
 const int default_NA = 4;
 const int default_MaxAT = 250;
+const int default_LEFrom = 0;				// Laser exclusion (wavelength range)
+const int default_LETo = 0;
 
 
 const std::vector<std::string> default_Ts = {
-	"10", "20", "30", "40", "50", "60", "80", "100", "120", "150", "180", "220", "260", "300"
+	"11", "20", "30", "40", "50", "60", "80", "100", "120", "140", "160", "180", "200", "220", "240", "260", "280", "300"
 };
 const bool default_isCRRemoval = TRUE;
 const int default_Slits = 0;
 
 // General configurations:
 const int minPhSlt = 10;					// Physically smallest slits
-const int maxCCDI = int(std::pow(2, 14));	// Maximal allowed count from CCD
+const int maxCCDI = int(std::pow(2, 14));	// Maximal allowed count from CCD, 
 const int minCCDI = int(std::pow(2, 11));	// Minimal allowed count from CCD
 const int HBRate = 60;						// Heartbeat rate in seconds

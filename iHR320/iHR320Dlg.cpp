@@ -317,6 +317,9 @@ void CiHR320Dlg::SelectTab(int index)
 {
 	m_tab.SetCurSel(index);
 	OnTabSelChange(nullptr, nullptr);
+	if (index == 1) {
+		SendTCPMessage(this, ip_PLC, port_PLC, "EXP_STATUS NOT_STARTED");
+	}
 }
 
 std::string CiHR320Dlg::GetLocalIP() {
@@ -436,6 +439,16 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			m_connectivityDlg.m_CheckBoxPLC.SetCheck(TRUE);
 			m_connectivityDlg.m_CheckBoxPLC.SetWindowText(_T("Connected"));
 		}
+		else if (msg == _T("SRV_ON")) {				// Flag Server is online
+			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[server] Status: online"));
+			m_connectivityDlg.m_CheckBoxServer.SetCheck(TRUE);
+			m_connectivityDlg.m_CheckBoxServer.SetWindowText(_T("Online"));
+		}
+		else if (msg == _T("SRV_OFF")) {			// Flag Server is offline
+			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[server] Status: offline"));
+			m_connectivityDlg.m_CheckBoxServer.SetCheck(FALSE);
+			m_connectivityDlg.m_CheckBoxServer.SetWindowText(_T("Offline"));
+		}
 		else if (msg == _T("EXP_NONE")) {			// No running experiment on PLC
 			m_connectivityDlg.m_ConnectionLogs.AddItem(_T("[PLC] No active experiment. Ready to accept one."));
 			Sleep(2000);
@@ -461,6 +474,7 @@ LRESULT CiHR320Dlg::OnPutLog(WPARAM wParam, LPARAM lParam)
 			EnableExpFlowDlg();
 			SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);				// prevent system from sleeping
 			m_flowDlg.m_pauseResumeBtn.SetWindowTextW(_T("Continue"));
+			m_flowDlg.m_nextUserAction = _T("Continue");
 			Sleep(2000);
 			SelectTab(2);
 			m_flowDlg.m_ExpFlowLogs.AddItem(_T("[UI-APP] Experiment successfully restored and currently paused."));
@@ -772,9 +786,9 @@ void CiHR320Dlg::RestartPLC()
 	m_connectivityDlg.m_CheckBoxPLC.SetCheck(FALSE);
 	m_connectivityDlg.m_CheckBoxPLC.SetWindowText(_T("Offline"));
 	std::wcout << L"PLC is not responding; restarting it...\n";
-	const std::string command = "plink -batch -ssh pl-ple@" + ip_PLC +
+	const std::string command = "plink -batch -ssh " + RPiUsr + "@" + ip_PLC +
 		" -pw " + RPiPwd +
-		" \"nohup python3 '/home/pl-ple/Documents/My Projects/AMTCS-System/PLC/PLC.py' > /dev/null 2>&1 &\"";
+		" \"nohup /usr/bin/python3 '" + RPiPLCPth + "' > /dev/null 2>&1 &\"";
 	std::system(command.c_str());
 	Sleep(1000);
 
@@ -951,11 +965,20 @@ void CiHR320Dlg::GetSlits()
 
 void CiHR320Dlg::SetSlits(double newSlits)
 {
-	if (m_settingsDlg.m_Slits.IsWindowEnabled())
+	std::cout << "SetSlits called: " << newSlits
+		<< " mm, enabled = "
+		<< (m_settingsDlg.m_Slits.IsWindowEnabled() || m_isExperimentStarted)
+		<< "\n";
+	// User can change it OR experiment automation is allowed to change it
+	if (m_settingsDlg.m_Slits.IsWindowEnabled() || m_isExperimentStarted)
 	{
+		std::cout << "Calling MovetoSlitWidth...\n";
 		m_jyMono->MovetoSlitWidth(Front_Entrance, newSlits);
 	}
-
+	else
+	{
+		std::cout << "Slits control is DISABLED - command NOT sent!\n";
+	}
 }
 
 void CiHR320Dlg::SetMirror()
@@ -1117,8 +1140,15 @@ void CiHR320Dlg::AddNewT(int T)								// Adds extra data point to running exper
 
 	ExperimentParameters newParams = GetExperimentParameters();
 
+	m_askUser.s_question.Format(_T("Are you sure you want to add an over %d K temperature?"), HT);
 	if (m_settingsDlg.experimentState.experimentLength == 1) {
-		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
+		if (T <= HT || m_askUser.DoModal() == IDOK) {
+			m_settingsDlg.m_VSListBox_T.AddItem(strT, T);
+		}
+		else {
+			m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature: (") + strT + _T(" K) cancelled."));
+			return;
+		}
 	}
 	else if (currentT > lastT && previousT > T) {			// Temperatures in descending order
 		m_settingsDlg.m_VSListBox_T.AddItem(strT, T);		
@@ -1132,17 +1162,14 @@ void CiHR320Dlg::AddNewT(int T)								// Adds extra data point to running exper
 		m_flowDlg.m_ExpFlowLogs.AddItem(_T("New temperature (") + strT + _T(" K) is out of allowed range"));
 		return;
 	}
-	m_askUser.s_question.Format(_T("Are you sure you want to add an over %d K temperature?"), HT);
-	if (T <= HT || m_askUser.DoModal() == IDOK) {
-		newParams.Ts = m_settingsDlg.m_VSListBox_T.GetAllItemTs();
-		m_settingsDlg.experimentState.setExpParams(newParams);
-		m_settingsDlg.experimentState.experimentLength++;
-		m_settingsDlg.OnBnClickedStart();
-		m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature (") + strT + _T(" K) requested."));
-	}
-	else {
-		m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature: (") + strT + _T(" K) cancelled."));
-	}
+	if (m_settingsDlg.experimentState.experimentLength == m_settingsDlg.m_VSListBox_T.GetCount()) { return; }
+	SendTCPMessage(this, ip_PLC, port_PLC, "NEW_T " + std::to_string(T));
+	newParams.Ts = m_settingsDlg.m_VSListBox_T.GetAllItemTs();
+	m_settingsDlg.experimentState.experimentLength = m_settingsDlg.m_VSListBox_T.GetCount();
+	m_settingsDlg.experimentState.setExpParams(newParams);
+	m_settingsDlg.OnBnClickedStart();
+	m_flowDlg.m_ExpFlowLogs.AddItem(_T("Adding new temperature (") + strT + _T(" K) requested."));
+		
 }
 
 void CiHR320Dlg::PostMessageToUI(UINT message, CString logMessage) {
@@ -1201,6 +1228,7 @@ void CiHR320Dlg::SetExpProgress()
 void CiHR320Dlg::RepeatPreviousT()
 {
 	if (m_settingsDlg.experimentState.experimentProgressIndex > -1) {
+		SendTCPMessage(this, ip_PLC, port_PLC, "REPEAT_T");
 		m_settingsDlg.experimentState.experimentProgressIndex--;
 		EnableDlg(&m_flowDlg, FALSE);
 		m_settingsDlg.OnBnClickedStart();
@@ -1241,17 +1269,19 @@ void CiHR320Dlg::StartTimer(UINT_PTR nIDEvent, int _sec) {
 
 void CiHR320Dlg::StopTimer(UINT_PTR nIDEvent) {
 	if (nIDEvent == TIMER_EXP_PAUSE_CONTINUE) {
-		m_flowDlg.m_pauseResumeBtn.SetWindowTextW(m_flowDlg.m_nextUserAction);
 		if (m_flowDlg.m_nextUserAction == _T("Continue")) {
-			m_flowDlg.m_cancelExp.EnableWindow(FALSE);
-			m_flowDlg.m_repeatPreviousTBtn.EnableWindow(FALSE);
-			m_flowDlg.m_addNewTBtn.EnableWindow(FALSE);
-		}
-		else {
+			m_flowDlg.m_nextUserAction = _T("Pause indefinitely");		// For changing name button for "Pause"
 			m_flowDlg.m_cancelExp.EnableWindow(TRUE);
 			m_flowDlg.m_repeatPreviousTBtn.EnableWindow(TRUE);
 			m_flowDlg.m_addNewTBtn.EnableWindow(TRUE);
 		}
+		else {
+			m_flowDlg.m_nextUserAction = _T("Continue");				// For changing name button for "Continue"
+			m_flowDlg.m_cancelExp.EnableWindow(FALSE);
+			m_flowDlg.m_repeatPreviousTBtn.EnableWindow(FALSE);
+			m_flowDlg.m_addNewTBtn.EnableWindow(FALSE);
+		}
+		m_flowDlg.m_pauseResumeBtn.SetWindowTextW(m_flowDlg.m_nextUserAction);
 	}
 	KillTimer(nIDEvent);
 }
@@ -1293,6 +1323,7 @@ void CiHR320Dlg::OnTimer(UINT_PTR nIDEvent) {
 				else {
 					m_connectivityDlg.m_ConnectionLogs.AddItem(_T("Experiment state requested. Waiting for PLC response..."));
 				}
+				g_isPLCOnAtStart = false;
 			}
 			else {
 				Sleep(2000);

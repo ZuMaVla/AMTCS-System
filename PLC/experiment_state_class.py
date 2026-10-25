@@ -13,6 +13,8 @@ class ExperimentParameters:
     DGRangeNo: int = 0
     NA: int = 0
     slits: int = 0
+    LEFrom: int = 0
+    LETo: int = 0
     maxAT: int = 0
     isCRRemoval: bool = False
 
@@ -89,6 +91,8 @@ class ExperimentState:
         self.experimentFlow = ExperimentFlow()
         self.experimentProgressIndex = -1
         self.experimentLength = len(self.experimentParameters.Ts)
+        self.rcServerAccessCode = "PL1234"
+        self.isExpSimulated = False
 
     def serialise(self) -> str:
         """Converts the current state to a JSON string."""
@@ -97,6 +101,8 @@ class ExperimentState:
             "experimentParameters": asdict(self.experimentParameters),
             "experimentProgressIndex": self.experimentProgressIndex,
             "experimentLength": self.experimentLength,
+            "rcServerAccessCode": self.rcServerAccessCode,
+            "isExpSimulated": self.isExpSimulated,
         }
         return json.dumps(state_dict)
 
@@ -105,9 +111,6 @@ class ExperimentState:
         try:
             data = json.loads(json_string)
             
-            # Retrieve the experiment progress index
-            self.experimentProgressIndex = data.get("experimentProgressIndex", -1)
-
             # Retrieve the experiment parameters
             param_data = data.get("experimentParameters", {})
             if param_data:
@@ -115,9 +118,17 @@ class ExperimentState:
                     if hasattr(self.experimentParameters, key):
                         setattr(self.experimentParameters, key, value)
 
+            # Retrieve the experiment progress index
+            self.experimentProgressIndex = data.get("experimentProgressIndex", -1)
+            
             # Retrieve the experiment length
             self.experimentLength = data.get("experimentLength", 0)
+
+            # Retrieve the server access code
+            self.rcServerAccessCode = data.get("rcServerAccessCode", "PL1234")
             
+            # Retrieve the experiment length
+            self.isExpSimulated = data.get("isExpSimulated", False)
                 
         except (json.JSONDecodeError, TypeError) as e:
             print(f"Error parsing JSON: {e}")

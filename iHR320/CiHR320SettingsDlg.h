@@ -64,4 +64,11 @@ public:
 	afx_msg void OnDGRangeNoChanged(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnSampleCodeChanged();
 	CButton m_startExpBtn;
+	// Access code for remote control server
+	CEdit m_rcSACode;
+	
+	CEdit m_LEFrom;										// Laser exclusion wavelength range start
+	afx_msg void OnLEFromChanged();						// Laser exclusion wavelength range start
+	CEdit m_LETo;										// Laser exclusion wavelength range end
+	afx_msg void OnLEToChanged();						// Laser exclusion wavelength range end
 };

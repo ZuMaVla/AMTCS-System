@@ -51,7 +51,7 @@ END_OBJECT_MAP()
 bool isPLCRunning(const std::string& scriptName) {
 	// -f checks the full command line (needed for Python scripts)
 	// > nul (Windows) or > /dev/null (Linux) hides the output
-	std::string checkCmd = "plink -batch -ssh pl-ple@" + ip_PLC + " -pw " + RPiPwd + " \"pgrep -f " + scriptName + "\" > nul";
+	std::string checkCmd = "plink -batch -ssh " + RPiUsr + "@" + ip_PLC + " -pw " + RPiPwd + " \"pgrep -f " + scriptName + "\" > nul";
 	bool result = std::system(checkCmd.c_str()) == 0;		// std::system returns 0 if pgrep finds the process
 	if (result) std::wcout << L"PLC already running...\n";
 
@@ -103,13 +103,33 @@ BOOL CiHR320App::InitInstance()
 		if (!isPLCRunning("PLC.py")) {
 			std::wcout << L"PLC is not running; starting it...\n";
 			// Start PLC
-			const std::string command = "plink -batch -ssh pl-ple@" + ip_PLC + 
+			const std::string command = "plink -batch -ssh " + RPiUsr + "@" + ip_PLC +
 				" -pw " + RPiPwd +
-				" \"nohup python3 '/home/pl-ple/Documents/My Projects/AMTCS-System/PLC/PLC.py' > /dev/null 2>&1 &\"";
+				" \"nohup /usr/bin/python3 '" + RPiPLCPth + "' > /dev/null 2>&1 &\"";
+			std::cout << command;
 			std::system(command.c_str());
 			Sleep(1000);
 		}
 		else g_isPLCOnAtStart = true;
+
+		std::cout << std::endl;
+
+		// Set port forwarding
+		std::string pfCmd =
+			"netsh interface portproxy add v4tov4 "
+			"listenaddress=0.0.0.0 listenport=80 "
+			"connectaddress=" + ip_PLC + " connectport=8000 ";
+		std::cout << pfCmd;
+		std::system(pfCmd.c_str());
+		std::cout << std::endl;
+
+		// Add firewall rule for http access to PC
+		std::string fwCmd =
+			"netsh advfirewall firewall add rule "
+			"name=\"Portproxy 80\" "
+			"dir=in action=allow protocol=TCP localport=80 ";
+		std::cout << fwCmd;
+		std::system(fwCmd.c_str());
 	}
 
 	// Initialize OLE libraries
@@ -210,6 +230,21 @@ int CiHR320App::ExitInstance()
 		m_bATLInited = FALSE;
 	}
 
+	// Undo port forwarding
+	std::cout << std::endl;
+	std::string undoPF =
+		"netsh interface portproxy delete v4tov4 "
+		"listenaddress=0.0.0.0 listenport=80";
+	std::system(undoPF.c_str());
+
+	// Undo firewall rule
+	std::cout << std::endl;
+	std::string undoFW =
+		"netsh advfirewall firewall delete rule "
+		"name=\"Portproxy 80\" ";
+	std::system(undoFW.c_str());
+
+	Sleep(2000);
 	return CWinApp::ExitInstance();
 }
 

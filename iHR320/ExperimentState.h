@@ -13,6 +13,8 @@ struct ExperimentParameters {
 	int NA = default_NA;
 	int slits = default_Slits;
 	int maxAT = default_MaxAT;
+	int LEFrom = default_LEFrom;
+	int LETo = default_LETo;
 	bool isCRRemoval = default_isCRRemoval;
 };
 
@@ -26,6 +28,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
 	NA, 
 	slits,
 	maxAT,
+	LEFrom,
+	LETo,
 	isCRRemoval
 )
 
@@ -38,6 +42,8 @@ public:
 	void importJSONString(const std::string & jsonString);
 	int experimentProgressIndex = -1;
 	int experimentLength = experimentParameters.Ts.size();
+	std::string rcServerAccessCode = "PL1234";
+	bool isExpSimulated = false;
 
 	std::string serialiseState();							// State -> JSON (to be send to PLC)
 	void deserialiseState();								// JSON (from PLC) -> State 
@@ -50,7 +56,9 @@ protected:
 		CExperimentState,
 		experimentParameters,
 		experimentProgressIndex,
-		experimentLength
+		experimentLength,
+		rcServerAccessCode,
+		isExpSimulated
 	)
 };
 

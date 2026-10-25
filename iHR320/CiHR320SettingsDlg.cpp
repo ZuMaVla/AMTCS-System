@@ -58,6 +58,9 @@ void CiHR320SettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SAVE_FOLDER, m_workDir);
 	DDX_Control(pDX, IDC_SAMPLE_CODE, m_sampleCode);
 	DDX_Control(pDX, IDC_START, m_startExpBtn);
+	DDX_Control(pDX, IDC_RC_SERVER_ACCESS_CODE, m_rcSACode);
+	DDX_Control(pDX, IDC_NUMBER_LE_FROM, m_LEFrom);
+	DDX_Control(pDX, IDC_NUMBER_LE_TO, m_LETo);
 }
 
 
@@ -77,6 +80,8 @@ BEGIN_MESSAGE_MAP(CiHR320SettingsDlg, CDialogEx)
 
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_DG_POSITIONS, &CiHR320SettingsDlg::OnDGRangeNoChanged)
 	ON_EN_CHANGE(IDC_SAMPLE_CODE, &CiHR320SettingsDlg::OnSampleCodeChanged)
+	ON_EN_KILLFOCUS(IDC_NUMBER_LE_FROM, &CiHR320SettingsDlg::OnLEFromChanged)
+	ON_EN_KILLFOCUS(IDC_NUMBER_LE_TO, &CiHR320SettingsDlg::OnLEToChanged)
 END_MESSAGE_MAP()
 
 
@@ -151,9 +156,13 @@ ExperimentParameters CiHR320SettingsDlg::CollectExperimentParameters()
 	ExperimentParameters expParams;								// Experiment parameters container to be populated from UI
 	CString text;
 
-	// 1. Retrieve Sample Code
+	// 0. Retrieve Sample Code
 	m_sampleCode.GetWindowTextW(text);
 	expParams.sampleCode = std::string(CT2A(text, CP_UTF8));
+
+	// 1. Specify remote control server access code
+	m_rcSACode.GetWindowTextW(text);
+	experimentState.rcServerAccessCode = std::string(CT2A(text, CP_UTF8));
 
 	// 2. Retrieve current temperature list
 	expParams.Ts = m_VSListBox_T.GetAllItemTs();
@@ -180,7 +189,15 @@ ExperimentParameters CiHR320SettingsDlg::CollectExperimentParameters()
 	m_maxAT.GetWindowTextW(text);
 	expParams.maxAT = _ttoi(text);
 
-	// 9. Retrieve cosmic ray removal setting
+	// 9. Retrieve laser exclusion "from" wavelength
+	m_LEFrom.GetWindowTextW(text);
+	expParams.LEFrom = _ttoi(text);
+
+	// 10. Specify laser exclusion "to" wavelength
+	m_LETo.GetWindowTextW(text);
+	expParams.LETo = _ttoi(text);
+
+	// 11. Retrieve cosmic ray removal setting
 	expParams.isCRRemoval = (m_isCRRemoval.GetCheck() == BST_CHECKED);
 
 	return expParams;
@@ -190,9 +207,13 @@ void CiHR320SettingsDlg::SetExperimentParameters()
 {
 	ExperimentParameters expParams = experimentState.getExpParams();
 
-	// 1. Specify sample code
+	// 0. Specify sample code
 	CString text(expParams.sampleCode.c_str());
 	m_sampleCode.SetWindowTextW(text);
+
+	// 1. Specify remote control server access code
+	text = experimentState.rcServerAccessCode.c_str();
+	m_rcSACode.SetWindowTextW(text);
 
 	// 2. Set temperature list
 	m_VSListBox_T.RemoveAll();
@@ -221,7 +242,15 @@ void CiHR320SettingsDlg::SetExperimentParameters()
 	text.Format(L"%d", expParams.maxAT);
 	m_maxAT.SetWindowTextW(text);
 
-	// 9. Set cosmic ray check box state
+	// 9. Specify laser exclusion "from" wavelength
+	text.Format(L"%d", expParams.LEFrom);
+	m_LEFrom.SetWindowTextW(text);
+
+	// 10. Specify laser exclusion "to" wavelength
+	text.Format(L"%d", expParams.LETo);
+	m_LETo.SetWindowTextW(text);
+
+	// 11. Set cosmic ray check box state
 	if (expParams.isCRRemoval)
 	{
 		m_isCRRemoval.SetCheck(BST_CHECKED);
@@ -288,7 +317,7 @@ void CiHR320SettingsDlg::OnSlitsChanged()
 		return;
 	}
 	m_mainWnd->SetSlits(value/1000.0);		// Convert µm (UI) -> mm (CCD)
-	m_mainWnd->m_acqParams.slits = value;
+//	m_mainWnd->m_acqParams.slits = value;
 	temp.slits = value;
 	experimentState.setExpParams(temp);
 }
@@ -298,6 +327,7 @@ void CiHR320SettingsDlg::OnStartWLSliderMoving(
 {
 	NMTRBTHUMBPOSCHANGING* pNMTPC = reinterpret_cast<NMTRBTHUMBPOSCHANGING*>(pNMHDR);
 	ExperimentParameters temp = experimentState.getExpParams();
+	CString msg;
 
 	int continuousPos = pNMTPC->dwPos;   // <-- This is the thumb position
 	int tick = 10;
@@ -310,6 +340,15 @@ void CiHR320SettingsDlg::OnStartWLSliderMoving(
 	
 	*pResult = 0;
 	temp.StartWL = snappedPos;
+	if (temp.LEFrom != 0 && temp.StartWL > temp.LEFrom) {
+		m_LEFrom.SetWindowText(_T("0"));
+		temp.LEFrom = 0;
+		m_LETo.SetWindowText(_T("0"));
+		temp.LETo = 0;
+		msg.Format(_T("Laser exclusion range was defaulted!"));
+		AfxMessageBox(msg);
+	}
+
 	experimentState.setExpParams(temp);
 }
 
@@ -328,6 +367,14 @@ void CiHR320SettingsDlg::OnStartWLChanged()
 	}
 	m_sliderStartWL.SetPos(value);
 	temp.StartWL = value;
+	if (temp.LEFrom != 0 && temp.StartWL > temp.LEFrom) {
+		m_LEFrom.SetWindowText(_T("0"));
+		temp.LEFrom = 0;
+		m_LETo.SetWindowText(_T("0"));
+		temp.LETo = 0;
+		msg.Format(_T("Laser exclusion range was defaulted!"));
+		AfxMessageBox(msg);
+	}
 	experimentState.setExpParams(temp);
 }
 
@@ -346,7 +393,7 @@ void CiHR320SettingsDlg::OnMaxATChanged()
 		return;
 	}
 	m_mainWnd->SetAT(value/1000.0);
-	m_mainWnd->m_acqParams.AT = value;
+//	m_mainWnd->m_acqParams.AT = value;
 	temp.maxAT = value;
 	experimentState.setExpParams(temp);
 }
@@ -420,9 +467,10 @@ void CiHR320SettingsDlg::OnBnClickedStart()
 			experimentState.setExpParams(CollectExperimentParameters());
 			experimentState.experimentProgressIndex = -1;
 			experimentState.experimentLength = experimentState.getExpParams().Ts.size();
+			experimentState.isExpSimulated = m_mainWnd->m_simulationMode;
 			m_mainWnd->DisableExpSettDlg();
-			m_mainWnd->m_acqParams.slits = experimentState.getExpParams().slits;
-			m_mainWnd->m_acqParams.AT = experimentState.getExpParams().maxAT;
+			m_mainWnd->m_acqParams.slits = -1;
+			m_mainWnd->m_acqParams.AT = -1;
 		}
 		else {
 			AfxMessageBox(_T("At least one temperature is required to start an experiment!"));	// If T list is empty
@@ -491,5 +539,49 @@ void CiHR320SettingsDlg::OnSampleCodeChanged()
 	}
 	CT2A asciiText(strText);
 	temp.sampleCode = std::string(asciiText);
+	experimentState.setExpParams(temp);
+}
+
+
+void CiHR320SettingsDlg::OnLEFromChanged()
+{
+	CString msg;
+	BOOL success = FALSE;
+	int value = GetDlgItemInt(IDC_NUMBER_LE_FROM, &success, TRUE);
+	int endLE = GetDlgItemInt(IDC_NUMBER_LE_TO, &success, TRUE);
+	ExperimentParameters temp = experimentState.getExpParams();
+	int startWL = GetDlgItemInt(IDC_MEASURE_FROM, &success, TRUE);
+
+	if ((value != 0 && value < startWL) || value >= endLE) {
+		msg.Format(_T("Specified value is out of range: "), startWL, endLE, _T("(nm)"));
+		AfxMessageBox(msg);
+		m_LEFrom.SetWindowText(_T("0"));
+		value = 0;
+		m_LETo.SetWindowText(_T("0"));
+		temp.LETo = 0;
+	}
+	temp.LEFrom = value;
+	experimentState.setExpParams(temp);	
+}
+
+
+void CiHR320SettingsDlg::OnLEToChanged()
+{
+	CString msg;
+	BOOL success = FALSE;
+	int value = GetDlgItemInt(IDC_NUMBER_LE_TO, &success, TRUE);
+	int startLE = GetDlgItemInt(IDC_NUMBER_LE_FROM, &success, TRUE);
+	ExperimentParameters temp = experimentState.getExpParams();
+	int startWL = GetDlgItemInt(IDC_MEASURE_FROM, &success, TRUE);
+
+	if ((value != 0 && value <= startLE) || value > 1.5*extreme_StartWL[1]) {
+		msg.Format(_T("Specified value is out of range: "), startLE, 1.5*extreme_StartWL[1], _T("(nm)"));
+		AfxMessageBox(msg);
+		m_LETo.SetWindowText(_T("0"));
+		value = 0;
+		m_LEFrom.SetWindowText(_T("0"));
+		temp.LEFrom = 0;
+	}
+	temp.LETo = value;
 	experimentState.setExpParams(temp);
 }
